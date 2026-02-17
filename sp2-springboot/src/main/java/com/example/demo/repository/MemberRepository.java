@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository; //import JPA Repository
 import org.springframework.stereotype.Repository;
 
+//不需要寫任何 SQL，因為 JpaRepository 已經內建了對 Pageable 的支援。
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer> {
 	/*
@@ -30,4 +31,5 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 	Optional<Member> findByUsername(String username);
 
 	boolean existsByUsername(String username);
+	// 不需要額外寫 findAll(Pageable)，JpaRepository 已經內建了
 }

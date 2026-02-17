@@ -5,6 +5,55 @@
 <title>Insert title here</title>
 </head>
 <body>
+	<!-- 1. 建立水平兩端對齊的佈局 -->
+	<!-- display: flex; justify-content: space-between;： 
+		用意：這會讓內部的兩個子元素分別「吸附」在左右兩端。 -->
+	<div
+		style="display: flex; justify-content: space-between; align-items: center; padding: 10px; color: white;">
+		<!-- 左側元素：顯示 "TL" 字樣，通常代表網站的 Logo 或縮寫。		-->
+		<div style="font-size: 32px; font-weight: bold;">TL</div>
+		<!-- 右側元素：一個 id="title-user-info" 的空白區塊，預留給「使用者資訊」（如用戶名或登入狀態）。 -->
+		<div id="title-user-info" style="fone-weight: bold;"></div>
+	</div>
+
+	<script>
+		/* 有 $ 符號的：$(function() { ... });
+		 	jQuery 的「文件就緒（Document Ready）」函式。
+				用意：會告訴瀏覽器：「先載入所有的 HTML 標籤（如 Logo 和資訊欄位），等網頁結構都準備好後，再執行括號內的程式碼。」
+				特性：它是自動執行的。當網頁一打開，會自動去 sessionStorage 讀取 userName，並決定要顯示「歡迎登入」還是「訪客，您好」。
+				為什麼要用 $：因為它是 jQuery 套件提供的功能，$ 是 jQuery 的縮寫代號。  */
+		$(function() {
+			let loginName = sessionStorage.getItem("userName");//截取登入資訊
+
+			if (loginName) {
+				//已登入：顯示歡迎詞與登出按鈕
+				$("#title-user-info")
+						.html(
+								"Welcom Back "
+										+ loginName
+										+ "！"
+										+ "<button onclick='globalLogout()' style='cursor:pointer; margin-left:10px;'>登出</button>");
+				//通知父頁面隱藏登入列
+				$("#auth-row").hide();
+			} else {
+				//未登入
+				$("#title-user-info").html("訪客，您好");
+				$("#auth-row").show();
+			}
+		});
+		/* 沒有 $ 符號的：function globalLogout() { ... }
+			「一般的自定義函式」。
+				用意：定義了一組特定的動作（確認登出、移除資訊、跳轉頁面），但它不會自動執行。
+		 	觸發時機：必須等到使用者做了某個動作（例如點擊了「登出」按鈕）時才會被觸發。
+		 	關聯性：在上面的就緒函式中，動態產生了一個按鈕，並寫了 onclick='globalLogout()'，這就是告訴瀏覽器：當按鈕被按時，去執行下面那個沒有 $ 的函式。 */
+		//全域登出模式
+		function globalLogout() {
+			if (confirm("確定要登出嗎>")) {
+				sessionStorage.removeItem("userName");
+				window.location.href = "index.html";
+			}
+		}
+	</script>
 	<font color="white" size="7"><b><h1>TL</h1></b></font>
 </body>
 </html>

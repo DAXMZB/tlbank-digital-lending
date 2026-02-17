@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -54,6 +55,16 @@ public class MemberController {
 		Optional member = memberService.login(m.getUsername(), m.getPassword());
 		return ResponseEntity.ok(member);
 
+	}
+
+	@GetMapping("/list")
+//	@RequestParam：從 URL 網址抓取參數（例如 ?page=1&size=5）。
+//	defaultValue = "0"：如果前端沒傳 page，預設顯示第 1 頁（索引從 0 開始）。
+//	defaultValue = "10"：如果前端沒傳 size，預設每頁顯示 10 筆資料。
+	public ResponseEntity<Page<Member>> getMemberList(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return ResponseEntity.ok(memberService.getAllMembers(page, size));
 	}
 
 }

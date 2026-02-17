@@ -49,6 +49,8 @@
 						success : function(member) {
 							//1.將姓名存入瀏覽器記憶體，這樣重新整理才不會消失
 							sessionStorage.setItem("userName", member.name);
+							//1.將帳號存入瀏覽器記憶體，這樣重新整理才不會消失
+							sessionStorage.setItem("memberNo", member.memberNo);
 
 							//2.執行跳轉
 							window.location.href = "index.html";

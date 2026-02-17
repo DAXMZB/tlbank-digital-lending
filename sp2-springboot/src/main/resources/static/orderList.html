@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<style>
+/* UI Components: Card-style layout for each order */
+/* UI 元件：每筆訂單採用卡片式佈局 */
+.order-card {
+	border: 2px solid #4CAF50;
+	margin-bottom: 20px;
+	padding: 15px;
+	background: white;
+	border-radius: 8px;
+	/* 【新增】限制寬度並置中 */
+	max-width: 1000px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.order-header {
+	font-weight: bold;
+	border-bottom: 1px solid #ccc;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	display: flex;
+	justify-content: space-between;
+}
+
+.item-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 10px
+}
+
+.item-table th {
+	background: #f2f2f2;
+	text-align: left;
+}
+
+.btn-delete {
+	background-color: #dc3545; /* 警示紅 */
+	color: white;
+	border: none;
+	padding: 5px 10px;
+	cursor: pointer;
+	border-radius: 4px;
+	font-weight: bold;
+	transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+	background-color: #a71d2a; /* 懸停時顏色加深 */
+	transform: scale(1.05); /* 微幅放大 */
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+</style>
+
+</head>
+<body bgcolor="#faebd7">
+	<div style="width: 80%; margin: 20px auto;">
+		<h2>📋 購物車</h2>
+		<div>
+			<input type="checkbox" id="select-all"><label
+				for="select-all">全選</label>
+		</div>
+	</div>
+	<div id="orders-container"></div>
+
+	<div
+		style="text-align: right; margin-top: 20px; border-top: 2px solid #ccc; padding-top: 10px; width: 80%; margin: 20px auto;">
+		<h3>
+			選取金額總計：NT$ <span id="checkout-total">0</span>
+		</h3>
+		<button id="ecpay-btn" class="btn-delete"
+			style="background-color: #28a745;">前往綠界科技結帳</button>
+	</div>
+
+	<script>
+		$(function(){
+			/** * Authentication Check: Ensure user is logged in
+             * 身份驗證檢查：確保使用者已登入
+             */
+			let mNo = sessionStorage.getItem("memberNo");
+			if(!mNo){ alert("請先登入"); window.location.href = "login.html"; return;}
+			
+			// 呼叫 API 取得 Eric 的所有訂單
+			$.get("/api/orders/member/" + mNo, function(orders){
+				if(orders.length === 0){
+					$("#orders-container").html("<p>目前尚無訂單紀錄</p>");
+					return;
+				}
+				
+				$("#orders-container").empty(); //清空舊內容
+				// 1.建立訂單外框與主檔資訊
+				orders.forEach(order =>{					
+					let orderHtml = `
+						<div class="order-card" id="order-card-${order.id}">
+							<div class="order-header">
+								<div>
+									<input type="checkbox" class="order-selector"
+											data-id="${order.id}"
+											data-amount="${order.totalAmount}">
+									<span>訂單編號：${order.orderNo}</span>
+									<span style="color: #666;; margin-left: 15px;">下單時間：${order.orderTime.replace('T',' ').split('.')[0]}</span>
+								</div>
+							</div>
+							<button onclick="deleteOrder(${order.id})" 
+									class="btn-delete">
+									刪除訂單
+							</button>
+								
+							
+							<p>狀態：<span style="color: blue">${order.status}</span> | 總金額：<strong>NT$ ${order.totalAmount}</strong></p>
+							
+							<table class="item-table" border="1" style="border-collapse: collapse; width: 100%;">
+								<thead>
+									<tr style="background-color: #f2f2f2;">
+										<th>商品名稱</th><th>單價</th><th>數量</th><th>小記</th>
+									</tr>
+								</thead>
+								<tbody>
+									${renderItems(order.items)}</tbody> 
+							</table>
+						</div>`;
+						// Append the generated HTML to the container
+	                    // 將產生的 HTML 附加到容器中
+						$("#orders-container").append(orderHtml);
+				});
+			});
+			//監聽勾選事件
+			$(document).on("change", ".order-selector, #select-all", function(){
+				// 如果點擊的是「全選」按鈕
+				if($(this).attr('id') === 'select-all'){
+					$(".order-selector").prop('checked', $(this).prop('checked'));
+				}
+				// 重新計算「已勾選」的總金額
+				let total = 0;
+				$(".order-selector:checked").each(function(){
+					total += parseInt($(this).data("amount"));
+				});
+				$("#checkout-total").text(total);
+			});
+			//結帳按鈕點擊：發送到後端獲取綠界表單
+			$("#ecpay-btn").click(function(){
+				let selectedIds = [];
+				// 找出所有被勾選的訂單 ID
+				$(".order-selector:checked").each(function(){
+					selectedIds.push($(this).data("id"));
+				});
+				// 檢查是否有選取項目
+				if(selectedIds.length === 0 ){ alert("未勾選訂單"); return;}
+				
+				//使用 $.ajax 傳送 JSON 格式資料給後端
+				$.ajax({
+					url: "/api/ecpay/checkout",
+					type: "POST",
+					contentType: "application/json",
+					data: JSON.stringify(selectedIds),
+					success: function(forHtml){
+						// 綠界結帳成功跳轉邏輯
+						document.write(forHtml); //執行後端傳回的自動提交表單
+					},
+					error: function(xhr){
+						alert("金流連線失敗：" + xhr.responseText);
+					}
+				});
+				
+			});
+			
+			
+			
+			
+		});
+		
+		// 輔助涵式：處理訂單明細的巢狀迴圈
+		function renderItems(items){
+			if(!items) return "";
+			return items.map(item => `
+					<tr>
+						<td>${item.product.productName}</td>
+						<td>${item.price}</td>
+						<td>${item.quantity}</td>
+						<td>${item.price * item.quantity}</td>
+					</tr>
+					`).join('');
+		}
+		
+		function deleteOrder(orderId){
+			if(confirm("確定刪除訂單?")){
+				$.ajax({
+					url: "/api/orders/" + orderId,
+					type: "DELETE",
+					success: function(res){
+						alert(res);
+						// 成功後直接從畫面上移除該卡片，不需重新整理頁面
+						$(`#order-card-${orderId}`).fadeOut(500, function(){
+							$(this).remove();
+							//如果刪除完後沒訂單了，顯示提示文字
+							if($(".order-card").length === 0){
+								$("#orders-container").html("<p>目前尚無訂單紀錄</p>");
+							}
+						});
+					},
+					error: function(xhr){
+						alert("刪除失敗："+ xhr.responseText);
+					}
+				});
+			}
+		}
+	</script>
+
+</body>
+</html>

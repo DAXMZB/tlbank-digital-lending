@@ -3,6 +3,9 @@ package com.example.demo.service.impl;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +28,7 @@ public class MemberServiceImpl implements MemberService {
 		// 1.帳號重複驗證
 		// 這裡就是「HTTP 狀態碼轉換」：根據訊息字串決定要給 409 還是 400
 		if (repo.existsByUsername(m.getUsername())) {
-			throw new MemberException("帳號已重複");//409
+			throw new MemberException("帳號已重複");// 409
 		}
 		// 2.密碼加密
 		String encodedPassword = passwordEncoder.encode(m.getPassword());
@@ -56,9 +59,22 @@ public class MemberServiceImpl implements MemberService {
 		if (repo.existsByUsername(username)) {
 			// 如果存在，直接拋出異常，訊息包含重複或存在
 			// 這裡就是「HTTP 狀態碼轉換」：根據訊息字串決定要給 409 還是 400
-			throw new MemberException("帳號已存在");//400
+			throw new MemberException("帳號已存在");// 400
 		}
 		return false;
+	}
+
+	@Override
+	public Page<Member> getAllMembers(int page, int size) {
+		// TODO Auto-generated method stub
+		// page 為頁碼 (從 0 開始)，size 為每頁幾筆資料
+		Pageable pageable = PageRequest.of(page, size);
+//		呼叫 repo.findAll(pageable) 時：
+//		自動分頁：根據傳入的 page 和 size，自動在 SQL 後面加上 LIMIT 與 OFFSET (以 MySQL 為例)。
+//		自動計算總數：它會同步執行一條 SELECT COUNT(*) 的指令。
+//		封裝結果：最後將資料清單與總筆數資訊包裝成一個 Page<T> 物件回傳。
+		return repo.findAll(pageable);// 呼叫 findAll 並傳入分頁參數
+
 	}
 
 }

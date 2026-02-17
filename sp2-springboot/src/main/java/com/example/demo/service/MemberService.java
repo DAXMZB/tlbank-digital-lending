@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+
 import com.example.demo.entity.Member;
 
 public interface MemberService {
@@ -13,4 +15,7 @@ public interface MemberService {
 
 	// 定義檢查帳號
 	boolean isUsernameExists(String username);
+
+	// 介面新增
+	Page<Member> getAllMembers(int page, int size);
 }
