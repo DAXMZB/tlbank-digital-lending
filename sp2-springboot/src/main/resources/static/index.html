@@ -37,31 +37,150 @@
 				onclick="checkLoginGo(`orderList.html`)"
 				style="color: blue; text-decoration: underline;">購物車</a></td>
 		</tr>
-		<!-- 首頁檔案 -->
-		<script>
-			$(function() {
-				//put title.html in placeholder
-				$("#title-placeholder").load("title.html");
-			});
 
-			// 新增：檢查登入並跳轉的函式
-			function checkLoginGo(targetUrl) {
-				//從 sessionStorage 讀取 userName 或 memberId (根據login.html登入名字)
-				let isLogin = sessionStorage.getItem("userName");
-
-				if (isLogin) {
-					//已登入：執行跳轉
-					window.location.href = targetUrl;
-				} else {
-					//未登入：跳出警告並引導至登入頁
-					alert("請先登入，才可查看會員清單！");
-					window.location.href = "login.html";
-				}
-			}
-		</script>
 	</table>
 	<table width="100%" border="2" height=700>
-		<tr></tr>
+		<tr>
+			<td align="center" valign="top" style="padding: 20px;">
+				<h3>📣 發表你的心情</h3>
+				<div
+					style="width: 60%; background: #fff; padding: 15px; border-radius: 8px;">
+					<textarea id="post-content" style="width: 100%; height: 80px;"
+						placeholder="今天想說點什麼呢?"></textarea>
+					<div align="right" style="margin-top: 10px">
+						<button onclick="submitPost()"
+							style="padding: 8px 20px; background: #4CAF50; color: white; border: none; cursor: pointer;">發佈貼文</button>
+
+					</div>
+				</div>
+
+				<div id="post-list" style="width: 60%; margin-top: 30px;"></div>
+				<div style="margin-top: 20px; text-align: center;">
+					<button id="pre-btn" onclick="changePage(-1)"
+						style="padding: 5px 15px;">上一頁</button>
+					<span id="page-info" style="margin: 0 15px;">第 1 頁</span>
+					<button id="next-btn" onclick="changePage(1)"
+						style="padding: 5px 15px;">下一頁</button>
+				</div>
+			</td>
+		</tr>
 	</table>
+	<!-- 首頁檔案 -->
+	<script>
+		let currentPage = 0; //目前頁碼 (Spring 從 0 開始)
+		const pageSize = 5; //每頁顯示 5 筆
+		$(function() {
+			//put title.html in placeholder
+			$("#title-placeholder").load("title.html");
+			// 載入頁面完成後，自動抓取現有貼文
+			loadPosts();
+		});
+
+		// 新增：檢查登入並跳轉的函式
+		function checkLoginGo(targetUrl) {
+			//從 sessionStorage 讀取 userName 或 memberId (根據login.html登入名字)
+			let isLogin = sessionStorage.getItem("userName");
+
+			if (isLogin) {
+				//已登入：執行跳轉
+				window.location.href = targetUrl;
+			} else {
+				//未登入：跳出警告並引導至登入頁
+				alert("請先登入，才可查看會員清單！");
+				window.location.href = "login.html";
+			}
+		}
+		//發佈貼文
+		function submitPost(){
+			let mNo = sessionStorage.getItem("memberNo"); // 取得登入者 ID
+			let content = $("#post-content").val();
+			
+			if(!mNo){ alert("請先登入！"); return; }
+			if(!content){alert("請輸入內容！"); return}
+			
+			$.post("/api/posts/create", {memberId:mNo, content: content }, function(res){
+				alert(res);
+				$("#post-content").val(""); //清空輸入框
+				currentPage = 0; //發文後回到第一頁看新留言
+				loadPosts(); //重新整理貼文畫面
+			}).fail(function(xhr){
+				alert("發佈失敗：" + xhr.responseText);
+			});
+		}
+		
+		// 刪除貼文
+		function deletePost(postId){
+			if(confirm("確定刪除貼文嗎？")){
+				$.ajax({
+					url: "/api/posts/" + postId,
+					type: "DELETE",
+					success: function(res){
+						alert(res);
+						// 成功紅直接從畫面移除，不虛重新整理頁面
+						$(`#post-${postId}`).fadeOut(300, function(){
+							$(this).remove();
+						});
+					},
+					error: function(xhr) {
+						alert("刪除失敗：" + xhr.responseText);
+					}
+				});
+			}
+		}
+		
+		// 載入貼文 （可加入分頁查詢
+		function loadPosts(){
+			//在產生的 pCard 內加入刪除按鈕，傳入該貼文的 id
+			$.ajax({
+				url: `/api/posts/all?page=${currentPage}&size=${pageSize}`,
+				type: "GET", // 明確指定請求方法
+				dataType: "json", // 預期後端回傳 JSON 格式
+				success: function(pageData){
+					// 後端回傳的是 Page 物件，資料在 content 屬性裡
+					// 檢查 content 位置 (VIA_DTO 模式下通常不變)
+					let posts = pageData.content;
+					// VIA_DTO 模式會將元數據封裝在 page 物件內
+					let totalPages = pageData.page.totalPages;
+					let totalElements = pageData.page.totalElements; //抓總比數
+					// 清空舊清單並新渲染
+					$("#post-list").empty();
+					
+					posts.forEach(p => {
+						let pCard = `
+						<div id="post-${p.id}" style="border-bottom: 1px solid #ccc; padding: 15px; text-align: left; background: #fff; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+							<div style="display: flex; justify-content: space-between; align-items: center;">
+								<strong style="color: #2e7d32;">${p.member.username}</strong>
+								<button onclick="deletePost(${p.id})"
+										style="color: #dc3545; border: 1px solid #dc3545; background: white; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 12px;">
+										刪除
+								</button>
+							</div>
+							<p style="margin: 10px 0; line-height: 1.5;">${p.content}</p>
+							<small style="color:gray;">📅 ${p.postTime.replace('T',' ').split('.')[0]}</small>
+						</div>`;
+						$("#post-list").append(pCard);
+					});
+					
+					// 更新頁碼資訊
+					$("#page-info").text(`第 ${currentPage + 1} 頁 / 共 ${totalPages} 頁 (總共 ${totalElements} 則心情)`);
+					
+					// 處理按鈕禁用狀態
+					$("#pre-btn").prop("disabled", currentPage === 0);
+					$("#next-btn").prop("disabled", currentPage + 1 >= totalPages);
+				},
+				error: function(xhr){
+					console.error("貼文載入失敗：",xhr.responseText);
+					$("#post-list").html("<p style='color:red;'>貼文載入失敗，請稍後再試。</p>");
+				}
+				
+				
+			});
+			
+		}
+		function changePage(delta){
+			currentPage += delta;
+			loadPosts();
+		}
+	</script>
 </body>
 </html>
