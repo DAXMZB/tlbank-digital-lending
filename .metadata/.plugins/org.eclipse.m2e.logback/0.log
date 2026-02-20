@@ -7950,3 +7950,12 @@ org.eclipse.core.runtime.CoreException: Could not resolve artifact io.github.ecp
 2026-02-20 19:03:16,243 [Worker-1316: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
 2026-02-20 19:03:16,245 [Worker-1316: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
 2026-02-20 19:03:16,245 [Worker-1316: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory /Users/lidong/Documents/Project2/sp2-springboot/src/test/resources
+2026-02-20 19:15:56,200 [Worker-1318: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
+2026-02-20 19:15:56,201 [Worker-1318: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
+2026-02-20 19:15:56,202 [Worker-1318: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory /Users/lidong/Documents/Project2/sp2-springboot/src/test/resources
+2026-02-20 19:35:52,915 [Worker-1321: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
+2026-02-20 19:35:52,917 [Worker-1321: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
+2026-02-20 19:35:52,918 [Worker-1321: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory /Users/lidong/Documents/Project2/sp2-springboot/src/test/resources
+2026-02-20 19:36:58,673 [Worker-1324: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
+2026-02-20 19:36:58,676 [Worker-1324: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src/main/resources to target/classes
+2026-02-20 19:36:58,678 [Worker-1324: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory /Users/lidong/Documents/Project2/sp2-springboot/src/test/resources
