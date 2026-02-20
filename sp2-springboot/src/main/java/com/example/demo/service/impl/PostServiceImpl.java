@@ -52,12 +52,18 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@Transactional
-	public void deletePost(Integer id) {
-		// 檢查貼文是否存在
-		if(!postRepo.existsById(id)) {
-			throw new RuntimeException("貼文不存在，無法刪除");
+	public void deletePost(Integer postId, Integer memberNo) {
+		// 1.找出該貼文
+		Post post = postRepo.findById(postId)
+				.orElseThrow(() -> new RuntimeException("貼文不存在"));
+		
+		// 2.[關鍵] 校驗權限：檢查貼文擁有人是否為當前操作者
+		// 比對的是 Member 實體中的 ID
+		
+		if(!post.getMember().getMemberNo().equals(memberNo)) {
+			throw new RuntimeException("權限不足，只能刪除自己貼文！");
 		}
-		postRepo.deleteById(id);
+		postRepo.deleteById(postId);
 		
 	}
 

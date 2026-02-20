@@ -16,6 +16,6 @@ public interface PostService {
 	// 定義儲存貼文方碼
 	void savePost(Integer memberId, String content);
 
-	void deletePost(Integer id);
+	void deletePost(Integer postId, Integer memberNo);
 
 }

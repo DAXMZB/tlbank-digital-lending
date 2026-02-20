@@ -110,9 +110,11 @@
 		
 		// 刪除貼文
 		function deletePost(postId){
+			let mNo = sessionStorage.getItem("memberNo"); // 取得操作者 ID
 			if(confirm("確定刪除貼文嗎？")){
+				// 傳送當前登入者 ID 給後端校驗
 				$.ajax({
-					url: "/api/posts/" + postId,
+					url: "/api/posts/" + postId + "?memberNo=" + mNo,
 					type: "DELETE",
 					success: function(res){
 						alert(res);
@@ -122,6 +124,7 @@
 						});
 					},
 					error: function(xhr) {
+						// 如果後端拋出 RuntimeException，這裡會捕捉到
 						alert("刪除失敗：" + xhr.responseText);
 					}
 				});
@@ -130,6 +133,7 @@
 		
 		// 載入貼文 （可加入分頁查詢
 		function loadPosts(){
+			let loginMNo = sessionStorage.getItem("memberNo"); //取得當前登入者 ID
 			//在產生的 pCard 內加入刪除按鈕，傳入該貼文的 id
 			$.ajax({
 				url: `/api/posts/all?page=${currentPage}&size=${pageSize}`,
@@ -146,14 +150,19 @@
 					$("#post-list").empty();
 					
 					posts.forEach(p => {
+						// 判斷是否顯示刪除按鈕
+						let deleteBtn = "";
+						if(loginMNo && parseInt(loginMNo) === p.member.memberNo){
+							deleteBtn = `<button onclick="deletePost(${p.id})"
+								style="color: #dc3545; border: 1px solid #dc3545; background: white; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 12px;">
+												刪除
+										</button>`;
+						}
 						let pCard = `
 						<div id="post-${p.id}" style="border-bottom: 1px solid #ccc; padding: 15px; text-align: left; background: #fff; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
 							<div style="display: flex; justify-content: space-between; align-items: center;">
 								<strong style="color: #2e7d32;">${p.member.username}</strong>
-								<button onclick="deletePost(${p.id})"
-										style="color: #dc3545; border: 1px solid #dc3545; background: white; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 12px;">
-										刪除
-								</button>
+								${deleteBtn}
 							</div>
 							<p style="margin: 10px 0; line-height: 1.5;">${p.content}</p>
 							<small style="color:gray;">📅 ${p.postTime.replace('T',' ').split('.')[0]}</small>

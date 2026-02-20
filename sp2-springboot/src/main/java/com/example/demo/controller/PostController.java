@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,18 +30,22 @@ public class PostController {
 	}
 
 	@GetMapping("/all")
-	public ResponseEntity<Page<Post>> getAllPosts(
-			@RequestParam(defaultValue = "0") int page,
+	public ResponseEntity<Page<Post>> getAllPosts(@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "5") int size) {
 		// 呼叫 Service 進行分頁查詢
 		return ResponseEntity.ok(postService.findPostByPage(page, size));
 	}
-	
 
-	@DeleteMapping("/{id}")
-	public ResponseEntity<String> deletePost(@PathVariable Integer id) {
-		postService.deletePost(id);
-		return ResponseEntity.ok("貼文已刪除");
+	@DeleteMapping("/{postId}")
+	public ResponseEntity<String> deletePost(@PathVariable Integer postId, @RequestParam Integer memberNo) {
+		try {
+			postService.deletePost(postId, memberNo);
+			return ResponseEntity.ok("貼文已刪除");
+		}catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+		}
+		
+		
 	}
 
 }
