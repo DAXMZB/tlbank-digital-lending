@@ -150,6 +150,17 @@
 					$("#post-list").empty();
 					
 					posts.forEach(p => {
+						let commentsHtml="";
+						// 對應 Entity 的 comments
+						if(p.comments){
+							p.comments.forEach(c =>{
+								commentsHtml +=`
+									<div style="background: #f8f9fa; margin-top: 5px; padding: 8px; border-radius: 4px; font-size: 14px;">
+										<strong>${c.member.username}</strong>: ${c.content}
+										<br><small style="color:gray;">${c.commentTime.replace('T',' ').split('.')[0]}</small>
+									</div>`;
+							});
+						}
 						// 判斷是否顯示刪除按鈕
 						let deleteBtn = "";
 						if(loginMNo && parseInt(loginMNo) === p.member.memberNo){
@@ -166,6 +177,12 @@
 							</div>
 							<p style="margin: 10px 0; line-height: 1.5;">${p.content}</p>
 							<small style="color:gray;">📅 ${p.postTime.replace('T',' ').split('.')[0]}</small>
+							<hr>
+							<div id="comment-list-${p.id}">${commentsHtml}</div>
+							<div style="margin-top: 10px; display: flex;">
+								<input type="text" id="comment-input-${p.id}" placeholder="寫你的下回應...." style="flex: 1; padding: 5px">
+								<button onclick="submitComment(${p.id})" style="margin-left: 5px; background: #2196F3; color: white; border: none; cursor: pointer;">回應</button>
+							</div>
 						</div>`;
 						$("#post-list").append(pCard);
 					});
@@ -189,6 +206,21 @@
 		function changePage(delta){
 			currentPage += delta;
 			loadPosts();
+		}
+		function submitComment(postId){
+			let mNo = sessionStorage.getItem("memberNo");
+			let content = $(`#comment-input-${postId}`).val();
+			
+			if(!mNo){ alert("請先登入！"); return;}
+			if(!content){ alert("請輸入留言！"); return; }
+			
+			$.post("/api/comments/create", { postId: postId, memberNo: mNo, content: content }, function(res) {
+		        alert(res);
+		        $(`#comment-input-${postId}`).val(""); // 清空輸入框
+		        loadPosts(); // 重新整理以顯示新留言
+		    }).fail(function(xhr){
+		    	alert("留言失敗：" + xhr.responseText);
+		    });
 		}
 	</script>
 </body>
