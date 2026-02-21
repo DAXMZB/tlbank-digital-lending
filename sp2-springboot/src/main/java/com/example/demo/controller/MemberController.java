@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.example.demo.entity.Member;
+
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid; // 必須引入，Spring 才會在接收到 JSON 時啟動檢查。
 
 @RestController // RestFul API
@@ -50,21 +52,52 @@ public class MemberController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@Valid @RequestBody Member m) {// 加上 @Valid
+	public ResponseEntity<?> login(@Valid @RequestBody Member m, HttpSession session) {// 加上 @Valid
 		// 如果失敗，Service會拋出異常，之後的程式碼即不會處理
-		Optional member = memberService.login(m.getUsername(), m.getPassword());
-		return ResponseEntity.ok(member);
+		Optional<Member> memberOpt = memberService.login(m.getUsername(), m.getPassword());
+		if (memberOpt.isPresent()) {
+			Member member = memberOpt.get(); // 取得 member 物件
+			// 將資訊存入伺服器端的 Session
+			session.setAttribute("user", member);
+			return ResponseEntity.ok(member);
+		}
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("登入失敗");
 
+	}
+
+	@PostMapping("/logout")
+	public ResponseEntity<String> logout(HttpSession session) {
+		// 1. 讓伺服器的 Session 失效
+		session.invalidate();
+		return ResponseEntity.ok("已成功登出伺服器");
 	}
 
 	@GetMapping("/list")
 //	@RequestParam：從 URL 網址抓取參數（例如 ?page=1&size=5）。
 //	defaultValue = "0"：如果前端沒傳 page，預設顯示第 1 頁（索引從 0 開始）。
 //	defaultValue = "10"：如果前端沒傳 size，預設每頁顯示 10 筆資料。
-	public ResponseEntity<Page<Member>> getMemberList(
-			@RequestParam(defaultValue = "0") int page,
+	public ResponseEntity<Page<Member>> getMemberList(@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {
 		return ResponseEntity.ok(memberService.getAllMembers(page, size));
+	}
+
+	@GetMapping("/info")
+	public ResponseEntity<?> getMemberInfo(HttpSession session) {
+		// 檢查驗證伺服器 Session 裡沒有 user
+		Object user = session.getAttribute("user");
+		if (user == null) {
+			// 如果伺服器重啟或 Session 過期，回傳401
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("session 已過期，請重新登入");
+		}
+		return ResponseEntity.ok(user);
+	}
+	
+	@PostMapping("/forgot-password")
+	public ResponseEntity<String> forgotPassword(@RequestParam String username, @RequestParam String email){
+		// 呼叫 Service 執行核對、重設與發信邏輯
+		memberService.resetPassword(username, email);
+		
+		return ResponseEntity.ok("新密碼已發送至您的信箱，請查收。");
 	}
 
 }

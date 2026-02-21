@@ -28,40 +28,64 @@
 		</tr>
 		<tr>
 			<td colspan=2 align=center><input type=button
-				id="login-submit-btn" value="登入"></td>
+				id="login-submit-btn" value="登入">
+				<div style="margin-top: 10px; text-align: center;">
+					<a href="javascript:void(0)" onclick="forgotPassword()"
+						style="font-size: 12px; color: gray;">忘記密碼？</a>
+				</div></td>
 		</tr>
+
+
 		<!-- 帳號驗證：透過 memberService.isUsernameExists(username)。因為資料庫已改為 _bin 排序，這步會精確區分大小寫。
 
 			 密碼驗證：在 memberService.login 中，先找出該帳號，再用 passwordEncoder.matches 檢查密碼。 -->
 		<script>
 			$(function() {
-				$("#login-submit-btn").click(function(e) {
-					e.preventDefault();
-					let forData = {
-						username : $("input[name='username']").val(),
-						password : $("input[name='password']").val()
-					};
-					$.ajax({
-						url : "/api/members/login",
-						type : "POST",
-						contentType : "application/json",
-						data : JSON.stringify(forData),
-						success : function(member) {
-							//1.將姓名存入瀏覽器記憶體，這樣重新整理才不會消失
-							sessionStorage.setItem("userName", member.name);
-							//1.將帳號存入瀏覽器記憶體，這樣重新整理才不會消失
-							sessionStorage.setItem("memberNo", member.memberNo);
+				$("#login-submit-btn").click(
+						function(e) {
+							e.preventDefault();
+							let forData = {
+								username : $("input[name='username']").val(),
+								password : $("input[name='password']").val()
+							};
+							$.ajax({
+								url : "/api/members/login",
+								type : "POST",
+								contentType : "application/json",
+								data : JSON.stringify(forData),
+								success : function(member) {
+									//1.將姓名存入瀏覽器記憶體，這樣重新整理才不會消失
+									sessionStorage.setItem("userName",
+											member.name);
+									//1.將帳號存入瀏覽器記憶體，這樣重新整理才不會消失
+									sessionStorage.setItem("memberNo",
+											member.memberNo);
 
-							//2.執行跳轉
-							window.location.href = "index.html";
-						},
-						error : function(xhr) {
-							//如果傳回401，則抓取帳號已重複
-							alert(xhr.responseText); //預設優先捕捉Controleer @valid 即全域變數
-						}
-					});
-				});
+									//2.執行跳轉
+									window.location.href = "index.html";
+								},
+								error : function(xhr) {
+									//如果傳回401，則抓取帳號已重複
+									alert(xhr.responseText); //預設優先捕捉Controleer @valid 即全域變數
+								}
+							});
+						});
 			});
+			function forgotPassword() {
+				let username = prompt("請輸入您的帳號：");
+				let email = prompt("請輸入您的註冊信箱：");
+
+				if (username && email) {
+					$.post("/api/members/forgot-password", {
+						username : username,
+						email : email
+					}, function(res) {
+						alert(res);
+					}).fail(function(xhr) {
+						alert("錯誤：" + xhr.responseText);
+					});
+				}
+			}
 		</script>
 	</table>
 

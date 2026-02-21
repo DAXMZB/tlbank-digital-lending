@@ -29,7 +29,11 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 	Optional<Member> findByUsernameAndPassword(String username, String password);
 
 	Optional<Member> findByUsername(String username);
-
+	//支援信箱查詢 根據信箱找到會員
+	Optional<Member> findByUsernameAndEmail(String useranme, String email);
+	
 	boolean existsByUsername(String username);
 	// 不需要額外寫 findAll(Pageable)，JpaRepository 已經內建了
+	
+	
 }

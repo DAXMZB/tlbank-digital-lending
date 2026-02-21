@@ -1,11 +1,14 @@
 package com.example.demo.service.impl;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -75,6 +78,29 @@ public class MemberServiceImpl implements MemberService {
 //		封裝結果：最後將資料清單與總筆數資訊包裝成一個 Page<T> 物件回傳。
 		return repo.findAll(pageable);// 呼叫 findAll 並傳入分頁參數
 
+	}
+	@Autowired
+	private JavaMailSender mailSender;
+	
+	@Override
+	public void resetPassword(String username, String email) {
+		// 1. 核對資料 
+		Member member = repo.findByUsernameAndEmail(username, email)
+				.orElseThrow(() -> new MemberException("帳號或信箱不正確"));
+		
+		// 2. 產生隨機 8 位 密碼
+		String newPwd = UUID.randomUUID().toString().substring(0,8);
+		
+		// 3. 更新資料庫
+		member.setPassword(passwordEncoder.encode(newPwd));
+		repo.save(member);
+		
+		// 4. 發送郵件
+		SimpleMailMessage message = new SimpleMailMessage();
+		message.setTo(email);
+		message.setSubject("TL 心情小站 - 密碼重設通知");
+		message.setText("親愛的 " + member.getName() + ":\n您的新密碼為：" + newPwd + "\n請登入後立即改密碼。");
+		mailSender.send(message);
 	}
 
 }

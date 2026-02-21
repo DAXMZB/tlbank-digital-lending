@@ -31,6 +31,17 @@ public class Member {
 
 	@Column(length = 20)
 	private String mobile;
+	
+	@Column(length = 100)
+	private String email;
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
 	public void setMemberNo(Integer memberNo) {
 		this.memberNo = memberNo;

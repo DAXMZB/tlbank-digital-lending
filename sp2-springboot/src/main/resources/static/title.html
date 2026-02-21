@@ -23,23 +23,18 @@
 				特性：它是自動執行的。當網頁一打開，會自動去 sessionStorage 讀取 userName，並決定要顯示「歡迎登入」還是「訪客，您好」。
 				為什麼要用 $：因為它是 jQuery 套件提供的功能，$ 是 jQuery 的縮寫代號。  */
 		$(function() {
-			let loginName = sessionStorage.getItem("userName");//截取登入資訊
-
-			if (loginName) {
-				//已登入：顯示歡迎詞與登出按鈕
-				$("#title-user-info")
-						.html(
-								"Welcom Back "
-										+ loginName
-										+ "！"
-										+ "<button onclick='globalLogout()' style='cursor:pointer; margin-left:10px;'>登出</button>");
-				//通知父頁面隱藏登入列
+			// 主動向伺服器確認 Session 狀態
+			$.get("/api/members/info", function(member){
+				// 伺服器 Session 還在，顯示歡迎詞
+				$("#title-user-info").html("Welcome Back " + member.name +"!" +
+					"<button onclick='globalLogout()' style='cursor:pointer; margin-left:10px;'>登出</button>");
 				$("#auth-row").hide();
-			} else {
-				//未登入
+			}).fail(function(){
+				// 伺服器重啟或沒登入，強制清空前端暫存
+				sessionStorage.clear();
 				$("#title-user-info").html("訪客，您好");
 				$("#auth-row").show();
-			}
+			});
 		});
 		/* 沒有 $ 符號的：function globalLogout() { ... }
 			「一般的自定義函式」。
@@ -49,8 +44,19 @@
 		//全域登出模式
 		function globalLogout() {
 			if (confirm("確定要登出嗎>")) {
-				sessionStorage.removeItem("userName");
-				window.location.href = "index.html";
+				// 1.呼叫後端 API 清除伺服器 Session
+				$.post("/api/members/logout", function(res){
+					// 2. 清除前端瀏覽器暫存
+					sessionStorage.clear();
+					alert("登出成功！");
+					// 3. 回到首頁
+					window.location.href = "index.html";
+				}).fail(function(){
+					// 即便後端失敗，前端也要清除，確保狀態同步
+					sessionStorage.clear();
+					window.lcation.reload();
+				});
+				
 			}
 		}
 	</script>

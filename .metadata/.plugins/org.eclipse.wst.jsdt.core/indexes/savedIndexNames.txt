@@ -1,8 +1,0 @@
-INDEX VERSION 1.4+/Users/lidong/Documents/Project2/.metadata/.plugins/org.eclipse.wst.jsdt.core/indexes
-1067150098.index
-3684217319.index
-3313761353.index
-4175953684.index
-891694078.index
-1876333693.index
-301709994.index

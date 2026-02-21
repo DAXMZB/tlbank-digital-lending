@@ -18,4 +18,7 @@ public interface MemberService {
 
 	// 介面新增
 	Page<Member> getAllMembers(int page, int size);
+	
+	// 重設密碼
+	void resetPassword(String username, String email);
 }

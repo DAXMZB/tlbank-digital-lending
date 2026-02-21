@@ -1,37 +1,19 @@
 HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# 忽略個人隱私（這最重要！）
+.env
 
-### STS ###
-.apt_generated
+# 忽略編譯產物
+target/
+*.jar
+*.war
+
+# 忽略 Eclipse 相關設定
+.settings/
+.project
 .classpath
 .factorypath
-.project
-.settings
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-
-# Docker
-.docker/
-docker-compose.override.yml
+# 忽略系統雜物
+.DS_Store

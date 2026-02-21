@@ -1,7 +1,0 @@
-INDEX VERSION 1.134
-/Users/lidong/Documents/Project2/.metadata/.plugins/org.eclipse.jst.jsp.core/jspsearch/456452761.index
-/SP2/src/main/java
-/Users/lidong/Documents/Project2/.metadata/.plugins/org.eclipse.jst.jsp.core/jspsearch/851691993.index
-/SP2/src/main/java
-/Users/lidong/Documents/Project2/.metadata/.plugins/org.eclipse.jst.jsp.core/jspsearch/4175953684.index
-/SP2/src/main/java
