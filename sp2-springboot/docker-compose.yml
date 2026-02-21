@@ -1,26 +1,36 @@
-version: '3.8'
 services:
   # 資料庫服務
   db:
     image: mysql:8.0
     container_name: mysql-db
     environment:
-      MYSQL_DATABASE: Company
-      MYSQL_ROOT_PASSWORD: POPPOPfull1
-      MYSQL_PASSWORD: POPPOPfull1
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${DB_ROOT_PASSWORD}
     ports:
       - "3306:3306"
+  # 新增：讓 Docker 檢查 MySQL 是否真的跑起來了
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    
 
   # Java 應用程式服務
   app:
     build: .
     container_name: spring-app
+    env_file: .env
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       # 將資料庫連線位址改為 db (Docker 內部的服務名稱)
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/Company?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: POPPOPfull1
+      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_PWD: ${GMAIL_PWD}

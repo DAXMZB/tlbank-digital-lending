@@ -84,7 +84,7 @@ public class MemberServiceImpl implements MemberService {
 	
 	@Override
 	public void resetPassword(String username, String email) {
-		// 1. 核對資料 
+		// 1. 核對資料
 		Member member = repo.findByUsernameAndEmail(username, email)
 				.orElseThrow(() -> new MemberException("帳號或信箱不正確"));
 		

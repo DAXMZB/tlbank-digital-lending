@@ -50,6 +50,10 @@
 			<td><input type="text" name="mobile"></td>
 		</tr>
 		<tr>
+			<td>Email</td>
+			<td><input type="email" name="email" placeholder="用於重設密碼"></td>
+		</tr>
+		<tr>
 			<td colspan=2 align=center><input type="button" id="addForm"
 				value="ok"></td>
 		</tr>
@@ -92,8 +96,11 @@
 						name : $("input[name='name']").val(),
 						address : $("input[name='address']").val(),
 						phone : $("input[name='phone']").val(),
-						mobile : $("input[name='mobile']").val()
+						mobile : $("input[name='mobile']").val(),
+						email : $("input[name='email']").val()
 					};
+					// 在傳送前先在 Console 檢查資料，這是 ICT 除錯的最佳實踐
+    				// console.log("確認傳送資料：", memberData);
 
 					$.ajax({
 						url : "/api/members/register",
@@ -106,14 +113,14 @@
 						},
 						error : function(xhr) {
 							alert(xhr.responseText);//預設優先捕捉Controleer @valid 即全域變數
-							window.location.href = "addMember.html";
+							//window.location.href = "addMember.html"; 
+							// 失敗時不跳轉，讓使用者修正
 						}
 					});
 				});
 			});
 		</script>
 	</table>
-	</form>
-	</table>
+
 </body>
 </html>
