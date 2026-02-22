@@ -15,7 +15,7 @@ public class Member {
 	@GeneratedValue(strategy = GenerationType.IDENTITY) // Auto Increment
 	private Integer memberNo;
 	
-	@NotBlank(message = "帳號不可為空") // 自動檢查 null 與 空字串
+	@NotBlank(message = "註冊帳號不可為空") // 自動檢查 null 與 空字串
 	@Column(name = "username", length = 50)
 	private String username;
 

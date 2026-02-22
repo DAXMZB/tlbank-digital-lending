@@ -17,6 +17,8 @@ import com.example.demo.service.MemberService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import com.example.demo.dto.LoginRequest;
 import com.example.demo.entity.Member;
 
 import jakarta.servlet.http.HttpSession;
@@ -50,11 +52,12 @@ public class MemberController {
 //		200 OK 			請求成功
 
 	}
-
+	// 為了實現職責分離並優化校驗邏輯，引入 LoginRequest DTO 替代原始的 Member Entity 處理登入請求
+	// 避免登入行為觸發註冊階段的非空約束（如地址、電話），確保 API 在不同業務場景下的校驗精確性。」
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@Valid @RequestBody Member m, HttpSession session) {// 加上 @Valid
-		// 如果失敗，Service會拋出異常，之後的程式碼即不會處理
-		Optional<Member> memberOpt = memberService.login(m.getUsername(), m.getPassword());
+	public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginReq, HttpSession session) {// 加上 @Valid
+		// 呼叫 Service 時輸入 DTO 的內容
+		Optional<Member> memberOpt = memberService.login(loginReq.getUsername(), loginReq.getPassword());
 		if (memberOpt.isPresent()) {
 			Member member = memberOpt.get(); // 取得 member 物件
 			// 將資訊存入伺服器端的 Session
