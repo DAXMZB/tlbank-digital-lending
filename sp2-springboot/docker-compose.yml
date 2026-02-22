@@ -9,6 +9,9 @@ services:
       MYSQL_PASSWORD: ${DB_ROOT_PASSWORD}
     ports:
       - "3306:3306"
+  # 新增：資料持久化設定
+    volumes:
+      - mysql_data:/var/lib/mysql
   # 新增：讓 Docker 檢查 MySQL 是否真的跑起來了
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
@@ -34,3 +37,5 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
       GMAIL_USER: ${GMAIL_USER}
       GMAIL_PWD: ${GMAIL_PWD}
+volumes:
+  mysql_data:

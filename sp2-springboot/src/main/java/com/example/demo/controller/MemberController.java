@@ -99,5 +99,11 @@ public class MemberController {
 		
 		return ResponseEntity.ok("新密碼已發送至您的信箱，請查收。");
 	}
+	
+	@PostMapping("/send-code")
+	public ResponseEntity<String> sendCode(@RequestParam String email){
+		memberService.sendRegistrationCode(email);
+		return ResponseEntity.ok("驗證碼已發送");
+	}
 
 }

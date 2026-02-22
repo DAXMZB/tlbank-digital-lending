@@ -33,6 +33,8 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 	Optional<Member> findByUsernameAndEmail(String useranme, String email);
 	
 	boolean existsByUsername(String username);
+	
+	boolean existsByEmail(String email);
 	// 不需要額外寫 findAll(Pageable)，JpaRepository 已經內建了
 	
 	

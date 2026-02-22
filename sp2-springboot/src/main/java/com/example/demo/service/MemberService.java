@@ -21,4 +21,10 @@ public interface MemberService {
 	
 	// 重設密碼
 	void resetPassword(String username, String email);
+	
+	// 發送註冊驗證碼
+	void sendRegistrationCode(String email);
+	
+	// 驗證驗證碼是否正確
+	boolean verifyRegistrationCode(String email, String code);
 }

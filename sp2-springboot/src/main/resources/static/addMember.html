@@ -51,7 +51,12 @@
 		</tr>
 		<tr>
 			<td>Email</td>
-			<td><input type="email" name="email" placeholder="用於重設密碼"></td>
+			<td><input type="email" name="email" placeholder="用於重設密碼">
+				<input type="button" id="sendCodeBtn" value="獲取驗證碼"></td>
+		</tr>
+		<tr id="codeRow">
+			<td>驗證碼</td>
+			<td><input type="text" name="verifyCode" id="verifyCode" placeholder="請輸入 6 位驗證碼"></td>
 		</tr>
 		<tr>
 			<td colspan=2 align=center><input type="button" id="addForm"
@@ -89,7 +94,9 @@
 				//新增帳號
 				$("#addForm").click(function(e) {
 					e.preventDefault(); //防止跳轉
-
+					
+					
+					
 					let memberData = {
 						username : $("input[name='username']").val(),
 						password : $("input[name='password']").val(),
@@ -97,10 +104,11 @@
 						address : $("input[name='address']").val(),
 						phone : $("input[name='phone']").val(),
 						mobile : $("input[name='mobile']").val(),
-						email : $("input[name='email']").val()
+						email : $("input[name='email']").val(),
+						vertiyCode: $("#vertifyCode").val() // 獲取驗證碼
 					};
 					// 在傳送前先在 Console 檢查資料，這是 ICT 除錯的最佳實踐
-    				// console.log("確認傳送資料：", memberData);
+					// console.log("確認傳送資料：", memberData);
 
 					$.ajax({
 						url : "/api/members/register",
@@ -112,12 +120,42 @@
 							window.location.href = "login.html";
 						},
 						error : function(xhr) {
-							alert(xhr.responseText);//預設優先捕捉Controleer @valid 即全域變數
+							alert(xhr.responseText);// 預設優先捕捉Controleer @valid 即全域變數
+													// 捕捉驗證碼錯誤或帳號重複訊息
 							//window.location.href = "addMember.html"; 
 							// 失敗時不跳轉，讓使用者修正
 						}
 					});
 				});
+				
+				// 發送驗證碼事件
+				$("#sendCodeBtn").click(function(){
+					let btn = $(this);
+					let email = $("input[name='email']").val();
+					if(!email){
+						alert("請先輸入 Email");
+						return;
+					}
+					
+					$.post("/api/members/send-code",{email: email}, function(res){
+						alert(res);
+						// 啟動倒數計時
+						let seconds = 60;
+						btn.prop("disabled", true);
+						let timer = setInterval(function(){
+							seconds--;
+							btn.val(seconds + "s 後可重新獲取");
+							if(seconds <= 0){
+								clearInterval(timer);
+								btn.prop("disabled", false).val("獲取驗證碼");
+							}
+						},1000); // 1000 毫秒即 1 秒執行一次扣秒
+					}).fail(function(xhr){
+						alert("錯誤：" + xhr.responseText);
+					});
+				});
+				
+				
 			});
 		</script>
 	</table>

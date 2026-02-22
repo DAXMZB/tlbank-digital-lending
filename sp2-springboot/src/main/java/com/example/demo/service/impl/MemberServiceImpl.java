@@ -1,6 +1,7 @@
 package com.example.demo.service.impl;
 
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,8 @@ import com.example.demo.exception.MemberException;
 import com.example.demo.repository.MemberRepository;
 import com.example.demo.service.MemberService;
 
+import jakarta.servlet.http.HttpSession;
+
 @Service
 public class MemberServiceImpl implements MemberService {
 	@Autowired
@@ -24,19 +27,46 @@ public class MemberServiceImpl implements MemberService {
 	// 建立加密實例
 	private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+	@Autowired
+	private HttpSession session; // 注入 Session
+
 	@Override
 	public String rigister(Member m) {
 		// TODO Auto-generated method stub
 
-		// 1.帳號重複驗證
+		
+		// 取得 Session 中的驗證碼與過期時間
+		String sessionCode = (String) session.getAttribute("reg_code_" + m.getEmail());
+		Long expiryTime = (Long) session.getAttribute("reg_code_expiry_" + m.getEmail());
+		long currentTime = System.currentTimeMillis();
+		
+		// 檢查驗證碼是否過期
+		if(expiryTime == null || currentTime > expiryTime) {
+			// 過期的話清除掉 Sesssion
+			session.removeAttribute("reg_code_" + m.getEmail());
+			session.removeAttribute("reg_code_expiry_" + m.getEmail());
+			throw new MemberException("驗證碼已過期，請重新獲取");
+		}
+		
+		// 1. 驗證碼比對
+		if (sessionCode == null || !sessionCode.equals(m.getVertifyCode())) {
+			throw new MemberException("驗證碼錯誤");
+		}
+
+		// 2. 帳號重複驗證
 		// 這裡就是「HTTP 狀態碼轉換」：根據訊息字串決定要給 409 還是 400
 		if (repo.existsByUsername(m.getUsername())) {
 			throw new MemberException("帳號已重複");// 409
 		}
-		// 2.密碼加密
+
+		// 3. 密碼加密
 		String encodedPassword = passwordEncoder.encode(m.getPassword());
 		m.setPassword(encodedPassword);// 將加密後的字串塞回物件
 		repo.save(m);
+
+		// 註冊成功後移除 Session 中的驗證碼，防止重複使用
+		session.removeAttribute("reg_code_" + m.getEmail());
+		session.removeAttribute("reg_code_expiry_" + m.getEmail());
 		return "註冊成功";
 	}
 
@@ -79,28 +109,63 @@ public class MemberServiceImpl implements MemberService {
 		return repo.findAll(pageable);// 呼叫 findAll 並傳入分頁參數
 
 	}
+
 	@Autowired
 	private JavaMailSender mailSender;
-	
+
 	@Override
 	public void resetPassword(String username, String email) {
 		// 1. 核對資料
-		Member member = repo.findByUsernameAndEmail(username, email)
-				.orElseThrow(() -> new MemberException("帳號或信箱不正確"));
-		
+		Member member = repo.findByUsernameAndEmail(username, email).orElseThrow(() -> new MemberException("帳號或信箱不正確"));
+
 		// 2. 產生隨機 8 位 密碼
-		String newPwd = UUID.randomUUID().toString().substring(0,8);
-		
+		String newPwd = UUID.randomUUID().toString().substring(0, 8);
+
 		// 3. 更新資料庫
 		member.setPassword(passwordEncoder.encode(newPwd));
 		repo.save(member);
-		
+
 		// 4. 發送郵件
 		SimpleMailMessage message = new SimpleMailMessage();
 		message.setTo(email);
 		message.setSubject("TL 心情小站 - 密碼重設通知");
 		message.setText("親愛的 " + member.getName() + ":\n您的新密碼為：" + newPwd + "\n請登入後立即改密碼。");
 		mailSender.send(message);
+	}
+
+	@Override
+	public void sendRegistrationCode(String email) {
+		// 1. 檢查 Email 是否已被註冊
+		if (repo.existsByEmail(email)) {
+			throw new MemberException("此 Email 已被註冊");
+		}
+
+		// 2. 產生 6 位隨機數字驗證碼
+		String code = String.format("%06d", new Random().nextInt(1000000));
+
+		// 取得目前時間並加上 5 分鐘 (30,000 毫秒)
+		long expiryTime = System.currentTimeMillis() + (300000); // 5 * 60 * 1000
+
+		// 3. 存入 Session (Key 使用 email 確保唯一)
+		// session.setAttribute("標籤名", 內容)：這是在櫃子裡放進一個盒子，並在盒子上貼一個特定的標籤。
+		session.setAttribute("reg_code_" + email, code); // 在 set 的時候貼的是 "reg_code_eric@gmail.com"
+		session.setAttribute("reg_code_expiry_" + email, expiryTime); // 貼上標籤 及 過期時間
+
+		// 4. SimpleMailMessage
+		SimpleMailMessage message = new SimpleMailMessage();
+		message.setTo(email);
+		message.setSubject("TL 心情小站 - 註冊驗證碼");
+		message.setText("您的註冊驗證碼為：" + code + "，請於 5 分鐘內輸入。");
+		mailSender.send(message);
+
+	}
+
+	@Override
+	public boolean verifyRegistrationCode(String email, String code) {
+		// TODO Auto-generated method stub
+		// session.getAttribute("標籤名")：告訴櫃子管理員：「我要拿標籤叫『XXX』的那個盒子內容」。
+		String sessionCode = (String) session.getAttribute("reg_code" + email); 
+		return code.equals(sessionCode);
 	}
 
 }

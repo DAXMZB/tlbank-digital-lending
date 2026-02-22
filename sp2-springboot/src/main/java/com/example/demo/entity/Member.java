@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size; // 必須引入這個包
 
 @Entity // Tell Hibernate this is an Entity
@@ -13,27 +14,44 @@ public class Member {
 	@Id // Primary Key
 	@GeneratedValue(strategy = GenerationType.IDENTITY) // Auto Increment
 	private Integer memberNo;
-
+	
+	@NotBlank(message = "帳號不可為空") // 自動檢查 null 與 空字串
 	@Column(name = "username", length = 50)
 	private String username;
 
+	@NotBlank(message = "密碼不可為空") // 自動檢查 null 與 空字串
 	@Size(min = 8, message = "密碼長度最少為8位")
 	@Column(length = 100)
 	private String password;
-
+	
+	@NotBlank(message = "名字不可為空") // 自動檢查 null 與 空字串
 	@Column(length = 50)
 	private String name;
-
+	@NotBlank(message = "地址不可為空") // 自動檢查 null 與 空字串
 	private String address; // Column with Address default is 255
-
+	
+	@NotBlank(message = "電話不可為空")
 	@Column(length = 20)
 	private String phone;
-
+	
+	@NotBlank(message = "手機不可為空")
 	@Column(length = 20)
 	private String mobile;
 	
+	@NotBlank(message = "email 不可為空")
 	@Column(length = 100)
 	private String email;
+
+	@Transient // 僅用於接收前端資料，不對應資料庫欄位
+	private String vertifyCode;
+
+	public String getVertifyCode() {
+		return vertifyCode;
+	}
+
+	public void setVertifyCode(String vertifyCode) {
+		this.vertifyCode = vertifyCode;
+	}
 
 	public String getEmail() {
 		return email;
