@@ -77,6 +77,8 @@ public class OrderSerivceImpl implements OrderService {
 		return orderRepo.findByOrderNo(orderNo);
 	}
 
+	// 避免商品庫存不足拋出異常，前面的商品可能已經被扣了庫存並存檔，會導致資料庫狀態混亂。
+	@Transactional
 	@Override
 	public Orders createOrderBatch(Integer memberNo, List<CartItemDTO> cartItems) {
 		// TODO Auto-generated method stub
