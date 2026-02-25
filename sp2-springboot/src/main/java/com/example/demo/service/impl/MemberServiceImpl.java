@@ -164,7 +164,7 @@ public class MemberServiceImpl implements MemberService {
 	public boolean verifyRegistrationCode(String email, String code) {
 		// TODO Auto-generated method stub
 		// session.getAttribute("標籤名")：告訴櫃子管理員：「我要拿標籤叫『XXX』的那個盒子內容」。
-		String sessionCode = (String) session.getAttribute("reg_code" + email); 
+		String sessionCode = (String) session.getAttribute("reg_code_" + email); 
 		return code.equals(sessionCode);
 	}
 

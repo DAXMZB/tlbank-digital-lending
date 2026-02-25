@@ -21,6 +21,7 @@ import com.example.demo.repository.MemberRepository;
 import com.example.demo.repository.OrderRepository;
 import com.example.demo.repository.ProductRepository;
 import com.example.demo.service.OrderService;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 @Service
 public class OrderSerivceImpl implements OrderService {
@@ -82,44 +83,53 @@ public class OrderSerivceImpl implements OrderService {
 	@Override
 	public Orders createOrderBatch(Integer memberNo, List<CartItemDTO> cartItems) {
 		// TODO Auto-generated method stub
-		// 獲取會員
-		Member member = memberRepo.findById(memberNo).orElseThrow(() -> new MemberException("找不到會員 ID:" + memberNo));
+		try {
+			// 獲取會員
+			Member member = memberRepo.findById(memberNo)
+					.orElseThrow(() -> new MemberException("找不到會員 ID:" + memberNo));
 
-		// 1.建立一張「訂單主表」紀錄
-		Orders order = new Orders();
-		order.setOrderNo("TL" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-		order.setMember(member);
-		order.setStatus("Unpaid");
+			// 1.建立一張「訂單主表」紀錄
+			Orders order = new Orders();
+			order.setOrderNo("TL" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+			order.setMember(member);
+			order.setStatus("Unpaid");
 
-		int grandTotal = 0;
-		List<OrderItem> details = new ArrayList<>();
-		// 2.處理每一項商品並轉為訂單明細
-		for (CartItemDTO dto : cartItems) {
-			Product product = productRepo.findById(dto.getProductId()).orElseThrow(() -> new MemberException("找不到該商品"));
+			int grandTotal = 0;
+			List<OrderItem> details = new ArrayList<>();
+			// 2.處理每一項商品並轉為訂單明細
+			for (CartItemDTO dto : cartItems) {
+				Product product = productRepo.findById(dto.getProductId())
+						.orElseThrow(() -> new MemberException("找不到該商品"));
 
-			if (product.getStock() < dto.getQuantity()) {
-				throw new MemberException(product.getProductName() + "庫存不足");
+				// 檢查庫存
+				if (product.getStock() < dto.getQuantity()) {
+					throw new MemberException(product.getProductName() + "庫存不足");
+				}
+
+				// 建立 OrderItem
+				OrderItem detail = new OrderItem();
+				detail.setOrder(order); // 關聯回同一張訂單
+				detail.setProduct(product);
+				detail.setQuantity(dto.getQuantity());
+				detail.setPrice(product.getPrice());
+
+				details.add(detail);
+				grandTotal += (product.getPrice() * dto.getQuantity());
+
+				// 扣庫存
+				product.setStock(product.getStock() - dto.getQuantity());
+				productRepo.save(product);
 			}
 
-			OrderItem detail = new OrderItem();
-			detail.setOrder(order); // 關聯回同一張訂單
-			detail.setProduct(product);
-			detail.setQuantity(dto.getQuantity());
-			detail.setPrice(product.getPrice());
-
-			details.add(detail);
-			grandTotal += (product.getPrice() * dto.getQuantity());
-
-			// 扣庫存
-			product.setStock(product.getStock() - dto.getQuantity());
-			productRepo.save(product);
+			order.setItems(details); // 將所有明細塞進訂單
+			order.setTotalAmount(grandTotal);
+			; // 設定整筆訂單的總金額
+				// svae 的同時，Hibernate 會自動檢查 version
+			return orderRepo.save(order); // 一次存檔，產生一個 ID 與一個訂單編號
+		} catch (ObjectOptimisticLockingFailureException e) {
+			// 新增樂觀鎖衝突 當很多人搶購同一商品時會觸發
+			throw new MemberException("系統忙碌中 (庫存更新衝突），請稍後再試");
 		}
-
-		order.setItems(details); // 將所有明細塞進訂單
-		order.setTotalAmount(grandTotal);
-		; // 設定整筆訂單的總金額
-
-		return orderRepo.save(order); // 一次存檔，產生一個 ID 與一個訂單編號
 	}
 
 	@Override
@@ -131,7 +141,5 @@ public class OrderSerivceImpl implements OrderService {
 		orderRepo.deleteById(id);
 
 	}
-
-	
 
 }

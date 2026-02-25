@@ -11,6 +11,10 @@ import lombok.Data;
 @Table(name = "product")
 @Data
 public class Product {
+	
+	@Version // 新增 JPA 樂觀鎖機制，底層自動檢查 version 欄位
+	private Integer version;
+	
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
@@ -93,6 +97,14 @@ public class Product {
 
 	public void setCreateTime(LocalDateTime createTime) {
 		this.createTime = createTime;
+	}
+
+	public Integer getVersion() {
+		return version;
+	}
+
+	public void setVersion(Integer version) {
+		this.version = version;
 	}
 	
 }

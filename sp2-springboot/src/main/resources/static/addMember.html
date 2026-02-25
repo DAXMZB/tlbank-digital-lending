@@ -43,11 +43,12 @@
 		</tr>
 		<tr>
 			<td>電話</td>
-			<td><input type="text" name="phone"></td>
+			<!-- 讓使用者「無法輸入」非數字的字元。 -->
+			<td><input type="tel" name="phone" maxlength="8" oninput="value=value.replace(/[^\d]/g,'')"></td> 
 		</tr>
 		<tr>
 			<td>手機</td>
-			<td><input type="text" name="mobile"></td>
+			<td><input type="tel" name="mobile" maxlength="10" oninput="value=value.replace(/[^\d]/g,'')"></td>
 		</tr>
 		<tr>
 			<td>Email</td>
@@ -56,7 +57,7 @@
 		</tr>
 		<tr id="codeRow">
 			<td>驗證碼</td>
-			<td><input type="text" name="verifyCode" id="verifyCode" placeholder="請輸入 6 位驗證碼"></td>
+			<td><input type="text" name="vertifyCode" id="vertifyCode" placeholder="請輸入 6 位驗證碼"></td>
 		</tr>
 		<tr>
 			<td colspan=2 align=center><input type="button" id="addForm"
@@ -105,7 +106,7 @@
 						phone : $("input[name='phone']").val(),
 						mobile : $("input[name='mobile']").val(),
 						email : $("input[name='email']").val(),
-						vertiyCode: $("#vertifyCode").val() // 獲取驗證碼
+						vertifyCode: $("#vertifyCode").val() // 獲取驗證碼
 					};
 					// 在傳送前先在 Console 檢查資料，這是 ICT 除錯的最佳實踐
 					// console.log("確認傳送資料：", memberData);
@@ -136,12 +137,13 @@
 						alert("請先輸入 Email");
 						return;
 					}
-					
+					// 優化：點擊瞬間立刻變更狀態，不等 AJAX
+					btn.prop("disabled", true);
 					$.post("/api/members/send-code",{email: email}, function(res){
 						alert(res);
 						// 啟動倒數計時
 						let seconds = 60;
-						btn.prop("disabled", true);
+						
 						let timer = setInterval(function(){
 							seconds--;
 							btn.val(seconds + "s 後可重新獲取");
@@ -152,6 +154,7 @@
 						},1000); // 1000 毫秒即 1 秒執行一次扣秒
 					}).fail(function(xhr){
 						alert("錯誤：" + xhr.responseText);
+						btn.prop("disabled",false).val("獲取驗證碼"); // 失敗時恢復按鈕
 					});
 				});
 				

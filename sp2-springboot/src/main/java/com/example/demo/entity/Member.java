@@ -2,6 +2,7 @@ package com.example.demo.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size; // 必須引入這個包
 
 @Entity // Tell Hibernate this is an Entity
@@ -31,10 +32,12 @@ public class Member {
 	private String address; // Column with Address default is 255
 	
 	@NotBlank(message = "電話不可為空")
+	@Pattern(regexp = "^\\d{8}$", message = "電話格式錯誤，請輸入 8 位數字")
 	@Column(length = 20)
 	private String phone;
 	
 	@NotBlank(message = "手機不可為空")
+	@Pattern(regexp = "^09\\d{8}$", message = "手機格式錯誤，請輸入 10 位數字")
 	@Column(length = 20)
 	private String mobile;
 	
