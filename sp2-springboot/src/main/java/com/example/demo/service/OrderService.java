@@ -9,7 +9,7 @@ import com.example.demo.entity.Orders;
 public interface OrderService {
 	// 建立訂單
 	// 將參數增加 Integer quantity
-	Orders createOrder(Integer memberNo, Integer productId, Integer quantity);
+	
 
 	// 查詢特定會員的所有訂單
 	List<Orders> getOrdersMember(Integer memberNo);

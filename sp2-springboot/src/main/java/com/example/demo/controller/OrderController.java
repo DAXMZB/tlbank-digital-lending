@@ -23,14 +23,7 @@ public class OrderController {
 	@Autowired
 	private OrderService orderService;
 
-	@PostMapping("/create")
-	// 呼叫 Service 層 建立訂單，錯誤由 GlobalExceptionHandler 攔截
-	public ResponseEntity<Orders> createOrder(@RequestParam Integer memberId, @RequestParam Integer productId,
-			@RequestParam(defaultValue = "1") Integer quantity) {
-
-		Orders newOrder = orderService.createOrder(memberId, productId, quantity);
-		return ResponseEntity.ok(newOrder);
-	}
+	
 
 	@PostMapping("/createBatch")
 	public ResponseEntity<?> createOrderBatch(@RequestParam Integer memberId, @RequestBody List<CartItemDTO> carItems) {

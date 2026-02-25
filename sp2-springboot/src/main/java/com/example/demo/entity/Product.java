@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
@@ -26,8 +27,9 @@ public class Product {
 	@Column(length = 1000)
 	private String description; // 商品描述
 
+	// 將價格從 Integer/Double 改為 BigDecimal
 	@Min(value = 0, message = "價格不可低於0")
-	private Integer price;
+	private BigDecimal price;
 	
 	@Min(value = 0, message = "庫存不可低於0")
 	private Integer stock; // 補上庫存量
@@ -67,11 +69,13 @@ public class Product {
 		this.description = description;
 	}
 
-	public Integer getPrice() {
+
+
+	public BigDecimal getPrice() {
 		return price;
 	}
 
-	public void setPrice(Integer price) {
+	public void setPrice(BigDecimal price) {
 		this.price = price;
 	}
 

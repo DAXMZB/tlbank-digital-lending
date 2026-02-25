@@ -1,5 +1,6 @@
 package com.example.demo.service.impl;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,36 +36,7 @@ public class OrderSerivceImpl implements OrderService {
 	@Autowired
 	private ProductRepository productRepo;
 
-	@Override
-	@Transactional
-	public Orders createOrder(Integer memberNo, Integer productId, Integer quantity) {
-		// 1.驗證會員與商品是否存在 (利用現有的 Exception 機制)
-		Member member = memberRepo.findById(memberNo).orElseThrow(() -> new MemberException("找不到該會員"));
-
-		Product product = productRepo.findById(productId).orElseThrow(() -> new MemberException("找不到該商品"));
-
-		// 2.檢查庫存
-		if (product.getStock() < quantity) {
-			throw new MemberException("商品庫存不足，剩餘：" + product.getStock());
-		}
-		// 3.建立訂單物件
-		Orders order = new Orders();
-		// 產生唯一訂單號 (金流規格通常建議英數混合，這裡用 UUID 前 8 碼 搭配時間)
-		String orderNo = "TL" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-
-		order.setOrderNo(orderNo);
-		order.setMember(member);
-		// 計算總金額 (單價 * 數量)
-		int total = product.getPrice() * quantity;
-		order.setTotalAmount(total);
-
-		order.setStatus("Unpaid"); // 預設狀態
-
-		// 4. (選配) 扣減庫存
-		product.setStock(product.getStock() - 1);
-		productRepo.save(product);
-		return orderRepo.save(order);
-	}
+	
 
 	@Override
 	public List<Orders> getOrdersMember(Integer memberNo) {
@@ -83,6 +55,12 @@ public class OrderSerivceImpl implements OrderService {
 	@Override
 	public Orders createOrderBatch(Integer memberNo, List<CartItemDTO> cartItems) {
 		// TODO Auto-generated method stub
+		// 初始化金額為零
+		BigDecimal grandTotal = BigDecimal.ZERO;
+
+		// 使用 StringBuilder 優化字串接收效能
+		StringBuilder invoiceDetails = new StringBuilder("=== 訂單明細內容 ===\\n");
+
 		try {
 			// 獲取會員
 			Member member = memberRepo.findById(memberNo)
@@ -94,7 +72,6 @@ public class OrderSerivceImpl implements OrderService {
 			order.setMember(member);
 			order.setStatus("Unpaid");
 
-			int grandTotal = 0;
 			List<OrderItem> details = new ArrayList<>();
 			// 2.處理每一項商品並轉為訂單明細
 			for (CartItemDTO dto : cartItems) {
@@ -103,8 +80,19 @@ public class OrderSerivceImpl implements OrderService {
 
 				// 檢查庫存
 				if (product.getStock() < dto.getQuantity()) {
-					throw new MemberException(product.getProductName() + "庫存不足");
+					throw new MemberException(product.getProductName() + "庫存不足，剩餘：" + product.getStock());
 				}
+
+				// 【延伸】將 int 轉為 BigDecimal 並使用 multipy 進行運算
+				BigDecimal itemPrice = product.getPrice();
+				BigDecimal itemTotal = itemPrice.multiply(new BigDecimal(dto.getQuantity()));
+				grandTotal = grandTotal.add(itemTotal);
+				
+				// 【延伸】使用 append 拼接資訊，將 String 不可變性（Immutability）優化
+				invoiceDetails.append("- ").append(product.getProductName())
+								.append(" ｜ 數量： ").append(dto.getQuantity())
+								.append(" ｜ 小記： ").append(itemTotal).append("\n");
+				
 
 				// 建立 OrderItem
 				OrderItem detail = new OrderItem();
@@ -114,22 +102,33 @@ public class OrderSerivceImpl implements OrderService {
 				detail.setPrice(product.getPrice());
 
 				details.add(detail);
-				grandTotal += (product.getPrice() * dto.getQuantity());
-
-				// 扣庫存
+				
+				// 扣庫存並觸發樂觀校驗 (version
 				product.setStock(product.getStock() - dto.getQuantity());
 				productRepo.save(product);
 			}
 
 			order.setItems(details); // 將所有明細塞進訂單
-			order.setTotalAmount(grandTotal);
+			order.setTotalAmount(grandTotal); // 直接賦值 BigDecimal
 			; // 設定整筆訂單的總金額
 				// svae 的同時，Hibernate 會自動檢查 version
 			return orderRepo.save(order); // 一次存檔，產生一個 ID 與一個訂單編號
 		} catch (ObjectOptimisticLockingFailureException e) {
 			// 新增樂觀鎖衝突 當很多人搶購同一商品時會觸發
 			throw new MemberException("系統忙碌中 (庫存更新衝突），請稍後再試");
+		}catch (Exception e) {
+			throw new MemberException("訂單結算發生意外錯誤：" + e.getMessage());
+		}finally {
+			// 即使上方執行了 return 或 throw ，這裡依然會執行
+			// 用於資源釋放或強製性的審核日誌記錄
+			invoiceDetails.append("總計金額：").append(grandTotal).append("\n");
+			invoiceDetails.append("=== 結算日誌結束 ===");
+			System.out.println(invoiceDetails.toString());
 		}
+		// 金融系統需要記錄每一筆「嘗試交易」的軌跡。
+		//即使因為樂觀鎖衝突而失敗（沒存入資料庫），
+			//系統仍需在日誌（Log）中記錄「使用者 Eric 在 21:40 嘗試購買 3 筆商品，總額 1,500 元，結果：併發衝突失敗」。
+		//這能幫助工程師在事後查帳時，確認到底是程式 Bug 還是單純的高併發衝突。
 	}
 
 	@Override

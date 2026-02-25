@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,8 @@ public class Orders {
 	@JsonManagedReference //代表這是主的一方 (呼應 OrderItem.java
 	private List<OrderItem> items = new ArrayList();
 
-	private Integer totalAmount; // 總金額
+	// 將價格從 Integer/Double 改為 BigDecimal
+	private BigDecimal totalAmount; // 總金額
 
 	private String status; // 狀態：Unpaid(代付款), Paid(已付款), Cacelled(已取消)
 
@@ -77,11 +79,13 @@ public class Orders {
 		this.member = member;
 	}
 
-	public Integer getTotalAmount() {
+	
+
+	public BigDecimal getTotalAmount() {
 		return totalAmount;
 	}
 
-	public void setTotalAmount(Integer totalAmount) {
+	public void setTotalAmount(BigDecimal totalAmount) {
 		this.totalAmount = totalAmount;
 	}
 
