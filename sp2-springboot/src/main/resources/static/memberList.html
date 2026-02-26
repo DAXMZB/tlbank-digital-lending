@@ -1,127 +1,118 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+    <title>TL BANK - 會員管理系統</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
-<body bgcolor="#faebd7">
-	<table width="90%" border="1" align="center">
-		<tr height="100">
-			<td id="title-placeholder" bgcolor="black" style="opacity: 0.5" align="center"></td><!-- 載入title -->
-		</tr>
-		
-		<tr>
-			<td align="center">
-				<h3>所有會員名單</h3>
-				<table border="1" width="100%" id="member-table">
-					<thead><!-- 通常只會有一行（或者很少變動）。即便你在換頁，這些標題也會一直停留在最上方，讓使用者知道每一行資料代表什麼意思。 -->
-						<tr bgcolor="#cccccc">
-							<th>ID</th>
-							<th>帳號</th>
-                            <th>姓名</th>
-                            <th>電話</th>
-                            <th>地址</th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
-				<div id="pagination-controls" style="margin-top: 20px;">
-					<button id="prev-page">上一頁</button>
-					<span id="page-info">第 1 頁</span>
-					<button id="next-page">下一頁</button>
-				</div>
-			</td>			
-		</tr>
-		<tr>
-			<td align="right">
-				<button id="back-home" style="cursor : pointer; padding: 5px 15px;">回首頁</button>
-			</td>
-		</tr>
-	</table>
+<body class="bg-slate-50 min-h-screen">
+    <div id="app">
+        <nav class="bg-sky-800 text-white p-4 shadow-md flex justify-between items-center mb-8">
+            <div class="text-xl font-bold tracking-tight">TL BANK ADMIN</div>
+            <button @click="goHome" class="text-sm bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded transition">回首頁</button>
+        </nav>
 
-	<script>
-		let currentPage = 0;
-		const pageSize = 5; //每頁顯示 5 筆資料
+        <main class="max-w-6xl mx-auto px-4">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-slate-800">所有會員名單</h2>
+                    <span class="text-sm text-slate-500">每頁顯示 {{ pageSize }} 筆</span>
+                </div>
 
-		$(function() {
-			$("#title-placeholder").load("title.html"); //載入全站同步資訊
-			loadMembers(currentPage);
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-600 text-sm uppercase">
+                            <tr>
+                                <th class="px-6 py-4 font-semibold">ID</th>
+                                <th class="px-6 py-4 font-semibold">帳號</th>
+                                <th class="px-6 py-4 font-semibold">姓名</th>
+                                <th class="px-6 py-4 font-semibold">電話</th>
+                                <th class="px-6 py-4 font-semibold">地址</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr v-for="m in members" :key="m.memberNo" class="hover:bg-sky-50 transition">
+                                <td class="px-6 py-4 font-medium text-sky-700">#{{ m.memberNo }}</td>
+                                <td class="px-6 py-4">{{ m.username }}</td>
+                                <td class="px-6 py-4 font-semibold">{{ m.name }}</td>
+                                <td class="px-6 py-4 text-slate-500">{{ m.phone }}</td>
+                                <td class="px-6 py-4 text-sm">{{ m.address }}</td>
+                            </tr>
+                            <tr v-if="members.length === 0 && !loading">
+                                <td colspan="5" class="px-6 py-12 text-center text-slate-400">目前尚無會員資料</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-			//綁定分頁按鈕事件
-			$("#prev-page").click(function() {
-				if (currentPage > 0) {
-					currentPage--;
-					loadMembers(currentPage);
-				}
-			});
-			$("#next-page").click(function() {
-				currentPage++;
-				loadMembers(currentPage);
-			});
-			$("#back-home").click(function(){
-				window.location.href = "index.html";
-			});
-		});
-		function loadMembers(page) {
-			$.ajax({
-				url : "/api/members/list",
-				type : "GET",
-				data : {page: page, size: pageSize},/* 接收參數 (@RequestParam)：
-				page: 若前端未傳送，預設值為 "0"（即第一頁）。
-				size: 若前端未傳送，預設每頁顯示 "10" 筆。 */
-				success: function(response){ //Controleer 中的 List 回傳
-					// 1. 先確認 response 是否有內容
-				    console.log("後端回傳資料：", response);
-					//清空表格內容
-					$("#member-table tbody").empty();
-					//遍歷回傳的資料 (Spring Data JPA 的內容在 content 欄位中)
-					response.content.forEach(function(m){
-						
-						let row="<tr>"+
-									"<td>"+m.memberNo+"</td>"+
-									"<td>"+m.username+"</td>"+
-									"<td>"+m.name+"</td>"+
-									"<td>"+m.phone+"</td>"+
-									"<td>"+m.address+"</td>"+
-								"</tr>";
-						//會員資料清單
-						$("#member-table tbody").append(row);
-					});
-					
-					//更新分頁文字
-					// 注意：在新格式中，分頁資訊位於 response.page 物件內
-					const pageInfo = response.page;
-					$("#page-info").text("第"+(pageInfo.number+1)+"頁 / 共"+pageInfo.totalPages+"頁");
-						/* response.number 與 response.totalPages 這些欄位名稱是由 Spring 框架預設定義的。
-						當後端 Controller 回傳 Page<Member> 時，Spring 會自動將分頁資訊轉換為 JSON 格式供前端使用。 */
-								/* 
-								response.number：		
-									對應後端：對應傳入 Service 的 page 參數。
-									意義：目前的頁碼索引（從 0 開始計算）。
-									前端處理：因為索引從 0 開始，所以你在畫面上顯示時會寫 (response.number + 1)，這樣使用者才會看到「第 1 頁」而不是「第 0 頁」。
-			
-								response.totalPages：		
-									對應後端：由 Spring Data JPA 根據資料庫中的總筆數自動計算出來。
-									意義：總共有多少頁。
-								 */
-					//控制按鈕啟動/禁用						
-					$("#prev-page").prop("disabled",pageInfo.first);//當 response.first 為 true 時，前端會自動把「上一頁」按鈕變灰（disabled），防止使用者點到不存在的頁面。
-					$("#next-page").prop("disabled",pageInfo.last); //同理，當到達最後一頁時，「下一頁」按鈕也會自動失效。
-					currentPage=pageInfo.number;/* 接收點：success: function(response) { ... } 裡的 response 變數。
-												   對接點：response.number 從這個物件中取出後端算好的頁碼。 */
-					
-					
-				},
-				error: function(){
-					alert("載入會員清單失敗，請確認是否已登入");
-/* 					當 loadMembers 函式發送 AJAX 請求到 /api/members/list 時：
-					偵測者：Spring Security 的過濾器鏈 (Filter Chain)。
-					運作原理：後端會檢查這個請求是否帶著合法的 Session 或 Token。
-						如果發現請求者尚未登入，後端不會回傳會員資料，而是直接丟回一個 HTTP 401 (未經授權) 的錯誤代碼。 */
-				}
-			});
-		}
-	</script>
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                    <div class="text-sm text-slate-600">
+                        第 <span class="font-bold text-sky-700">{{ pageInfo.number + 1 }}</span> 頁 / 
+                        共 <span class="font-bold">{{ pageInfo.totalPages }}</span> 頁
+                    </div>
+                    <div class="space-x-2">
+                        <button @click="changePage(-1)" :disabled="pageInfo.first || loading"
+                                class="px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition">
+                            上一頁
+                        </button>
+                        <button @click="changePage(1)" :disabled="pageInfo.last || loading"
+                                class="px-4 py-2 bg-sky-600 text-white rounded-md text-sm font-medium hover:bg-sky-700 disabled:opacity-50 transition">
+                            下一頁
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    members: [],
+                    pageInfo: { number: 0, totalPages: 0, first: true, last: true },
+                    pageSize: 5,
+                    loading: false
+                }
+            },
+            mounted() {
+                // 初始化載入第一頁
+                this.loadMembers(0);
+            },
+            methods: {
+                async loadMembers(page) {
+                    this.loading = true;
+                    try {
+                        const response = await axios.get('/api/members/list', {
+                            params: { page: page, size: this.pageSize }
+                        });
+                        
+                        // Spring Data JPA 的資料結構：content 為清單，page 為分頁資訊
+                        this.members = response.data.content;
+                        this.pageInfo = response.data.page;
+                    } catch (error) {
+                        // 處理 401 或其他加載錯誤
+                        alert("載入會員清單失敗，請確認是否已登入");
+                        if (error.response && error.response.status === 401) {
+                            window.location.href = "login.html";
+                        }
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                changePage(delta) {
+                    const nextPage = this.pageInfo.number + delta;
+                    this.loadMembers(nextPage);
+                },
+                goHome() {
+                    window.location.href = "index.html";
+                }
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>

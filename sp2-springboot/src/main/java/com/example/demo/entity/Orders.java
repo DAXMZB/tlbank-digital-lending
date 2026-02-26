@@ -32,6 +32,8 @@ public class Orders {
 	private List<OrderItem> items = new ArrayList();
 
 	// 將價格從 Integer/Double 改為 BigDecimal
+	// precision: 總位數, scale: 小數位數。12,2 代表最大可存 9,999,999,999.99
+	@Column(precision = 12, scale = 2)
 	private BigDecimal totalAmount; // 總金額
 
 	private String status; // 狀態：Unpaid(代付款), Paid(已付款), Cacelled(已取消)

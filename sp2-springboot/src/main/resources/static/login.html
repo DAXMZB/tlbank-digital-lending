@@ -1,95 +1,103 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+    <title>TL BANK - 安全登入</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
-<body bgcolor="#faebd7">
-	<table width=600 align=center border=1>
-		<tr style="opacity: 0.5;">
-			<td id="title" colspan="2" bgcolor="black" style="opacity: 0.5"
-				align="center"></td>
-			<!-- 首頁檔案 -->
-			<script>
-				$(function() {
-					//put title.html in placeholder
-					$("#title").load("title.html");
-				});
-			</script>
-		</tr>
-		<tr>
-			<td>帳號</td>
-			<td><input type=text name=username placeholder="8位英數帳號"></td>
-		</tr>
-		<tr>
-			<td>密碼</td>
-			<td><input type=password name=password placeholder="8位英數帳號"></td>
-		</tr>
-		<tr>
-			<td colspan=2 align=center><input type=button
-				id="login-submit-btn" value="登入">
-				<div style="margin-top: 10px; text-align: center;">
-					<a href="javascript:void(0)" onclick="forgotPassword()"
-						style="font-size: 12px; color: gray;">忘記密碼？</a>
-				</div></td>
-		</tr>
+<body class="bg-slate-100 min-h-screen flex flex-col">
+    <div id="app" class="flex-grow flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-sky-700">TL BANK</h1>
+                <p class="text-slate-500 mt-2">請輸入您的帳號密碼以進行驗證</p>
+            </div>
 
+            <form @submit.prevent="handleLogin" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">帳號</label>
+                    <input type="text" v-model="formData.username" placeholder="請輸入 8 位英數帳號"
+                           class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">密碼</label>
+                    <input type="password" v-model="formData.password" placeholder="請輸入您的密碼"
+                           class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+                </div>
 
-		<!-- 帳號驗證：透過 memberService.isUsernameExists(username)。因為資料庫已改為 _bin 排序，這步會精確區分大小寫。
+                <button type="submit" :disabled="loading"
+                        class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-sky-200 transition disabled:bg-slate-400">
+                    <span v-if="loading">驗證中...</span>
+                    <span v-else>立即登入</span>
+                </button>
+            </form>
 
-			 密碼驗證：在 memberService.login 中，先找出該帳號，再用 passwordEncoder.matches 檢查密碼。 -->
-		<script>
-			$(function() {
-				$("#login-submit-btn").click(
-						function(e) {
-							e.preventDefault();
-							let forData = {
-								username : $("input[name='username']").val(),
-								password : $("input[name='password']").val()
-							};
-							$.ajax({
-								url : "/api/members/login",
-								type : "POST",
-								contentType : "application/json",
-								data : JSON.stringify(forData),
-								success : function(member) {
-									//1.將姓名存入瀏覽器記憶體，這樣重新整理才不會消失
-									sessionStorage.setItem("userName",
-											member.name);
-									//1.將帳號存入瀏覽器記憶體，這樣重新整理才不會消失
-									sessionStorage.setItem("memberNo",
-											member.memberNo);
+            <div class="mt-6 flex justify-between text-sm">
+                <a href="javascript:void(0)" @click="forgotPassword" class="text-sky-600 hover:underline">忘記密碼？</a>
+                <a href="addMember.html" class="text-slate-500 hover:text-sky-600">尚未註冊帳號？</a>
+            </div>
+        </div>
+    </div>
 
-									//2.執行跳轉
-									window.location.href = "index.html";
-								},
-								error : function(xhr) {
-									//如果傳回401，則抓取帳號已重複
-									alert(xhr.responseText); //預設優先捕捉Controleer @valid 即全域變數
-								}
-							});
-						});
-			});
-			function forgotPassword() {
-				let username = prompt("請輸入您的帳號：");
-				let email = prompt("請輸入您的註冊信箱：");
+    <script>
+        const { createApp } = Vue;
 
-				if (username && email) {
-					$.post("/api/members/forgot-password", {
-						username : username,
-						email : email
-					}, function(res) {
-						alert(res);
-					}).fail(function(xhr) {
-						alert("錯誤：" + xhr.responseText);
-					});
-				}
-			}
-		</script>
-	</table>
+        createApp({
+            data() {
+                return {
+                    formData: {
+                        username: '',
+                        password: ''
+                    },
+                    loading: false
+                }
+            },
+            methods: {
+                async handleLogin() {
+                    if (!this.formData.username || !this.formData.password) {
+                        alert("請填寫完整帳號與密碼");
+                        return;
+                    }
 
+                    this.loading = true;
+                    try {
+                        // 使用 Axios 發送 POST 請求
+                        const response = await axios.post('/api/members/login', this.formData);
+                        const member = response.data;
 
+                        // 1. 儲存至 sessionStorage
+                        sessionStorage.setItem("userName", member.name);
+                        sessionStorage.setItem("memberNo", member.memberNo);
 
+                        // 2. 執行跳轉
+                        window.location.href = "index.html";
+                    } catch (error) {
+                        // 處理 401 或其他驗證錯誤
+                        const errorMsg = error.response ? error.response.data : "連線失敗";
+                        alert(errorMsg);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                forgotPassword() {
+                    const username = prompt("請輸入您的帳號：");
+                    const email = prompt("請輸入您的註冊信箱：");
+
+                    if (username && email) {
+                        // 轉換為 URLSearchParams 格式以符合後端 @RequestParam 接收
+                        const params = new URLSearchParams();
+                        params.append('username', username);
+                        params.append('email', email);
+
+                        axios.post('/api/members/forgot-password', params)
+                            .then(res => alert(res.data))
+                            .catch(err => alert("錯誤：" + (err.response ? err.response.data : "請求失敗")));
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>

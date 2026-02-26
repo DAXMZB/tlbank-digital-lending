@@ -26,6 +26,8 @@ public class OrderItem {
 	private Product product; // 買了什麼商品
 	// 將價格從 Integer/Double 改為 BigDecimal
 	private Integer quantity; 	// 買了多少
+	// precision: 總位數, scale: 小數位數。12,2 代表最大可存 9,999,999,999.99
+	@Column(precision = 12, scale = 2)
 	private BigDecimal price;		// 買的單價
 	public Integer getId() {
 		return id;

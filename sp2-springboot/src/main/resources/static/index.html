@@ -6,222 +6,75 @@
 <meta charset="UTF-8">
 <title>Insert title here</title>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- 入 Vue 3 以及 Tailwind CSS -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body bgcolor="#faebd7">
-	<table width="100%" border="2" align="center" height=300>
-		<tr style="opacity: 0.5;">
-			<td id="title-placeholder" colspan=2 bgcolor=black
-				style="opacity: 0.5" align=center></td>
-		</tr>
+<body >
+	<div id="app" class="min-h-screen bg-gray-50">
+    <nav class="bg-sky-700 text-white p-4 shadow-lg flex justify-between items-center">
+        <div class="text-3xl font-bold tracking-tighter">TL BANK</div>
+        <div class="flex items-center space-x-4">
+            <span v-if="user.name" class="font-medium">歡迎，{{ user.name }}</span>
+            <button v-if="user.name" @click="logout" class="bg-sky-800 hover:bg-sky-900 px-4 py-1 rounded text-sm">登出</button>
+            <div v-else class="space-x-2">
+                <a href="login.html" class="hover:underline">登入</a>
+                <a href="addMember.html" class="hover:underline">註冊</a>
+            </div>
+        </div>
+    </nav>
 
+    <header class="bg-white border-b p-8 text-center">
+        <h1 class="text-4xl font-extrabold text-sky-900 mb-2">TL 心情小站 / 金融服務</h1>
+        <p class="text-gray-500">提供最穩定的 Java 後端技術支援</p>
+    </header>
 
-		<tr id="auth-row" align=center>
-			<td><a href=login.html style="color: brown">登入</a></td>
-			<td><a href="addMember.html">註冊</a></td>
-		</tr>
-		<tr>
-			<!-- 增設檢查是否登入 -->
-			<td><a href="javascript:void(0)"
-				onclick="checkLoginGo('memberList.html')"
-				style="color: blue; text-decoration: underline;">會員清單</a></td>
-		</tr>
-		<tr>
-			<!-- 增設檢查是否登入 -->
-			<td><a href="javascript:void(0)"
-				onclick="checkLoginGo('productList.html')"
-				style="color: blue; text-decoration: underline;">商品瀏覽</a></td>
-		</tr>
-		<tr>
-			<!-- 增設檢查是否登入 -->
-			<td><a href="javascript:void(0)"
-				onclick="checkLoginGo(`orderList.html`)"
-				style="color: blue; text-decoration: underline;">購物車</a></td>
-		</tr>
+    <main class="max-w-6xl mx-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div v-for="item in menuItems" :key="item.title" 
+             @click="checkLoginGo(item.url)"
+             class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition cursor-pointer text-center group">
+            <div class="text-sky-600 text-4xl mb-4 group-hover:scale-110 transition">
+                <i :class="item.icon"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">{{ item.title }}</h3>
+            <p class="text-sm text-gray-500 mt-2">{{ item.desc }}</p>
+        </div>
+    </main>
+</div>
 
-	</table>
-	<table width="100%" border="2" height=700>
-		<tr>
-			<td align="center" valign="top" style="padding: 20px;">
-				<h3>📣 發表你的心情</h3>
-				<div
-					style="width: 60%; background: #fff; padding: 15px; border-radius: 8px;">
-					<textarea id="post-content" style="width: 100%; height: 80px;"
-						placeholder="今天想說點什麼呢?"></textarea>
-					<div align="right" style="margin-top: 10px">
-						<button onclick="submitPost()"
-							style="padding: 8px 20px; background: #4CAF50; color: white; border: none; cursor: pointer;">發佈貼文</button>
+<script>
+    const { createApp } = Vue;
 
-					</div>
-				</div>
-
-				<div id="post-list" style="width: 60%; margin-top: 30px;"></div>
-				<div style="margin-top: 20px; text-align: center;">
-					<button id="pre-btn" onclick="changePage(-1)"
-						style="padding: 5px 15px;">上一頁</button>
-					<span id="page-info" style="margin: 0 15px;">第 1 頁</span>
-					<button id="next-btn" onclick="changePage(1)"
-						style="padding: 5px 15px;">下一頁</button>
-				</div>
-			</td>
-		</tr>
-	</table>
-	<!-- 首頁檔案 -->
-	<script>
-		let currentPage = 0; //目前頁碼 (Spring 從 0 開始)
-		const pageSize = 5; //每頁顯示 5 筆
-		$(function() {
-			//put title.html in placeholder
-			$("#title-placeholder").load("title.html");
-			// 載入頁面完成後，自動抓取現有貼文
-			loadPosts();
-		});
-
-		// 新增：檢查登入並跳轉的函式
-		function checkLoginGo(targetUrl) {
-			//從 sessionStorage 讀取 userName 或 memberId (根據login.html登入名字)
-			let isLogin = sessionStorage.getItem("userName");
-
-			if (isLogin) {
-				//已登入：執行跳轉
-				window.location.href = targetUrl;
-			} else {
-				//未登入：跳出警告並引導至登入頁
-				alert("請先登入，才可查看會員清單！");
-				window.location.href = "login.html";
-			}
-		}
-		//發佈貼文
-		function submitPost(){
-			let mNo = sessionStorage.getItem("memberNo"); // 取得登入者 ID
-			let content = $("#post-content").val();
-			
-			if(!mNo){ alert("請先登入！"); return; }
-			if(!content){alert("請輸入內容！"); return}
-			
-			$.post("/api/posts/create", {memberId:mNo, content: content }, function(res){
-				alert(res);
-				$("#post-content").val(""); //清空輸入框
-				currentPage = 0; //發文後回到第一頁看新留言
-				loadPosts(); //重新整理貼文畫面
-			}).fail(function(xhr){
-				alert("發佈失敗：" + xhr.responseText);
-			});
-		}
-		
-		// 刪除貼文
-		function deletePost(postId){
-			let mNo = sessionStorage.getItem("memberNo"); // 取得操作者 ID
-			if(confirm("確定刪除貼文嗎？")){
-				// 傳送當前登入者 ID 給後端校驗
-				$.ajax({
-					url: "/api/posts/" + postId + "?memberNo=" + mNo,
-					type: "DELETE",
-					success: function(res){
-						alert(res);
-						// 成功紅直接從畫面移除，不虛重新整理頁面
-						$(`#post-${postId}`).fadeOut(300, function(){
-							$(this).remove();
-						});
-					},
-					error: function(xhr) {
-						// 如果後端拋出 RuntimeException，這裡會捕捉到
-						alert("刪除失敗：" + xhr.responseText);
-					}
-				});
-			}
-		}
-		
-		// 載入貼文 （可加入分頁查詢
-		function loadPosts(){
-			let loginMNo = sessionStorage.getItem("memberNo"); //取得當前登入者 ID
-			//在產生的 pCard 內加入刪除按鈕，傳入該貼文的 id
-			$.ajax({
-				url: `/api/posts/all?page=${currentPage}&size=${pageSize}`,
-				type: "GET", // 明確指定請求方法
-				dataType: "json", // 預期後端回傳 JSON 格式
-				success: function(pageData){
-					// 後端回傳的是 Page 物件，資料在 content 屬性裡
-					// 檢查 content 位置 (VIA_DTO 模式下通常不變)
-					let posts = pageData.content;
-					// VIA_DTO 模式會將元數據封裝在 page 物件內
-					let totalPages = pageData.page.totalPages;
-					let totalElements = pageData.page.totalElements; //抓總比數
-					// 清空舊清單並新渲染
-					$("#post-list").empty();
-					
-					posts.forEach(p => {
-						let commentsHtml="";
-						// 對應 Entity 的 comments
-						if(p.comments){
-							p.comments.forEach(c =>{
-								commentsHtml +=`
-									<div style="background: #f8f9fa; margin-top: 5px; padding: 8px; border-radius: 4px; font-size: 14px;">
-										<strong>${c.member.username}</strong>: ${c.content}
-										<br><small style="color:gray;">${c.commentTime.replace('T',' ').split('.')[0]}</small>
-									</div>`;
-							});
-						}
-						// 判斷是否顯示刪除按鈕
-						let deleteBtn = "";
-						if(loginMNo && parseInt(loginMNo) === p.member.memberNo){
-							deleteBtn = `<button onclick="deletePost(${p.id})"
-								style="color: #dc3545; border: 1px solid #dc3545; background: white; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 12px;">
-												刪除
-										</button>`;
-						}
-						let pCard = `
-						<div id="post-${p.id}" style="border-bottom: 1px solid #ccc; padding: 15px; text-align: left; background: #fff; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-							<div style="display: flex; justify-content: space-between; align-items: center;">
-								<strong style="color: #2e7d32;">${p.member.username}</strong>
-								${deleteBtn}
-							</div>
-							<p style="margin: 10px 0; line-height: 1.5;">${p.content}</p>
-							<small style="color:gray;">📅 ${p.postTime.replace('T',' ').split('.')[0]}</small>
-							<hr>
-							<div id="comment-list-${p.id}">${commentsHtml}</div>
-							<div style="margin-top: 10px; display: flex;">
-								<input type="text" id="comment-input-${p.id}" placeholder="寫你的下回應...." style="flex: 1; padding: 5px">
-								<button onclick="submitComment(${p.id})" style="margin-left: 5px; background: #2196F3; color: white; border: none; cursor: pointer;">回應</button>
-							</div>
-						</div>`;
-						$("#post-list").append(pCard);
-					});
-					
-					// 更新頁碼資訊
-					$("#page-info").text(`第 ${currentPage + 1} 頁 / 共 ${totalPages} 頁 (總共 ${totalElements} 則心情)`);
-					
-					// 處理按鈕禁用狀態
-					$("#pre-btn").prop("disabled", currentPage === 0);
-					$("#next-btn").prop("disabled", currentPage + 1 >= totalPages);
-				},
-				error: function(xhr){
-					console.error("貼文載入失敗：",xhr.responseText);
-					$("#post-list").html("<p style='color:red;'>貼文載入失敗，請稍後再試。</p>");
-				}
-				
-				
-			});
-			
-		}
-		function changePage(delta){
-			currentPage += delta;
-			loadPosts();
-		}
-		function submitComment(postId){
-			let mNo = sessionStorage.getItem("memberNo");
-			let content = $(`#comment-input-${postId}`).val();
-			
-			if(!mNo){ alert("請先登入！"); return;}
-			if(!content){ alert("請輸入留言！"); return; }
-			
-			$.post("/api/comments/create", { postId: postId, memberNo: mNo, content: content }, function(res) {
-		        alert(res);
-		        $(`#comment-input-${postId}`).val(""); // 清空輸入框
-		        loadPosts(); // 重新整理以顯示新留言
-		    }).fail(function(xhr){
-		    	alert("留言失敗：" + xhr.responseText);
-		    });
-		}
-	</script>
+    createApp({
+        data() {
+            return {
+                user: { name: sessionStorage.getItem("userName") || "" },
+                menuItems: [
+                    { title: "我的帳戶", desc: "查看會員個人資料", url: "memberList.html", icon: "fa-solid fa-user-shield" },
+                    { title: "產品瀏覽", desc: "精確的 BigDecimal 運算", url: "productList.html", icon: "fa-solid fa-money-bill-transfer" },
+                    { title: "購物車", desc: "您的專屬交易清單", url: "orderList.html", icon: "fa-solid fa-cart-shopping" }
+                ]
+            }
+        },
+        methods: {
+            checkLoginGo(target) {
+                if (this.user.name) {
+                    window.location.href = target;
+                } else {
+                    alert("請先登入，才可查看功能！");
+                    window.location.href = "login.html";
+                }
+            },
+            logout() {
+                if (confirm("確定要登出嗎？")) {
+                    // 這裡可以呼叫你的 /api/members/logout
+                    sessionStorage.clear();
+                    location.reload();
+                }
+            }
+        }
+    }).mount('#app');
+</script>
 </body>
 </html>

@@ -1,215 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<style>
-/* UI Components: Card-style layout for each order */
-/* UI 元件：每筆訂單採用卡片式佈局 */
-.order-card {
-	border: 2px solid #4CAF50;
-	margin-bottom: 20px;
-	padding: 15px;
-	background: white;
-	border-radius: 8px;
-	/* 【新增】限制寬度並置中 */
-	max-width: 1000px;
-	margin-left: auto;
-	margin-right: auto;
-}
-
-.order-header {
-	font-weight: bold;
-	border-bottom: 1px solid #ccc;
-	padding-bottom: 10px;
-	margin-bottom: 10px;
-	display: flex;
-	justify-content: space-between;
-}
-
-.item-table {
-	width: 100%;
-	border-collapse: collapse;
-	margin-top: 10px
-}
-
-.item-table th {
-	background: #f2f2f2;
-	text-align: left;
-}
-
-.btn-delete {
-	background-color: #dc3545; /* 警示紅 */
-	color: white;
-	border: none;
-	padding: 5px 10px;
-	cursor: pointer;
-	border-radius: 4px;
-	font-weight: bold;
-	transition: all 0.3s ease;
-}
-
-.btn-delete:hover {
-	background-color: #a71d2a; /* 懸停時顏色加深 */
-	transform: scale(1.05); /* 微幅放大 */
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-</style>
-
+    <meta charset="UTF-8">
+    <title>TL BANK - 我的訂單與結帳</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
-<body bgcolor="#faebd7">
-	<div style="width: 80%; margin: 20px auto;">
-		<h2>📋 購物車</h2>
-		<div>
-			<input type="checkbox" id="select-all"><label
-				for="select-all">全選</label>
-		</div>
-	</div>
-	<div id="orders-container"></div>
+<body class="bg-slate-50 min-h-screen">
+    <div id="app">
+        <nav class="bg-sky-800 text-white p-4 shadow-md flex justify-between items-center mb-6">
+            <div class="text-xl font-bold">訂單管理中心</div>
+            <button @click="goHome" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded text-sm transition">回首頁</button>
+        </nav>
 
-	<div
-		style="text-align: right; margin-top: 20px; border-top: 2px solid #ccc; padding-top: 10px; width: 80%; margin: 20px auto;">
-		<h3>
-			選取金額總計：NT$ <span id="checkout-total">0</span>
-		</h3>
-		<button id="ecpay-btn" class="btn-delete"
-			style="background-color: #28a745;">前往綠界科技結帳</button>
-	</div>
+        <main class="max-w-5xl mx-auto px-4 pb-24">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">📋 歷史訂單紀錄</h2>
+                <div class="flex items-center bg-white px-4 py-2 rounded-lg border shadow-sm">
+                    <input type="checkbox" id="selectAll" v-model="isAllSelected" class="w-4 h-4 text-sky-600">
+                    <label for="selectAll" class="ml-2 text-sm font-medium text-slate-600 cursor-pointer">全選訂單</label>
+                </div>
+            </div>
 
-	<script>
-		$(function(){
-			/** * Authentication Check: Ensure user is logged in
-             * 身份驗證檢查：確保使用者已登入
-             */
-			let mNo = sessionStorage.getItem("memberNo");
-			if(!mNo){ alert("請先登入"); window.location.href = "login.html"; return;}
-			
-			// 呼叫 API 取得 Eric 的所有訂單
-			$.get("/api/orders/member/" + mNo, function(orders){
-				if(orders.length === 0){
-					$("#orders-container").html("<p>目前尚無訂單紀錄</p>");
-					return;
-				}
-				
-				$("#orders-container").empty(); //清空舊內容
-				// 1.建立訂單外框與主檔資訊
-				orders.forEach(order =>{					
-					let orderHtml = `
-						<div class="order-card" id="order-card-${order.id}">
-							<div class="order-header">
-								<div>
-									<input type="checkbox" class="order-selector"
-											data-id="${order.id}"
-											data-amount="${order.totalAmount}">
-									<span>訂單編號：${order.orderNo}</span>
-									<span style="color: #666;; margin-left: 15px;">下單時間：${order.orderTime.replace('T',' ').split('.')[0]}</span>
-								</div>
-							</div>
-							<button onclick="deleteOrder(${order.id})" 
-									class="btn-delete">
-									刪除訂單
-							</button>
-								
-							
-							<p>狀態：<span style="color: blue">${order.status}</span> | 總金額：<strong>NT$ ${order.totalAmount}</strong></p>
-							
-							<table class="item-table" border="1" style="border-collapse: collapse; width: 100%;">
-								<thead>
-									<tr style="background-color: #f2f2f2;">
-										<th>商品名稱</th><th>單價</th><th>數量</th><th>小記</th>
-									</tr>
-								</thead>
-								<tbody>
-									${renderItems(order.items)}</tbody> 
-							</table>
-						</div>`;
-						// Append the generated HTML to the container
-	                    // 將產生的 HTML 附加到容器中
-						$("#orders-container").append(orderHtml);
-				});
-			});
-			//監聽勾選事件
-			$(document).on("change", ".order-selector, #select-all", function(){
-				// 如果點擊的是「全選」按鈕
-				if($(this).attr('id') === 'select-all'){
-					$(".order-selector").prop('checked', $(this).prop('checked'));
-				}
-				// 重新計算「已勾選」的總金額
-				let total = 0;
-				$(".order-selector:checked").each(function(){
-					total += parseInt($(this).data("amount"));
-				});
-				$("#checkout-total").text(total);
-			});
-			//結帳按鈕點擊：發送到後端獲取綠界表單
-			$("#ecpay-btn").click(function(){
-				let selectedIds = [];
-				// 找出所有被勾選的訂單 ID
-				$(".order-selector:checked").each(function(){
-					selectedIds.push($(this).data("id"));
-				});
-				// 檢查是否有選取項目
-				if(selectedIds.length === 0 ){ alert("未勾選訂單"); return;}
-				
-				//使用 $.ajax 傳送 JSON 格式資料給後端
-				$.ajax({
-					url: "/api/ecpay/checkout",
-					type: "POST",
-					contentType: "application/json",
-					data: JSON.stringify(selectedIds),
-					success: function(forHtml){
-						// 綠界結帳成功跳轉邏輯
-						document.write(forHtml); //執行後端傳回的自動提交表單
-					},
-					error: function(xhr){
-						alert("金流連線失敗：" + xhr.responseText);
-					}
-				});
-				
-			});
-			
-			
-			
-			
-		});
-		
-		// 輔助涵式：處理訂單明細的巢狀迴圈
-		function renderItems(items){
-			if(!items) return "";
-			return items.map(item => `
-					<tr>
-						<td>${item.product.productName}</td>
-						<td>${item.price}</td>
-						<td>${item.quantity}</td>
-						<td>${item.price * item.quantity}</td>
-					</tr>
-					`).join('');
-		}
-		
-		function deleteOrder(orderId){
-			if(confirm("確定刪除訂單?")){
-				$.ajax({
-					url: "/api/orders/" + orderId,
-					type: "DELETE",
-					success: function(res){
-						alert(res);
-						// 成功後直接從畫面上移除該卡片，不需重新整理頁面
-						$(`#order-card-${orderId}`).fadeOut(500, function(){
-							$(this).remove();
-							//如果刪除完後沒訂單了，顯示提示文字
-							if($(".order-card").length === 0){
-								$("#orders-container").html("<p>目前尚無訂單紀錄</p>");
-							}
-						});
-					},
-					error: function(xhr){
-						alert("刪除失敗："+ xhr.responseText);
-					}
-				});
-			}
-		}
-	</script>
+            <div v-if="orders.length === 0" class="text-center py-20 bg-white rounded-xl border border-dashed text-slate-400">
+                目前尚無訂單紀錄
+            </div>
 
+            <div v-else class="space-y-6">
+                <div v-for="order in orders" :key="order.id" 
+                     class="bg-white rounded-xl shadow-sm border-2 border-slate-200 overflow-hidden transition-all"
+                     :class="{'border-sky-500 shadow-md': selectedOrderIds.includes(order.id)}">
+                    
+                    <div class="bg-slate-50 p-4 border-b flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" :value="order.id" v-model="selectedOrderIds" class="w-5 h-5 text-sky-600">
+                            <span class="font-mono font-bold text-slate-700">編號：{{ order.orderNo }}</span>
+                            <span class="text-xs text-slate-400">📅 {{ formatTime(order.orderTime) }}</span>
+                        </div>
+                        <button @click="deleteOrder(order.id)" class="text-red-500 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1 rounded text-xs transition">
+                            刪除訂單
+                        </button>
+                    </div>
+
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 uppercase">{{ order.status }}</span>
+                            <span class="text-xl font-black text-slate-800">總金額：NT$ {{ order.totalAmount }}</span>
+                        </div>
+
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-500">
+                                <tr>
+                                    <th class="p-2">商品名稱</th>
+                                    <th class="p-2">單價</th>
+                                    <th class="p-2 text-center">數量</th>
+                                    <th class="p-2 text-right">小計</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in order.items" :key="item.id" class="border-b border-slate-50">
+                                    <td class="p-2 font-medium">{{ item.product.productName }}</td>
+                                    <td class="p-2">NT$ {{ item.price }}</td>
+                                    <td class="p-2 text-center">{{ item.quantity }}</td>
+                                    <td class="p-2 text-right font-bold text-sky-600">NT$ {{ item.price * item.quantity }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer v-if="orders.length > 0" class="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-sky-600 shadow-2xl p-6">
+            <div class="max-w-5xl mx-auto flex justify-between items-center">
+                <div class="text-slate-500">
+                    已選取 <span class="font-bold text-sky-600">{{ selectedOrderIds.length }}</span> 筆訂單
+                </div>
+                <div class="flex items-center space-x-8">
+                    <div class="text-3xl font-black text-slate-800">
+                        選取總計：<span class="text-sky-600">NT$ {{ selectedTotal }}</span>
+                    </div>
+                    <button @click="checkoutWithECPay" :disabled="selectedOrderIds.length === 0"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl font-bold text-lg shadow-lg transition disabled:bg-slate-300">
+                        前往綠界科技結帳
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    orders: [],
+                    selectedOrderIds: [],
+                    memberNo: sessionStorage.getItem("memberNo")
+                }
+            },
+            computed: {
+                // 自動計算勾選訂單的總額
+                selectedTotal() {
+                    return this.orders
+                        .filter(o => this.selectedOrderIds.includes(o.id))
+                        .reduce((sum, o) => sum + o.totalAmount, 0);
+                },
+                // 全選控制邏輯
+                isAllSelected: {
+                    get() {
+                        return this.orders.length > 0 && this.selectedOrderIds.length === this.orders.length;
+                    },
+                    set(value) {
+                        this.selectedOrderIds = value ? this.orders.map(o => o.id) : [];
+                    }
+                }
+            },
+            mounted() {
+                if (!this.memberNo) {
+                    alert("請先登入");
+                    window.location.href = "login.html";
+                    return;
+                }
+                this.loadOrders();
+            },
+            methods: {
+                async loadOrders() {
+                    try {
+                        const response = await axios.get('/api/orders/member/' + this.memberNo);
+                        this.orders = response.data;
+                    } catch (error) {
+                        console.error("載入訂單失敗", error);
+                    }
+                },
+                async deleteOrder(id) {
+                    if (confirm("確定刪除訂單?")) {
+                        try {
+                            await axios.delete('/api/orders/' + id);
+                            this.orders = this.orders.filter(o => o.id !== id);
+                            this.selectedOrderIds = this.selectedOrderIds.filter(sid => sid !== id);
+                        } catch (error) {
+                            alert("刪除失敗");
+                        }
+                    }
+                },
+                async checkoutWithECPay() {
+                    if (this.selectedOrderIds.length === 0) {
+                        alert("未勾選訂單");
+                        return;
+                    }
+                    try {
+                        const response = await axios.post('/api/ecpay/checkout', this.selectedOrderIds);
+                        document.open();
+                        document.write(response.data);
+                        document.close();
+                    } catch (error) {
+                        alert("金流連線失敗");
+                    }
+                },
+                formatTime(timeStr) {
+                    return timeStr.replace('T', ' ').split('.')[0];
+                },
+                goHome() { window.location.href = "index.html"; }
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>

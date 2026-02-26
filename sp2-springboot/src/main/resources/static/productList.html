@@ -1,220 +1,168 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>商品專區</title>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+    <title>TL BANK - 咖啡與點心專區</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
-<body bgcolor="#faebd7">
-	<table width="90%" border="0" align="center">
-		<tr height="100">
-			<td id="title-placeholder" bgcolor="black" align="center"
-				style="opacity: 0.5" align="center"></td>
-		</tr>
-		<tr>
-			<td align="center">
-				<h2>咖啡與點心</h2>
-				<div id="product-list"
-					style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;"></div>
+<body class="bg-slate-50 min-h-screen">
+    <div id="app">
+        <nav class="bg-sky-800 text-white p-4 shadow-md flex justify-between items-center mb-6">
+            <div class="text-xl font-bold">TL BANK SHOP</div>
+            <button @click="goHome" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded text-sm transition">回首頁</button>
+        </nav>
 
-				<div id="cart-summary"
-					style="display: none; margin: 20px auto; width: 80%; padding: 15px; background: #fff; border: 2px dashed #4CAF50; border-radius: 10px;">
-					<h3>🛒 結算清單</h3>
-					<table id="cart-table" width="100%" style="text-align: left;">
-						<thead>
-							<tr>
-								<th>商品</th>
-								<th>單價</th>
-								<th>數量</th>
-								<th>小記</th>
-								<th>操作</th>
-							</tr>
-						</thead>
-						<tbody id="cart-body"></tbody>
-					</table>
-					<h4 align="right">
-						總計：NT <span id="grand-total">0</span>
-					</h4>
-					<div align="right">
-						<button id="checkout-btn"
-							style="background: #f44336; color: white; padding: 10px 20px; border: none; cursor: pointer;">
-							結帳</button>
-					</div>
-				</div>
+        <main class="max-w-6xl mx-auto px-4 pb-12">
+            <h2 class="text-3xl font-extrabold text-slate-800 text-center mb-8">精選咖啡與點心</h2>
 
-				<div style="margin-top: 30px;">
-					<button id="prev-btn">上一頁</button>
-					<span id="page-info"></span>
-					<button id="next-btn">下一頁</button>
-				</div>
-			</td>
-		</tr>
-		<tr>
-			<td align="right"><buttor id="back-home"
-					style="cursor : pointer; padding: 5px 15px;">回首頁</buttor></td>
-		</tr>
-	</table>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div v-for="p in products" :key="p.id" 
+                     class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col hover:shadow-md transition">
+                    <h4 class="text-xl font-bold text-slate-800 mb-2">{{ p.productName }}</h4>
+                    <p class="text-slate-500 text-sm flex-grow mb-4">{{ p.description }}</p>
+                    <div class="flex justify-between items-end mb-4">
+                        <span class="text-2xl font-black text-sky-700">NT$ {{ p.price }}</span>
+                        <span class="text-xs text-slate-400">庫存: {{ p.stock }}</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2 mb-4">
+                        <label class="text-sm text-slate-600">數量：</label>
+                        <select v-model.number="p.selectedQty" class="border rounded px-2 py-1 flex-grow">
+                            <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
+                        </select>
+                    </div>
+                    
+                    <button @click="addToCart(p)" 
+                            class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-lg transition">
+                        加入購物車
+                    </button>
+                </div>
+            </div>
 
-	<script>
-		let curPage= 0;
-		let myCart = [];
-		
-		$(function(){
-			$("#title-placeholder").load("title.html");
-			loadProducts(curPage);
-			
-			//上一頁及下一頁限制設定
-			$("#prev-btn").click(() => {if(curPage > 0) loadProducts(--curPage); });
-			$("#next-btn").click(() => { loadProducts(++curPage);});
-		});
-			$("#back-home").click(function(){
-				window.location.href = "index.html";
-			});
-			
-			
-		//使用陣列 myCart 管理暫存狀態。
-		
-		function loadProducts(page){
-			
-			$.get("/api/products/list", { page: page,size:6},function(res){
-				$("#product-list").empty(); //totalPages 根據設定的 size，資料庫總共可以分成多少頁
-				res.content.forEach(p =>{
-					let card = `
-						<div style="border: 1px solid #ccc; padding: 15px; width: 250px; background: white; border-radius: 8px;">
-							<h4>${p.productName}</h4>
-							<p>${p.description}</p>
-							<p style="color: borown; font-weight: bold;">NT$ ${p.price}</p>
-							<p>庫存: ${p.stock}</p>
-							
-							<div style="margin-bottom: 10px;">
-								數量：
-								<select id="qty-${p.id}">
-									<option value="1">1</option>
-									<option value="2">2</option>
-									<option value="3">3</option>
-									<option value="4">4</option>
-									<option value="5">5</option>
-								</select>
-							</div>
-							
-							<button onclick = "tmpAdd(${p.id}, '${p.productName}', ${p.price})" style="margin-top:10px;">加入購物車
-							</button>
-						</div>`;
-					$("#product-list").append(card); //把卡片貼上去！	
-				});
-				//更新分頁文字
-				// 注意：在新格式中，分頁資訊位於 response.page 物件內
-				const pageInfo = res.page;
-				$("#page-info").text(`第 ${pageInfo.number + 1} 頁 / 共 ${pageInfo.totalPages} 頁`);
-				
-				$("#prev-btn").prop("disabled", pageInfo.first);
-				$("#next-btn").prop("disabled", pageInfo.last);
-			});
-		}
-		
-		// 函式 A：將商品存入瀏覽器變數 (不進資料庫)
-		function tmpAdd(id, name, price){
-			let qty = parseInt($(`#qty-${id}`).val());
-			// 實作加入陣列
-			let exist = myCart.find(item => item.id == id);
-			if(exist){
-				exist.qty += qty;
-			}else{
-				myCart.push({ id, name, price, qty});
-			}
-			renderCart();
-		}
-		
-		// 函式 B：渲染購物車 UI 與計算總額
-		function renderCart(){
-			if(myCart.length > 0){
-				$("#cart-summary").show();
-			}else{
-				$("#cart-summary").hide();
-			}
-			
-			$("#cart-body").empty();
-			let total = 0;
-			
-			myCart.forEach((item, index) =>{
-				let subtotal = item.price * item.qty;
-				total +=subtotal;
-				// 使用表格列 <tr> 渲染，並補上「小計」與「操作」
-				$("#cart-body").append(`
-						<tr>
-							<td>${item.name}</td>
-							<td>${item.price}</td>
-							<td>${item.qty}</td>
-							<td>${subtotal}</td>
-							<td><button onclick="removeItem(${index})">刪除</button></td>
-						</tr>`);
-			});
-			$("#grand-total").text(total);
-		}
-		// 刪除購物車單項的功能
-		function removeItem(index){
-			myCart.splice(index,1);
-			if(myCart.length === 0) $("#cart-summary").hide();
-			renderCart();
-		}
-		
-		//結算按鈕事件 (一次送往後端)
-		$("#checkout-btn").click(function(){
-			let mNo = sessionStorage.getItem("memberNo");
-			if(!mNo){alert("請先登入"); return;}
-			
-			if(myCart.length ===0){ alert("購物車是空的！");return;}
-			
-			if(confirm(`確定送出 ? 總金額為： NT$ ${$("#grand-total").text()}`)){
-				//送往後端，將 id 對應後端的 productId, qty 對應到 quantiry
-				let postData = myCart.map(item => ({
-					productId: item.id,
-					quantity: item.qty
-				}));
-				
-				$.ajax({
-					url: "/api/orders/createBatch?memberId=" + mNo, //memberId 透過URL傳遞
-					type: "POST",
-					contentType: "application/json",
-					data: JSON.stringify(postData),
-					success: function(res){
-						alert(`結算成功！\n訂單編號：${res.orderNo}\n總金額：NT$ ${res.totalAmount}`);
-						myCart = []; //清空購物車
-						$("#cart-summary").hide();
-						renderCart();
-						
-					},
-					error: function(xhr){
-						alert("結算失敗：" + xhr.responseText);
-					}
-				});
-			}
-		});
-		
-	function addToCart(pId) {
-			let mName = sessionStorage.getItem("userName");
-			let mNo = sessionStorage.getItem("memberNo");
-			if(!mNo) {alert("請先登入");return; }
-			
-			// 抓取下拉選單的數量
-			let qty = $(`#qty-${pId}`).val();
-			let total = price * qty;
-			
-			//確認視窗，顯示加總金額
-			if(confirm(`您選擇了 ${qty} 件商品，總金額為 NT$ ${total}，確定要購買嗎?`)){
-				$.post("/api/orders/create",{
-					memberId: mNo,
-					productId: pId,
-					quanty: qty // 傳送數量給後端
-				},function(res){
-					alert(`下單成功！ \n訂單編號：${res.orderNo}\n總金額：NT$ ${res.totalAmount}`);
-				}).fail(function(err){
-					alert("購買失敗：" + err.responseText);
-				});
-			}
-			
-			
-		}
-	</script>
+            <div class="flex justify-center items-center space-x-4 mb-12">
+                <button @click="changePage(-1)" :disabled="pageInfo.first" class="px-4 py-2 border rounded bg-white disabled:opacity-50">上一頁</button>
+                <span class="text-slate-600">第 {{ pageInfo.number + 1 }} 頁 / 共 {{ pageInfo.totalPages }} 頁</span>
+                <button @click="changePage(1)" :disabled="pageInfo.last" class="px-4 py-2 border rounded bg-white disabled:opacity-50">下一頁</button>
+            </div>
+
+            <section v-if="cart.length > 0" class="bg-white rounded-2xl shadow-lg border-2 border-emerald-500 p-8">
+                <h3 class="text-2xl font-bold text-emerald-700 mb-6 flex items-center">
+                    <span class="mr-2">🛒</span> 結算清單
+                </h3>
+                <table class="w-full text-left mb-6">
+                    <thead class="border-b text-slate-400 text-sm">
+                        <tr>
+                            <th class="py-2">商品</th>
+                            <th class="py-2">單價</th>
+                            <th class="py-2 text-center">數量</th>
+                            <th class="py-2 text-right">小計</th>
+                            <th class="py-2 text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        <tr v-for="(item, index) in cart" :key="item.id">
+                            <td class="py-4 font-bold text-slate-700">{{ item.name }}</td>
+                            <td class="py-4 text-slate-500">NT$ {{ item.price }}</td>
+                            <td class="py-4 text-center">{{ item.qty }}</td>
+                            <td class="py-4 text-right font-bold text-sky-700">NT$ {{ item.price * item.qty }}</td>
+                            <td class="py-4 text-center">
+                                <button @click="removeFromCart(index)" class="text-red-500 hover:text-red-700 font-medium">刪除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="flex justify-between items-center border-t pt-6">
+                    <div class="text-3xl font-black text-slate-800">總計：<span class="text-emerald-600">NT$ {{ grandTotal }}</span></div>
+                    <button @click="checkout" :disabled="checkoutLoading"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl font-bold text-lg shadow-lg transition disabled:bg-slate-300">
+                        {{ checkoutLoading ? '結帳處理中...' : '確認結帳' }}
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    products: [],
+                    cart: [],
+                    pageInfo: { number: 0, totalPages: 0, first: true, last: true },
+                    pageSize: 6,
+                    checkoutLoading: false
+                }
+            },
+            computed: {
+                // 自動計算總額
+                grandTotal() {
+                    return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                }
+            },
+            mounted() {
+                this.loadProducts(0);
+            },
+            methods: {
+                async loadProducts(page) {
+                    try {
+                        const response = await axios.get('/api/products/list', {
+                            params: { page: page, size: this.pageSize }
+                        });
+                        // 初始化每個商品的選中數量為 1
+                        this.products = response.data.content.map(p => ({...p, selectedQty: 1}));
+                        this.pageInfo = response.data.page;
+                    } catch (error) {
+                        console.error("載入商品失敗", error);
+                    }
+                },
+                changePage(delta) {
+                    this.loadProducts(this.pageInfo.number + delta);
+                },
+                addToCart(product) {
+                    const exist = this.cart.find(item => item.id === product.id);
+                    if (exist) {
+                        exist.qty += product.selectedQty;
+                    } else {
+                        this.cart.push({
+                            id: product.id,
+                            name: product.productName,
+                            price: product.price,
+                            qty: product.selectedQty
+                        });
+                    }
+                },
+                removeFromCart(index) {
+                    this.cart.splice(index, 1);
+                },
+                async checkout() {
+                    const memberNo = sessionStorage.getItem("memberNo");
+                    if (!memberNo) { alert("請先登入"); window.location.href = "login.html"; return; }
+                    if (this.cart.length === 0) return;
+
+                    if (confirm(`確定送出？總金額為：NT$ ${this.grandTotal}`)) {
+                        this.checkoutLoading = true;
+                        try {
+                            const postData = this.cart.map(item => ({
+                                productId: item.id,
+                                quantity: item.qty
+                            }));
+                            const response = await axios.post(`/api/orders/createBatch?memberId=${memberNo}`, postData);
+                            alert(`結算成功！\n訂單編號：${response.data.orderNo}\n總金額：NT$ ${response.data.totalAmount}`);
+                            this.cart = [];
+                        } catch (error) {
+                            alert("結算失敗：" + (error.response ? error.response.data : "伺服器錯誤"));
+                        } finally {
+                            this.checkoutLoading = false;
+                        }
+                    }
+                },
+                goHome() { window.location.href = "index.html"; }
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>

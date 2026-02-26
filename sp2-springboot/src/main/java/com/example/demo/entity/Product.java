@@ -14,6 +14,7 @@ import lombok.Data;
 public class Product {
 	
 	@Version // 新增 JPA 樂觀鎖機制，底層自動檢查 version 欄位
+	@Column(nullable = false, columnDefinition = "INT DEFAULT 0")
 	private Integer version;
 	
 	@Id
@@ -29,6 +30,8 @@ public class Product {
 
 	// 將價格從 Integer/Double 改為 BigDecimal
 	@Min(value = 0, message = "價格不可低於0")
+	// precision: 總位數, scale: 小數位數。12,2 代表最大可存 9,999,999,999.99
+	@Column(precision = 12, scale = 2)
 	private BigDecimal price;
 	
 	@Min(value = 0, message = "庫存不可低於0")

@@ -67,6 +67,7 @@ public class MemberServiceImpl implements MemberService {
 		// 註冊成功後移除 Session 中的驗證碼，防止重複使用
 		session.removeAttribute("reg_code_" + m.getEmail());
 		session.removeAttribute("reg_code_expiry_" + m.getEmail());
+		
 		return "註冊成功";
 	}
 
