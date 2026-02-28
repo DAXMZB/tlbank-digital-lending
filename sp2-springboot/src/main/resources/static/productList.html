@@ -6,15 +6,17 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="module" src="/js/axios-config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        [v-cloak] { display: none; }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-    <div id="app">
-        <nav class="bg-sky-800 text-white p-4 shadow-md flex justify-between items-center mb-6">
-            <div class="text-xl font-bold">TL BANK SHOP</div>
-            <button @click="goHome" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded text-sm transition">回首頁</button>
-        </nav>
+    <div id="app" v-cloak>
+        <tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
 
-        <main class="max-w-6xl mx-auto px-4 pb-12">
+        <main class="max-w-6xl mx-auto px-4 pb-12 mt-8">
             <h2 class="text-3xl font-extrabold text-slate-800 text-center mb-8">精選咖啡與點心</h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -84,27 +86,47 @@
         </main>
     </div>
 
-    <script>
+    <script type="module">
+        import TLNavbar from '/js/TLNavbar.js';
         const { createApp } = Vue;
 
         createApp({
+            components: { 'tl-navbar': TLNavbar }, // 註冊組件
             data() {
                 return {
+                    // 【新增】對齊 Navbar 組件的 user 結構
+                    user: { name: sessionStorage.getItem("userName") || "" },
                     products: [],
                     cart: [],
                     pageInfo: { number: 0, totalPages: 0, first: true, last: true },
                     pageSize: 6,
-                    checkoutLoading: false
+                    checkoutLoading: false,
+                    uiMsgs: {} // 存放從資料庫撈回來的介面文字
                 }
             },
+            // ✅ 【調整】合併原本分散的 mounted，確保執行順序
+            async mounted() {
+				// 進入首頁時，主動問後端：我現在還算登入狀態嗎？
+				try{
+					await axios.get('/api/members/info');
+					}catch (error) {
+					// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
+					}
+                // 1. 批次請求頁面需要的介面文字 Key
+                const keys = "common-msg-login-first,order-msg-cart-empty,order-confirm-checkout";
+                try {
+                    const res = await axios.get('/api/messages/batch', { params: { keys } });
+                    this.uiMsgs = res.data;
+                } catch (e) {
+                    console.error("載入介面文字失敗", e);
+                }
+                // 2. 載入產品資料
+                this.loadProducts(0);
+            },
             computed: {
-                // 自動計算總額
                 grandTotal() {
                     return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
                 }
-            },
-            mounted() {
-                this.loadProducts(0);
             },
             methods: {
                 async loadProducts(page) {
@@ -112,7 +134,6 @@
                         const response = await axios.get('/api/products/list', {
                             params: { page: page, size: this.pageSize }
                         });
-                        // 初始化每個商品的選中數量為 1
                         this.products = response.data.content.map(p => ({...p, selectedQty: 1}));
                         this.pageInfo = response.data.page;
                     } catch (error) {
@@ -138,25 +159,58 @@
                 removeFromCart(index) {
                     this.cart.splice(index, 1);
                 },
+                // ✅ 【調整】結帳邏輯：全面改用 uiMsgs
                 async checkout() {
                     const memberNo = sessionStorage.getItem("memberNo");
-                    if (!memberNo) { alert("請先登入"); window.location.href = "login.html"; return; }
-                    if (this.cart.length === 0) return;
+                    
+                    // 1. 登入檢查：改用資料庫訊息
+                    if (!memberNo) { 
+                        alert(this.uiMsgs['common-msg-login-first']); 
+                        window.location.href = "login.html"; 
+                        return; 
+                    }
+                    
+                    // 2. 購物車內容檢查：改用資料庫訊息
+                    if (this.cart.length === 0) {
+                        alert(this.uiMsgs['order-msg-cart-empty']);
+                        return;
+                    }
 
-                    if (confirm(`確定送出？總金額為：NT$ ${this.grandTotal}`)) {
+                    // 3. 送出確認：改用資料庫訊息，並進行動態內容替換
+                    // 假設資料庫內容為：確定送出？總金額為：NT$ %s
+                    const confirmText = this.uiMsgs['order-confirm-checkout'].replace('%s', this.grandTotal);
+                    
+                    if (confirm(confirmText)) {
                         this.checkoutLoading = true;
                         try {
                             const postData = this.cart.map(item => ({
                                 productId: item.id,
                                 quantity: item.qty
                             }));
+                            // 送出請求：後端回傳封裝好的 Map (包含 order 與 message)
                             const response = await axios.post(`/api/orders/createBatch?memberId=${memberNo}`, postData);
-                            alert(`結算成功！\n訂單編號：${response.data.orderNo}\n總金額：NT$ ${response.data.totalAmount}`);
+                            
+                            // 直接彈出由後端組裝好的專業成功訊息
+                            alert(response.data.message);
                             this.cart = [];
                         } catch (error) {
+                            // 失敗訊息同樣透過後端 GlobalExceptionHandler 提供
                             alert("結算失敗：" + (error.response ? error.response.data : "伺服器錯誤"));
                         } finally {
                             this.checkoutLoading = false;
+                        }
+                    }
+                },
+                // 【新增】Navbar 登出邏輯
+                async logout() {
+                    if (confirm("確定要登出嗎？")) {
+                        try {
+                            await fetch('/api/members/logout', { method: 'POST' });							
+                        } catch (error){
+                            console.error("後端登出失敗");
+                        } finally{
+                            sessionStorage.clear();
+                            location.href ="login.html";
                         }
                     }
                 },

@@ -6,18 +6,19 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="module" src="/js/axios-config.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-    <div id="app">
-        <nav class="bg-sky-800 text-white p-4 shadow-md flex justify-between items-center mb-8">
-            <div class="text-xl font-bold tracking-tight">TL BANK ADMIN</div>
-            <button @click="goHome" class="text-sm bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded transition">回首頁</button>
-        </nav>
+    <div id="app" v-cloak>
+        <tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
 
-        <main class="max-w-6xl mx-auto px-4">
+        <main class="max-w-6xl mx-auto px-4 mt-8">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-slate-800">所有會員名單</h2>
+                    <h2 class="text-xl font-bold text-slate-800">{{ uiMsgs['member-list-title']}}</h2>
                     <span class="text-sm text-slate-500">每頁顯示 {{ pageSize }} 筆</span>
                 </div>
 
@@ -41,7 +42,9 @@
                                 <td class="px-6 py-4 text-sm">{{ m.address }}</td>
                             </tr>
                             <tr v-if="members.length === 0 && !loading">
-                                <td colspan="5" class="px-6 py-12 text-center text-slate-400">目前尚無會員資料</td>
+                                <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                                	{{ uiMsgs['member-list-empty']}}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -49,17 +52,16 @@
 
                 <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                     <div class="text-sm text-slate-600">
-                        第 <span class="font-bold text-sky-700">{{ pageInfo.number + 1 }}</span> 頁 / 
-                        共 <span class="font-bold">{{ pageInfo.totalPages }}</span> 頁
+                        {{ pageLabel }}
                     </div>
                     <div class="space-x-2">
                         <button @click="changePage(-1)" :disabled="pageInfo.first || loading"
                                 class="px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition">
-                            上一頁
+                            {{ uiMsgs['common-label-prev'] }}
                         </button>
                         <button @click="changePage(1)" :disabled="pageInfo.last || loading"
                                 class="px-4 py-2 bg-sky-600 text-white rounded-md text-sm font-medium hover:bg-sky-700 disabled:opacity-50 transition">
-                            下一頁
+                            {{ uiMsgs['common-label-next'] }}
                         </button>
                     </div>
                 </div>
@@ -67,21 +69,50 @@
         </main>
     </div>
 
-    <script>
+    <script type="module">
+		import TLNavbar from '/js/TLNavbar.js';
         const { createApp } = Vue;
 
         createApp({
+			components: { 'tl-navbar': TLNavbar },
             data() {
                 return {
+					user: { name: sessionStorage.getItem("userName") || "" },
                     members: [],
                     pageInfo: { number: 0, totalPages: 0, first: true, last: true },
                     pageSize: 5,
-                    loading: false
+                    loading: false,
+					uiMsgs: {}
                 }
             },
-            mounted() {
-                // 初始化載入第一頁
-                this.loadMembers(0);
+			computed: {
+				pageLabel(){
+					if(!this.uiMsgs['member-label-page-info']) return '';
+					
+					return this.uiMsgs['member-label-page-info']
+					.replace('%s', this.pageInfo.number + 1)
+					.replace('%s', this.pageInfo.totalPages);
+				}
+			},
+            async mounted() {
+				// 進入首頁時，主動問後端：我現在還算登入狀態嗎？
+				try{
+					await axios.get('/api/members/info');
+					}catch (error) {
+					// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
+					}
+				const keys = "member-list-title,member-list-empty,member-error-load-fail,member-label-page-info,common-label-prev,common-label-next,common-msg-loading";
+				try {
+					const res = await axios.get('/api/messages/batch', { params: { keys }});
+					this.uiMsgs = res.data;
+				} catch (e) {
+					console.error("語系載入失敗", e);
+				}
+                if (!sessionStorage.getItem("memberNo")){
+					window.location.href = "login.html";
+					return;
+				}
+				this.loadMembers(0);
             },
             methods: {
                 async loadMembers(page) {
@@ -96,7 +127,7 @@
                         this.pageInfo = response.data.page;
                     } catch (error) {
                         // 處理 401 或其他加載錯誤
-                        alert("載入會員清單失敗，請確認是否已登入");
+                        alert(this.uiMsgs['member-error-load-fail']);
                         if (error.response && error.response.status === 401) {
                             window.location.href = "login.html";
                         }
@@ -108,6 +139,16 @@
                     const nextPage = this.pageInfo.number + delta;
                     this.loadMembers(nextPage);
                 },
+				async logout(){
+					if(confirm("確定要登出嗎？")){
+						try{
+							await fetch('/api/members/logout', { method: 'POST'});
+						} finally {
+							sessionStorage.clear();
+							location.href = "login.html";
+						}
+					}
+				},
                 goHome() {
                     window.location.href = "index.html";
                 }

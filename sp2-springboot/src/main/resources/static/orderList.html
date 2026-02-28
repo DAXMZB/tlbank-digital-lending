@@ -6,13 +6,14 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="module" src="/js/axios-config.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-    <div id="app">
-        <nav class="bg-sky-800 text-white p-4 shadow-md flex justify-between items-center mb-6">
-            <div class="text-xl font-bold">訂單管理中心</div>
-            <button @click="goHome" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded text-sm transition">回首頁</button>
-        </nav>
+    <div id="app" v-cloak>
+        <tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
 
         <main class="max-w-5xl mx-auto px-4 pb-24">
             <div class="flex justify-between items-center mb-6">
@@ -24,7 +25,7 @@
             </div>
 
             <div v-if="orders.length === 0" class="text-center py-20 bg-white rounded-xl border border-dashed text-slate-400">
-                目前尚無訂單紀錄
+                {{ uiMsgs['order-msh-no-orders'] || '載入中...'}}
             </div>
 
             <div v-else class="space-y-6">
@@ -35,7 +36,7 @@
                     <div class="bg-slate-50 p-4 border-b flex justify-between items-center">
                         <div class="flex items-center space-x-3">
                             <input type="checkbox" :value="order.id" v-model="selectedOrderIds" class="w-5 h-5 text-sky-600">
-                            <span class="font-mono font-bold text-slate-700">編號：{{ order.orderNo }}</span>
+                            <span class="font-mono font-bold text-slate-700">{{ uiMsgs['order-label-id']}}{{ order.orderNo }}</span>
                             <span class="text-xs text-slate-400">📅 {{ formatTime(order.orderTime) }}</span>
                         </div>
                         <button @click="deleteOrder(order.id)" class="text-red-500 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1 rounded text-xs transition">
@@ -79,7 +80,7 @@
                 </div>
                 <div class="flex items-center space-x-8">
                     <div class="text-3xl font-black text-slate-800">
-                        選取總計：<span class="text-sky-600">NT$ {{ selectedTotal }}</span>
+                        {{ uiMsgs['order-label-total-select'] }}<span class="text-sky-600">NT$ {{ selectedTotal }}</span>
                     </div>
                     <button @click="checkoutWithECPay" :disabled="selectedOrderIds.length === 0"
                             class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl font-bold text-lg shadow-lg transition disabled:bg-slate-300">
@@ -90,16 +91,44 @@
         </footer>
     </div>
 
-    <script>
-        const { createApp } = Vue;
-
+    <script type="module">
+        import TLNavbar from '/js/TLNavbar.js';
+		const { createApp } = Vue;
         createApp({
+			components: {'tl-navbar': TLNavbar },
             data() {
                 return {
+					user: { name: sessionStorage.getItem("userName") || ""},
                     orders: [],
                     selectedOrderIds: [],
-                    memberNo: sessionStorage.getItem("memberNo")
+                    memberNo: sessionStorage.getItem("memberNo"),
+					uiMsgs: {} //【新增】存放後端撈取的介面文字
                 }
+            },
+			async mounted() {
+                // 進入首頁時，主動問後端：我現在還算登入狀態嗎？
+				try{
+					await axios.get('/api/members/info');
+					}catch (error) {
+					// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
+					}
+				// 批次獲取此頁面需要的 Key
+				const keys = "order-confirm-delete,order-msg-no-orders,order-msg-no-selection,order-msg-ecpay-fail,order-label-id,order-label-total-select,common-msg-login-first,common-error-load-msg-fail";
+				try {
+					const res = await axios.get('/api/messages/batch', { params: { keys }});
+					this.uiMsgs = res.data;
+				// 撈完訊息後再檢查登入狀態，這樣 alert 就能用資料庫的內容
+					if (!this.memberNo) {
+                    	alert("請先登入");
+                    	window.location.href = "login.html";
+                    	return;
+                	}
+					this.loadOrders();
+				} catch (e) {
+					console.error("載入介面文字失敗", e);
+					alert(this.uiMsgs['common-error-load-msg-fail'] || "系統資源載入異常");
+				}
+                
             },
             computed: {
                 // 自動計算勾選訂單的總額
@@ -118,14 +147,7 @@
                     }
                 }
             },
-            mounted() {
-                if (!this.memberNo) {
-                    alert("請先登入");
-                    window.location.href = "login.html";
-                    return;
-                }
-                this.loadOrders();
-            },
+            
             methods: {
                 async loadOrders() {
                     try {
@@ -136,19 +158,30 @@
                     }
                 },
                 async deleteOrder(id) {
-                    if (confirm("確定刪除訂單?")) {
+                    if (confirm(this.uiMsgs['order-confirm-delete'])) {
                         try {
-                            await axios.delete('/api/orders/' + id);
+                        	// 呼叫後端 API
+                        	const response = await axios.delete('/api/orders/' +id);
+                        	// 顯示後端 MessageService 撈到的成功訊息
+                        	alert(response.data);
+                            // 從畫面上移除資料
                             this.orders = this.orders.filter(o => o.id !== id);
                             this.selectedOrderIds = this.selectedOrderIds.filter(sid => sid !== id);
                         } catch (error) {
-                            alert("刪除失敗");
+                        	const errorMsg = error.response ? error.response.data : "刪除失敗";
+                            alert(errorMsg);
+                            // 將整個 JavaScript 的 Error 物件（包含 Stack Trace 堆疊追蹤、
+                            //發生錯誤的檔名與行號、以及 Axios 完整的 Response 物件）輸出到瀏覽器的開發者工具中。
+                            
+                            // 當後端拋出異常時，Spring Boot 會回傳詳細的 JSON 資料。增加這一行後，你可以直接在 Console 點開物件查看：
+							// HTTP Status Code：是 401（權限問題）、403（被 Security 擋下）還是 500（Java 程式報錯）。
+                           console.error("錯誤詳情：", error);
                         }
                     }
                 },
                 async checkoutWithECPay() {
                     if (this.selectedOrderIds.length === 0) {
-                        alert("未勾選訂單");
+                        alert(this.uiMsgs['order-msg-no-selection']);
                         return;
                     }
                     try {
@@ -157,9 +190,19 @@
                         document.write(response.data);
                         document.close();
                     } catch (error) {
-                        alert("金流連線失敗");
+                        alert(this.uiMsgs['order-msg-ecpay-fail']);
                     }
                 },
+				async logout(){
+					if(confirm("確定要登出嗎？")){
+						try {
+							await fetch('/api/members/logout', { method: 'POST' });
+						} finally {
+							sessionStorage.clear();
+							location.href = "login.html";
+						}
+					}
+				},
                 formatTime(timeStr) {
                     return timeStr.replace('T', ' ').split('.')[0];
                 },

@@ -9,44 +9,49 @@
 <!-- 入 Vue 3 以及 Tailwind CSS -->
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script type="module" src="/js/axios-config.js"></script>
+<link rel="stylesheet"
+	href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body >
-	<div id="app" class="min-h-screen bg-gray-50">
-    <nav class="bg-sky-700 text-white p-4 shadow-lg flex justify-between items-center">
-        <div class="text-3xl font-bold tracking-tighter">TL BANK</div>
-        <div class="flex items-center space-x-4">
-            <span v-if="user.name" class="font-medium">歡迎，{{ user.name }}</span>
-            <button v-if="user.name" @click="logout" class="bg-sky-800 hover:bg-sky-900 px-4 py-1 rounded text-sm">登出</button>
-            <div v-else class="space-x-2">
-                <a href="login.html" class="hover:underline">登入</a>
-                <a href="addMember.html" class="hover:underline">註冊</a>
-            </div>
-        </div>
-    </nav>
+	<style>
+		[v-cloak]{ display: none;}
+	</style>
+<!-- 當瀏覽器載入 JavaScript 較慢時，Vue 還沒完全接管網頁，使用者可能會在畫面上短暫看到像 {{ user.name }} 這樣的 Mustache 標籤（原始碼 -->
+<!-- v-cloak 會留在 HTML 元素上，直到關聯的 Vue 實體編譯完成並掛載成功後，Vue 會自動移除這個屬性。 -->
+<!-- 在 #app 加上 v-cloak 指令，並在 <head> 加入簡單的 CSS。 -->
+	<div id="app" v-cloak>
+		<!-- 主頁面引入js -->
+		<tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
 
-    <header class="bg-white border-b p-8 text-center">
-        <h1 class="text-4xl font-extrabold text-sky-900 mb-2">TL 心情小站 / 金融服務</h1>
-        <p class="text-gray-500">提供最穩定的 Java 後端技術支援</p>
-    </header>
+		<header class="bg-white border-b p-8 text-center">
+			<h1 class="text-4xl font-extrabold text-sky-900 mb-2">TL 心情小站 /
+				金融服務</h1>
+			<p class="text-gray-500">提供最穩定的 Java 後端技術支援</p>
+		</header>
 
-    <main class="max-w-6xl mx-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div v-for="item in menuItems" :key="item.title" 
-             @click="checkLoginGo(item.url)"
-             class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition cursor-pointer text-center group">
-            <div class="text-sky-600 text-4xl mb-4 group-hover:scale-110 transition">
-                <i :class="item.icon"></i>
-            </div>
-            <h3 class="text-xl font-bold text-gray-800">{{ item.title }}</h3>
-            <p class="text-sm text-gray-500 mt-2">{{ item.desc }}</p>
-        </div>
-    </main>
-</div>
+		<main
+			class="max-w-6xl mx-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+			<div v-for="item in menuItems" :key="item.title"
+				@click="checkLoginGo(item.url)"
+				class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition cursor-pointer text-center group">
+				<div
+					class="text-sky-600 text-4xl mb-4 group-hover:scale-110 transition">
+					<i :class="item.icon"></i>
+				</div>
+				<h3 class="text-xl font-bold text-gray-800">{{ item.title }}</h3>
+				<p class="text-sm text-gray-500 mt-2">{{ item.desc }}</p>
+			</div>
+		</main>
+	</div>
 
-<script>
+	<script type="module">
+	import TLNavbar from '/js/TLNavbar.js';
     const { createApp } = Vue;
 
     createApp({
+		components:{ 'tl-navbar': TLNavbar}, //註冊組件
         data() {
             return {
                 user: { name: sessionStorage.getItem("userName") || "" },
@@ -57,6 +62,14 @@
                 ]
             }
         },
+		async mounted(){
+			// 進入首頁時，主動問後端：我現在還算登入狀態嗎？
+			try{
+				await axios.get('/api/members/info');
+			}catch (error) {
+				// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
+			}
+		},
         methods: {
             checkLoginGo(target) {
                 if (this.user.name) {
@@ -66,11 +79,17 @@
                     window.location.href = "login.html";
                 }
             },
-            logout() {
+            async logout() {
                 if (confirm("確定要登出嗎？")) {
-                    // 這裡可以呼叫你的 /api/members/logout
-                    sessionStorage.clear();
-                    location.reload();
+                    try {
+						await fetch('/api/members/logout', { method: 'POST' });							
+						} catch (error){
+						console.error("後端登出失敗，執行前端強制清理");
+					} finally{
+						sessionStorage.clear();
+						location.href ="login.html";
+					}
+                    
                 }
             }
         }

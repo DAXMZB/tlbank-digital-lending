@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.entity.Member;
 import com.example.demo.entity.Post;
+import com.example.demo.exception.MemberException;
 import com.example.demo.repository.MemberRepository;
 import com.example.demo.repository.PostRepository;
+import com.example.demo.service.MessageService;
 import com.example.demo.service.PostService;
 
 import jakarta.transaction.Transactional;
@@ -25,12 +27,16 @@ public class PostServiceImpl implements PostService {
 
 	@Autowired
 	private MemberRepository memberRepo;
+	
+	@Autowired
+	private MessageService messageService; // ✅ 注入訊息服務
 
 	@Override
 	@Transactional // 確保資料庫交易完整性
 	public void savePost(Integer memberId, String content) {
 		// 1. 找出發文的會員
-		Member member = memberRepo.findById(memberId).orElseThrow(() -> new RuntimeException("找不到會員"));
+		Member member = memberRepo.findById(memberId)
+				.orElseThrow(() -> new MemberException(messageService.getMessage("post-error-member-notfound")));
 
 		// 2. 建立貼文物件並設定屬性
 		Post post = new Post();
@@ -55,13 +61,13 @@ public class PostServiceImpl implements PostService {
 	public void deletePost(Integer postId, Integer memberNo) {
 		// 1.找出該貼文
 		Post post = postRepo.findById(postId)
-				.orElseThrow(() -> new RuntimeException("貼文不存在"));
+				.orElseThrow(() -> new MemberException(messageService.getMessage("post-error-notfound")));
 		
 		// 2.[關鍵] 校驗權限：檢查貼文擁有人是否為當前操作者
 		// 比對的是 Member 實體中的 ID
 		
 		if(!post.getMember().getMemberNo().equals(memberNo)) {
-			throw new RuntimeException("權限不足，只能刪除自己貼文！");
+			throw new MemberException(messageService.getMessage("post-error-delete-forbidden"));
 		}
 		postRepo.deleteById(postId);
 		

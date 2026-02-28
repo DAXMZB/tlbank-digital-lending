@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.CartItemDTO;
 import com.example.demo.entity.Orders;
+import com.example.demo.service.MessageService;
 import com.example.demo.service.OrderService;
 
 @RestController
@@ -23,13 +25,21 @@ public class OrderController {
 	@Autowired
 	private OrderService orderService;
 
-	
+	@Autowired
+	private MessageService messageService;
 
 	@PostMapping("/createBatch")
 	public ResponseEntity<?> createOrderBatch(@RequestParam Integer memberId, @RequestBody List<CartItemDTO> carItems) {
 		// 這裡現在會接收到單個 Orders 物件
 		Orders order = orderService.createOrderBatch(memberId, carItems);
-		return ResponseEntity.ok(order);
+		// 從 MessageService 撈取格式化範本，並填入訂單資訊
+		// 假設資料庫 Key 為 order-success-alert 内容為 "結算成功！\n訂單編號：%s\n總金額：NT$ %s"
+		String successMsg = String.format(messageService.getMessage("order-success-alert"), order.getOrderNo(),
+				order.getTotalAmount());
+		
+		// 封裝在 Map 中回傳
+		// 讓前端一次拿到 order 物件（更新 UI）與 message 字串（彈窗提示）
+		return ResponseEntity.ok(Map.of("order", order, "message", successMsg));
 	}
 
 	@GetMapping("/member/{memberId}")
@@ -43,6 +53,7 @@ public class OrderController {
 	@DeleteMapping("/{id}")
 	public ResponseEntity<String> deleteOrder(@PathVariable Integer id) {
 		orderService.deleteOrder(id);
-		return ResponseEntity.ok("訂單已成功刪除");
+		String successMsg = messageService.getMessage("order-success-delete");
+		return ResponseEntity.ok(successMsg);
 	}
 }

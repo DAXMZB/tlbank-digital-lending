@@ -1,13 +1,18 @@
 package com.example.demo.exception;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.example.demo.service.MessageService;
+
 @RestControllerAdvice // 讓Spring 自動掃描並處理Controller異常 <-- 這是「統一處理」的靈魂
 public class GlobalExceptionHandler {
+	@Autowired
+	private MessageService msgService;
 	@ExceptionHandler(MemberException.class) // <-- 捕捉所有 Service 拋出的 MemberException
 	public ResponseEntity<String> handleMemberException(MemberException ex) {
 		// 這裡保留原來的邏輯，根據不同業務錯誤回報不同訊息
@@ -29,7 +34,7 @@ public class GlobalExceptionHandler {
 		}
 		// 邏輯判斷：如果是「空」相關的，就統一名稱；否則（如長度不足）就顯示具體內容
 		if (firstError.contains("空")) {
-			return ResponseEntity.badRequest().body("所有欄位需填寫完畢不可為空");
+			return ResponseEntity.badRequest().body(msgService.getMessage("common-error-empty"));
 		}
 
 		// 如果是密碼長度不足等等，就顯示該爛為具體 message

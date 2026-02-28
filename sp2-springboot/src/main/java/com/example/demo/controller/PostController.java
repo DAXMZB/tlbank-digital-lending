@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.entity.Post;
+import com.example.demo.service.MessageService;
 import com.example.demo.service.PostService;
 
 @RestController
@@ -22,11 +23,13 @@ import com.example.demo.service.PostService;
 public class PostController {
 	@Autowired
 	private PostService postService;
-
+	@Autowired
+    private MessageService messageService; // ✅ 注入
 	@PostMapping("/create")
 	public ResponseEntity<String> createPost(@RequestParam Integer memberId, @RequestParam String content) {
 		postService.savePost(memberId, content);
-		return ResponseEntity.ok("發佈成功！");
+		// ✅ 調整：從資料庫撈取發佈成功訊息
+		return ResponseEntity.ok(messageService.getMessage("post-msg-create-success"));
 	}
 
 	@GetMapping("/all")
@@ -40,9 +43,13 @@ public class PostController {
 	public ResponseEntity<String> deletePost(@PathVariable Integer postId, @RequestParam Integer memberNo) {
 		try {
 			postService.deletePost(postId, memberNo);
-			return ResponseEntity.ok("貼文已刪除");
+			// ✅ 調整：從資料庫撈取刪除成功訊息
+			return ResponseEntity.ok(messageService.getMessage("post-msg-delete-success"));
 		}catch (RuntimeException e) {
-			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+			// 註：實務上建議在 Service 拋出 MemberException，由 GlobalExceptionHandler 處理
+            // 若保留 Controller 處理，則如下：
+			return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                 .body(messageService.getMessage("post-error-delete-forbidden"));
 		}
 		
 		

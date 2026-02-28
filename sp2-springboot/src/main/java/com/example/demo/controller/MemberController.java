@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.example.demo.repository.MemberRepository;
 import com.example.demo.service.MemberService;
+import com.example.demo.service.MessageService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,12 +31,14 @@ public class MemberController {
 	@Autowired
 	private MemberService memberService; // 注入sevice
 
+	@Autowired
+    private MessageService messageService; // ✅ 注入 MessageService	
 	@GetMapping("/check") // 檢查帳號是否存在
 	public ResponseEntity<String> checkUsername(@RequestParam String username) {
 		// 呼叫 Service，若重複會直接在 Service 拋出 MemberException
 		memberService.isUsernameExists(username);
 		// 如果執行到這
-		return ResponseEntity.ok("此帳號可以使用");
+		return ResponseEntity.ok(messageService.getMessage("member-msg-check-ok"));
 	}
 
 	@PostMapping("/register")
@@ -64,7 +67,8 @@ public class MemberController {
 			session.setAttribute("user", member);
 			return ResponseEntity.ok(member);
 		}
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("登入失敗");
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(messageService.getMessage("member-error-login-fail"));
 
 	}
 
@@ -72,7 +76,7 @@ public class MemberController {
 	public ResponseEntity<String> logout(HttpSession session) {
 		// 1. 讓伺服器的 Session 失效
 		session.invalidate();
-		return ResponseEntity.ok("已成功登出伺服器");
+		return ResponseEntity.ok(messageService.getMessage("member-msg-logout-ok"));
 	}
 
 	@GetMapping("/list")
@@ -90,7 +94,9 @@ public class MemberController {
 		Object user = session.getAttribute("user");
 		if (user == null) {
 			// 如果伺服器重啟或 Session 過期，回傳401
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("session 已過期，請重新登入");
+			// ✅ 調整：Session 過期訊息動態化
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                 .body(messageService.getMessage("member-msg-session-expired"));
 		}
 		return ResponseEntity.ok(user);
 	}
@@ -99,14 +105,15 @@ public class MemberController {
 	public ResponseEntity<String> forgotPassword(@RequestParam String username, @RequestParam String email){
 		// 呼叫 Service 執行核對、重設與發信邏輯
 		memberService.resetPassword(username, email);
-		
-		return ResponseEntity.ok("新密碼已發送至您的信箱，請查收。");
+		// ✅ 調整：重設密碼成功訊息動態化
+        return ResponseEntity.ok(messageService.getMessage("member-msg-password-reset"));
 	}
 	
 	@PostMapping("/send-code")
 	public ResponseEntity<String> sendCode(@RequestParam String email){
 		memberService.sendRegistrationCode(email);
-		return ResponseEntity.ok("驗證碼已發送");
+		// ✅ 調整：發送驗證碼訊息動態化
+        return ResponseEntity.ok(messageService.getMessage("member-msg-code-sent"));
 	}
 
 }

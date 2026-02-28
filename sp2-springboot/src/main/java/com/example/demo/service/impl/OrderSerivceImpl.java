@@ -21,6 +21,7 @@ import com.example.demo.exception.MemberException;
 import com.example.demo.repository.MemberRepository;
 import com.example.demo.repository.OrderRepository;
 import com.example.demo.repository.ProductRepository;
+import com.example.demo.service.MessageService;
 import com.example.demo.service.OrderService;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
@@ -36,7 +37,8 @@ public class OrderSerivceImpl implements OrderService {
 	@Autowired
 	private ProductRepository productRepo;
 
-	
+	@Autowired
+	private MessageService messageService;
 
 	@Override
 	public List<Orders> getOrdersMember(Integer memberNo) {
@@ -56,15 +58,16 @@ public class OrderSerivceImpl implements OrderService {
 	public Orders createOrderBatch(Integer memberNo, List<CartItemDTO> cartItems) {
 		// TODO Auto-generated method stub
 		// 初始化金額為零
+
 		BigDecimal grandTotal = BigDecimal.ZERO;
 
 		// 使用 StringBuilder 優化字串接收效能
-		StringBuilder invoiceDetails = new StringBuilder("=== 訂單明細內容 ===\\n");
+		StringBuilder invoiceDetails = new StringBuilder(messageService.getMessage("order-log-header"));
 
 		try {
 			// 獲取會員
 			Member member = memberRepo.findById(memberNo)
-					.orElseThrow(() -> new MemberException("找不到會員 ID:" + memberNo));
+					.orElseThrow(() -> new MemberException(messageService.getMessage("member-error-notfound")));
 
 			// 1.建立一張「訂單主表」紀錄
 			Orders order = new Orders();
@@ -75,24 +78,23 @@ public class OrderSerivceImpl implements OrderService {
 			List<OrderItem> details = new ArrayList<>();
 			// 2.處理每一項商品並轉為訂單明細
 			for (CartItemDTO dto : cartItems) {
+				// 商品不存在
 				Product product = productRepo.findById(dto.getProductId())
-						.orElseThrow(() -> new MemberException("找不到該商品"));
+						.orElseThrow(() -> new MemberException(messageService.getMessage("product-error-notfound")));
 
 				// 檢查庫存
 				if (product.getStock() < dto.getQuantity()) {
-					throw new MemberException(product.getProductName() + "庫存不足，剩餘：" + product.getStock());
+					throw new MemberException(product.getProductName()
+							+ messageService.getMessage("product-error-stock") + product.getStock());
 				}
 
 				// 【延伸】將 int 轉為 BigDecimal 並使用 multipy 進行運算
 				BigDecimal itemPrice = product.getPrice();
 				BigDecimal itemTotal = itemPrice.multiply(new BigDecimal(dto.getQuantity()));
 				grandTotal = grandTotal.add(itemTotal);
-				
+
 				// 【延伸】使用 append 拼接資訊，將 String 不可變性（Immutability）優化
-				invoiceDetails.append("- ").append(product.getProductName())
-								.append(" ｜ 數量： ").append(dto.getQuantity())
-								.append(" ｜ 小記： ").append(itemTotal).append("\n");
-				
+				invoiceDetails.append(String.format(messageService.getMessage("order-log-item"), product.getProductName(), dto.getQuantity(), itemTotal.toString()));
 
 				// 建立 OrderItem
 				OrderItem detail = new OrderItem();
@@ -102,7 +104,7 @@ public class OrderSerivceImpl implements OrderService {
 				detail.setPrice(product.getPrice());
 
 				details.add(detail);
-				
+
 				// 扣庫存並觸發樂觀校驗 (version
 				product.setStock(product.getStock() - dto.getQuantity());
 				productRepo.save(product);
@@ -111,31 +113,31 @@ public class OrderSerivceImpl implements OrderService {
 			order.setItems(details); // 將所有明細塞進訂單
 			order.setTotalAmount(grandTotal); // 直接賦值 BigDecimal
 			; // 設定整筆訂單的總金額
-				// svae 的同時，Hibernate 會自動檢查 version
+				// save 的同時，Hibernate 會自動檢查 version
 			return orderRepo.save(order); // 一次存檔，產生一個 ID 與一個訂單編號
 		} catch (ObjectOptimisticLockingFailureException e) {
 			// 新增樂觀鎖衝突 當很多人搶購同一商品時會觸發
-			throw new MemberException("系統忙碌中 (庫存更新衝突），請稍後再試");
-		}catch (Exception e) {
-			throw new MemberException("訂單結算發生意外錯誤：" + e.getMessage());
-		}finally {
+			throw new MemberException(messageService.getMessage("order-error-conflict"));
+		} catch (Exception e) {
+			throw new MemberException(messageService.getMessage("order-error-unexpected") + e.getMessage());
+		} finally {
 			// 即使上方執行了 return 或 throw ，這裡依然會執行
 			// 用於資源釋放或強製性的審核日誌記錄
-			invoiceDetails.append("總計金額：").append(grandTotal).append("\n");
-			invoiceDetails.append("=== 結算日誌結束 ===");
+			invoiceDetails.append(String.format(messageService.getMessage("order-log-total"), grandTotal));
+			invoiceDetails.append(messageService.getMessage("order-log-footer"));
 			System.out.println(invoiceDetails.toString());
 		}
 		// 金融系統需要記錄每一筆「嘗試交易」的軌跡。
-		//即使因為樂觀鎖衝突而失敗（沒存入資料庫），
-			//系統仍需在日誌（Log）中記錄「使用者 Eric 在 21:40 嘗試購買 3 筆商品，總額 1,500 元，結果：併發衝突失敗」。
-		//這能幫助工程師在事後查帳時，確認到底是程式 Bug 還是單純的高併發衝突。
+		// 即使因為樂觀鎖衝突而失敗（沒存入資料庫），
+		// 系統仍需在日誌（Log）中記錄「使用者 Eric 在 21:40 嘗試購買 3 筆商品，總額 1,500 元，結果：併發衝突失敗」。
+		// 這能幫助工程師在事後查帳時，確認到底是程式 Bug 還是單純的高併發衝突。
 	}
 
 	@Override
 	public void deleteOrder(Integer id) {
 		// 檢查訂單是否存在
 		if (!orderRepo.existsById(id)) {
-			throw new MemberException("訂單不存在");
+			throw new MemberException(messageService.getMessage("order-error-notfound"));
 		}
 		orderRepo.deleteById(id);
 

@@ -1,167 +1,172 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+    <title>TL BANK - 會員註冊</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+    </style>
 </head>
-<body bgcolor="#faebd7">
-	<table width=600 align=center border=1>
-		<tr height=100>
-			<td id="title-placeholder" colspan="2" bgcolor="black"
-				style="opacity: 0.5" align=center></td>
-			<!-- 首頁檔案 -->
-			<!-- <script>
-				$(function() {
-					//put title.html in placeholder
+<body class="bg-slate-50 min-h-screen">
+    <div id="app" v-cloak>
+        <tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
+
+        <main class="max-w-2xl mx-auto px-4 mt-12 pb-24">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="bg-sky-800 p-6 text-white text-center">
+                    <h2 class="text-2xl font-bold">{{ uiMsgs['member-register-title'] }}</h2>
+                </div>
+
+                <form @submit.prevent="registerMember" class="p-8 space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ uiMsgs['member-label-username'] }}</label>
+                        <div class="flex space-x-2">
+                            <input type="text" v-model="form.username" class="flex-grow border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none">
+                            <button type="button" @click="checkUsername" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                                {{ uiMsgs['member-btn-check'] }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ uiMsgs['member-label-password'] }}</label>
+                        <input type="password" v-model="form.password" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">姓名</label>
+                            <input type="text" v-model="form.name" class="w-full border rounded-lg px-4 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">電話</label>
+                            <input type="tel" v-model="form.phone" maxlength="8" @input="form.phone = form.phone.replace(/[^\d]/g,'')" class="w-full border rounded-lg px-4 py-2">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">地址</label>
+                        <input type="text" v-model="form.address" class="w-full border rounded-lg px-4 py-2">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ uiMsgs['member-label-email'] }}</label>
+                        <div class="flex space-x-2">
+                            <input type="email" v-model="form.email" class="flex-grow border rounded-lg px-4 py-2">
+                            <button type="button" @click="sendCode" :disabled="countdown > 0" class="bg-sky-100 hover:bg-sky-200 text-sky-700 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50">
+                                {{ codeBtnText }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="codeSent">
+                        <label class="block text-sm font-semibold text-emerald-700 mb-1">請輸入 6 位驗證碼</label>
+                        <input type="text" v-model="form.vertifyCode" maxlength="6" class="w-full border-2 border-emerald-500 rounded-lg px-4 py-2 outline-none">
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
+                            {{ uiMsgs['member-btn-submit'] }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import TLNavbar from '/js/TLNavbar.js';
+        const { createApp } = Vue;
+
+        createApp({
+            components: { 'tl-navbar': TLNavbar },
+            data() {
+                return {
+                    user: { name: sessionStorage.getItem("userName") || "" },
+                    form: { username: '', password: '', name: '', address: '', phone: '', email: '', vertifyCode: '' },
+                    uiMsgs: {},
+                    countdown: 0,
+                    codeSent: false
+                }
+            },
+            computed: {
+                // ✅ 動態按鈕文字處理
+                codeBtnText() {
+                    if (this.countdown > 0) {
+                        return this.uiMsgs['member-label-retry-code']?.replace('%s', this.countdown) || `${this.countdown}s`;
+                    }
+                    return this.uiMsgs['member-label-send-code'] || '獲取驗證碼';
+                }
+            },
+            async mounted() {
+                // ✅ 批次獲取註冊頁面所需的 Key
+                const keys = "member-register-title,member-msg-input-username,member-msg-input-email,member-label-send-code,member-label-retry-code,member-label-username,member-placeholder-username,member-label-password,member-label-email,member-btn-check,member-btn-submit,member-error-generic-fail";
+                try {
+                    const res = await axios.get('/api/messages/batch', { params: { keys } });
+                    this.uiMsgs = res.data;
+                } catch (e) {
+                    console.error("載入資源失敗", e);
+                }
+            },
+            methods: {
+                async checkUsername() {
+                    if (!this.form.username) { alert(this.uiMsgs['member-msg-input-username']); return; }
+                    try {
+                        const res = await axios.get('/api/members/check', { params: { username: this.form.username } });
+                        alert(res.data);
+                    } catch (e) {
+                        alert(e.response?.data || "檢查失敗");
+                    }
+                },
+                async sendCode() {
+                    if (!this.form.email) { alert(this.uiMsgs['member-msg-input-email']); return; }
+                    try {
+                        const res = await axios.post(`/api/members/send-code?email=${this.form.email}`);
+                        alert(res.data);
+                        this.codeSent = true;
+                        this.startTimer();
+                    } catch (e) {
+                        alert(e.response?.data || "發送失敗");
+                    }
+                },
+                startTimer() {
+                    this.countdown = 60;
+                    const timer = setInterval(() => {
+                        this.countdown--;
+                        if (this.countdown <= 0) clearInterval(timer);
+                    }, 1000);
+                },
+                async registerMember() {
+                    try {
+                        // ✅ 送出註冊資料，回傳文字來自 MessageService 撈取的「註冊成功」
+                        const res = await axios.post('/api/members/register', this.form);
+                        alert(res.data);
+                        location.href = "login.html";
+                    } catch (e) {
+						let errorMsg = "註冊失敗";
+        
+        				if (e.response && e.response.data) {
+            				const data = e.response.data;
+            				// ✅ 判斷回傳的是不是物件 (例如 Spring Validation 的錯誤結果)
+            				if (typeof data === 'object') {
+                				// 如果是物件，取其第一個錯誤訊息，或轉為字串顯示
+                				errorMsg = data.message || JSON.stringify(data);
+            				} else {
+                				// 如果是純字串 (例如 Service 拋出的 MemberException)
+                				errorMsg = data;
+            						}
+        					}
+        
+        					alert(errorMsg);
+                    }
 					
-				});
-			</script> -->
-		</tr>
-		<tr>
-			<td colspan=2 align="center"><h3>新增會員資料</h3></td>
-		</tr>
-
-		<tr>
-			<td>帳號</td>
-			<td><input type="text" name="username"> <input
-				type="button" id="checkUsername" value="驗證帳號"></td>
-
-		</tr>
-		<tr>
-			<td>密碼</td>
-			<!-- 留意檢視密碼可行性 -->
-			<td><input type="password" name="password"></td>
-		</tr>
-		<tr>
-			<td>姓名</td>
-			<td><input type="text" name="name"></td>
-		</tr>
-		<tr>
-			<td>地址</td>
-			<td><input type="text" name="address"></td>
-		</tr>
-		<tr>
-			<td>電話</td>
-			<!-- 讓使用者「無法輸入」非數字的字元。 -->
-			<td><input type="tel" name="phone" maxlength="8" oninput="value=value.replace(/[^\d]/g,'')"></td> 
-		</tr>
-		<tr>
-			<td>手機</td>
-			<td><input type="tel" name="mobile" maxlength="10" oninput="value=value.replace(/[^\d]/g,'')"></td>
-		</tr>
-		<tr>
-			<td>Email</td>
-			<td><input type="email" name="email" placeholder="用於重設密碼">
-				<input type="button" id="sendCodeBtn" value="獲取驗證碼"></td>
-		</tr>
-		<tr id="codeRow">
-			<td>驗證碼</td>
-			<td><input type="text" name="vertifyCode" id="vertifyCode" placeholder="請輸入 6 位驗證碼"></td>
-		</tr>
-		<tr>
-			<td colspan=2 align=center><input type="button" id="addForm"
-				value="ok"></td>
-		</tr>
-
-
-
-		<script>
-			$(function() {
-				$("#title-placeholder").load("title.html");
-				//檢查帳號是否重複
-				$("#checkUsername").click(function() {
-					let username = $("input[name='username']").val();
-					if (!username) {
-						alert("請先輸入帳號");
-						return;
-					}//檢查，避免空值
-
-					$.ajax({
-						url : "/api/members/check",
-						type : "GET",
-						data : {
-							username : username
-						},//傳送參數
-						success : function(response) {
-							alert(response);//彈出此帳號可以使用
-						},
-						error : function(xhr) {
-							alert(xhr.responseText);//彈出帳號已存在
-						}
-					});
-				});
-				$
-				//新增帳號
-				$("#addForm").click(function(e) {
-					e.preventDefault(); //防止跳轉
-					
-					
-					
-					let memberData = {
-						username : $("input[name='username']").val(),
-						password : $("input[name='password']").val(),
-						name : $("input[name='name']").val(),
-						address : $("input[name='address']").val(),
-						phone : $("input[name='phone']").val(),
-						mobile : $("input[name='mobile']").val(),
-						email : $("input[name='email']").val(),
-						vertifyCode: $("#vertifyCode").val() // 獲取驗證碼
-					};
-					// 在傳送前先在 Console 檢查資料，這是 ICT 除錯的最佳實踐
-					// console.log("確認傳送資料：", memberData);
-
-					$.ajax({
-						url : "/api/members/register",
-						type : "POST",
-						contentType : "application/json",
-						data : JSON.stringify(memberData),
-						success : function(response) {
-							alert(response);
-							window.location.href = "login.html";
-						},
-						error : function(xhr) {
-							alert(xhr.responseText);// 預設優先捕捉Controleer @valid 即全域變數
-													// 捕捉驗證碼錯誤或帳號重複訊息
-							//window.location.href = "addMember.html"; 
-							// 失敗時不跳轉，讓使用者修正
-						}
-					});
-				});
-				
-				// 發送驗證碼事件
-				$("#sendCodeBtn").click(function(){
-					let btn = $(this);
-					let email = $("input[name='email']").val();
-					if(!email){
-						alert("請先輸入 Email");
-						return;
-					}
-					// 優化：點擊瞬間立刻變更狀態，不等 AJAX
-					btn.prop("disabled", true);
-					$.post("/api/members/send-code",{email: email}, function(res){
-						alert(res);
-						// 啟動倒數計時
-						let seconds = 60;
-						
-						let timer = setInterval(function(){
-							seconds--;
-							btn.val(seconds + "s 後可重新獲取");
-							if(seconds <= 0){
-								clearInterval(timer);
-								btn.prop("disabled", false).val("獲取驗證碼");
-							}
-						},1000); // 1000 毫秒即 1 秒執行一次扣秒
-					}).fail(function(xhr){
-						alert("錯誤：" + xhr.responseText);
-						btn.prop("disabled",false).val("獲取驗證碼"); // 失敗時恢復按鈕
-					});
-				});
-				
-				
-			});
-		</script>
-	</table>
-
+                },
+                logout() { sessionStorage.clear(); location.href = "login.html"; }
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>

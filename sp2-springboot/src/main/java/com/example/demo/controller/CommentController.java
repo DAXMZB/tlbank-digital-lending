@@ -8,19 +8,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.service.CommentService;
+import com.example.demo.service.MessageService;
 
 @RestController
 @RequestMapping("api/comments")
 public class CommentController {
 	@Autowired
 	private CommentService commentService;
-
+	@Autowired
+	private MessageService messageService; // ✅ 注入
 	@PostMapping("/create")
 	public ResponseEntity<String> createComment(@RequestParam Integer postId, @RequestParam Integer memberNo,
 			@RequestParam String content) {
 		// 呼叫 Service 存入資料庫
 		commentService.saveComment(postId, memberNo, content);
-
-		return ResponseEntity.ok("回應成功！");
+		// ✅ 調整：從資料庫撈取成功訊息
+		return ResponseEntity.ok(messageService.getMessage("comment-msg-create-success"));
 	}
 }
