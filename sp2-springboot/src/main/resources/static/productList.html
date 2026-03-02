@@ -106,12 +106,7 @@
             },
             // ✅ 【調整】合併原本分散的 mounted，確保執行順序
             async mounted() {
-				// 進入首頁時，主動問後端：我現在還算登入狀態嗎？
-				try{
-					await axios.get('/api/members/info');
-					}catch (error) {
-					// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
-					}
+				
                 // 1. 批次請求頁面需要的介面文字 Key
                 const keys = "common-msg-login-first,order-msg-cart-empty,order-confirm-checkout";
                 try {

@@ -106,12 +106,7 @@
                 }
             },
 			async mounted() {
-                // 進入首頁時，主動問後端：我現在還算登入狀態嗎？
-				try{
-					await axios.get('/api/members/info');
-					}catch (error) {
-					// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
-					}
+                
 				// 批次獲取此頁面需要的 Key
 				const keys = "order-confirm-delete,order-msg-no-orders,order-msg-no-selection,order-msg-ecpay-fail,order-label-id,order-label-total-select,common-msg-login-first,common-error-load-msg-fail";
 				try {

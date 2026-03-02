@@ -63,12 +63,7 @@
             }
         },
 		async mounted(){
-			// 進入首頁時，主動問後端：我現在還算登入狀態嗎？
-			try{
-				await axios.get('/api/members/info');
-			}catch (error) {
-				// 如果報 401，axios-config.js 會自動幫你彈窗並導向 login.html
-			}
+			
 		},
         methods: {
             checkLoginGo(target) {
