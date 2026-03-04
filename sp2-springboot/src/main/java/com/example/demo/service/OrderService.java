@@ -21,6 +21,8 @@ public interface OrderService {
 	// 批次訂單方法
 	Orders createOrderBatch(Integer memberNo, List<CartItemDTO> items);
 
+	// 將實體轉換為 DTO 的規範
+	OrderDTO convertToDTO(Orders order);
 	// 刪除訂單
 	void deleteOrder(Integer id);
 

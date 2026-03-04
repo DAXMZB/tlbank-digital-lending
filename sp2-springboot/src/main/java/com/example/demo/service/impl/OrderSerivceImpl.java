@@ -51,8 +51,8 @@ public class OrderSerivceImpl implements OrderService {
 		List<Orders> orders = orderRepo.findByMember_MemberNo(memberNo);
 		return orders.stream().map(this :: convertToDTO).collect(Collectors.toList());
 	}
-	
-	private OrderDTO convertToDTO(Orders order) {
+	@Override
+	public OrderDTO convertToDTO(Orders order) {
 		OrderDTO dto = new OrderDTO();
 		dto.setId(order.getId());
 		dto.setOrderNo(order.getOrderNo());

@@ -31,16 +31,17 @@ public class OrderController {
 
 	@PostMapping("/createBatch")
 	public ResponseEntity<?> createOrderBatch(@RequestParam Integer memberId, @RequestBody List<CartItemDTO> carItems) {
-		// 這裡現在會接收到單個 Orders 物件
+		// 這裡現在會接收到單個 Orders 物件（ 執行結帳邏輯取得實體
 		Orders order = orderService.createOrderBatch(memberId, carItems);
+		// 將實體轉為 DTO (使用寫好的 Service 轉換邏輯)
+		OrderDTO orderDto = orderService.convertToDTO(order);
 		// 從 MessageService 撈取格式化範本，並填入訂單資訊
-		// 假設資料庫 Key 為 order-success-alert 内容為 "結算成功！\n訂單編號：%s\n總金額：NT$ %s"
-		String successMsg = String.format(messageService.getMessage("order-success-alert"), order.getOrderNo(),
-				order.getTotalAmount());
+		// 並填入 DTO 的資訊
+		String successMsg = String.format(messageService.getMessage("order-success-alert"), orderDto.getOrderNo(),
+				orderDto.getTotalAmount());
 		
-		// 封裝在 Map 中回傳
-		// 讓前端一次拿到 order 物件（更新 UI）與 message 字串（彈窗提示）
-		return ResponseEntity.ok(Map.of("order", order, "message", successMsg));
+		// 封裝 DTO 在 Map 中回傳，避免前端直接碰到 Entity
+		return ResponseEntity.ok(Map.of("order", orderDto, "message", successMsg));
 	}
 
 	@GetMapping("/member/{memberId}")
