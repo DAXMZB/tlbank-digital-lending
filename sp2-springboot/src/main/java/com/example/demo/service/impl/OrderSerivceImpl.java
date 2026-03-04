@@ -9,10 +9,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.jaxb.SpringDataJaxb.OrderDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.CartItemDTO;
+import com.example.demo.dto.OrderDTO;
+import com.example.demo.dto.OrderItemDTO;
 import com.example.demo.entity.Member;
 import com.example.demo.entity.OrderItem;
 import com.example.demo.entity.Orders;
@@ -41,9 +44,32 @@ public class OrderSerivceImpl implements OrderService {
 	private MessageService messageService;
 
 	@Override
-	public List<Orders> getOrdersMember(Integer memberNo) {
+	public List<OrderDTO> getOrdersMember(Integer memberNo) {
 		// TODO Auto-generated method stub
-		return orderRepo.findByMember_MemberNo(memberNo);
+		// Service 層完成查詢後，手動轉換為 DTO。
+		// 讓前端拿到乾淨的 JSON，排除 @JsonBackReference 的耦合隱憂。
+		List<Orders> orders = orderRepo.findByMember_MemberNo(memberNo);
+		return orders.stream().map(this :: convertToDTO).collect(Collectors.toList());
+	}
+	
+	private OrderDTO convertToDTO(Orders order) {
+		OrderDTO dto = new OrderDTO();
+		dto.setId(order.getId());
+		dto.setOrderNo(order.getOrderNo());
+		dto.setTotalAmount(order.getTotalAmount());
+		dto.setStatus(order.getStatus());
+		dto.setOrderTime(order.getOrderTime().toString());
+		
+		dto.setItems(order.getItems().stream().map(item -> {
+			OrderItemDTO iDto = new OrderItemDTO();
+			iDto.setProductName(item.getProduct().getProductName());
+			iDto.setPrice(item.getPrice());
+			iDto.setQuantity(item.getQuantity());
+			iDto.setSubTotal(item.getPrice().multiply(new BigDecimal(item.getQuantity())));
+			return iDto;
+		}).collect(Collectors.toList()));
+		
+		return dto;
 	}
 
 	@Override

@@ -61,10 +61,11 @@
                             </thead>
                             <tbody>
                                 <tr v-for="item in order.items" :key="item.id" class="border-b border-slate-50">
-                                    <td class="p-2 font-medium">{{ item.product.productName }}</td>
+                                    <!-- OrderDTO 的結構中，明細欄位已「扁平化」處理，直接叫做 productName，不再有 product 這個層級 -->
+                                    <td class="p-2 font-medium">{{ item.productName }}</td>
                                     <td class="p-2">NT$ {{ item.price }}</td>
                                     <td class="p-2 text-center">{{ item.quantity }}</td>
-                                    <td class="p-2 text-right font-bold text-sky-600">NT$ {{ item.price * item.quantity }}</td>
+                                    <td class="p-2 text-right font-bold text-sky-600">NT$ {{ item.subTotal }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -147,7 +148,7 @@
                 async loadOrders() {
                     try {
                         const response = await axios.get('/api/orders/member/' + this.memberNo);
-                        this.orders = response.data;
+                        this.orders = response.data; // 直接接收包含已算好小計的 DTO
                     } catch (error) {
                         console.error("載入訂單失敗", error);
                     }

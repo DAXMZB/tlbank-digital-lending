@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.example.demo.dto.CartItemDTO;
+import com.example.demo.dto.OrderDTO;
 import com.example.demo.entity.Orders;
 
 public interface OrderService {
@@ -12,7 +13,7 @@ public interface OrderService {
 	
 
 	// 查詢特定會員的所有訂單
-	List<Orders> getOrdersMember(Integer memberNo);
+	List<OrderDTO> getOrdersMember(Integer memberNo);
 
 	// 透過訂單編號查詢 (未來串接金流回傳時會用到(
 	Orders getByOrderNo(String orderNo);

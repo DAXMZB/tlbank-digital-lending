@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.CartItemDTO;
+import com.example.demo.dto.OrderDTO;
 import com.example.demo.entity.Orders;
 import com.example.demo.service.MessageService;
 import com.example.demo.service.OrderService;
@@ -43,10 +44,10 @@ public class OrderController {
 	}
 
 	@GetMapping("/member/{memberId}")
-	public ResponseEntity<List<Orders>> getMemberOrder(@PathVariable Integer memberId) {
+	public ResponseEntity<List<OrderDTO>> getMemberOrder(@PathVariable Integer memberId) {
 		// 呼叫 Service 取得該會員所有訂單
-		List<Orders> orders = orderService.getOrdersMember(memberId);
-		return ResponseEntity.ok(orders);
+		// 回傳乾淨的 DTO 列表
+		return ResponseEntity.ok(orderService.getOrdersMember(memberId));
 
 	}
 
