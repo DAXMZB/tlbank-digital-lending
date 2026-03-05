@@ -95,7 +95,13 @@
 				}
 			},
             async mounted() {
-				
+				try {
+					// 發送請求到 /info，如果伺服器重啟過，會回傳401
+					await axios.get('/api/members/info');
+				} catch (error) {
+					// 如果報 401 ， axois-config.js 攔截器會自動彈窗並跳轉到 login.html
+					console.error("Session 已失效", error);
+				}
 				const keys = "member-list-title,member-list-empty,member-error-load-fail,member-label-page-info,common-label-prev,common-label-next,common-msg-loading";
 				try {
 					const res = await axios.get('/api/messages/batch', { params: { keys }});

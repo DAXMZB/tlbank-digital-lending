@@ -6,7 +6,11 @@ axios.interceptors.response.use(
 		//「自動登出」的關鍵
 		// 當收到 401 錯誤（代表伺服器認定你已登出），立刻執行以下動作
 		if (error.response && error.response.status === 401) {
-			alert("連線逾時或伺服器已重啟，請重新登入");
+			//alert("連線逾時或伺服器已重啟，請重新登入");
+			// 如果回傳的是字串，則直接顯示，若無會傳則使用預設
+			const msg = error.response.data || "連線已過期，請重新登入"
+			alert(msg);
+			
 			sessionStorage.clear();
 			window.location.href = "login.html";			
 		}
