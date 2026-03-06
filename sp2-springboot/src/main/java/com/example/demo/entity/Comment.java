@@ -1,6 +1,8 @@
 package com.example.demo.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -26,6 +28,14 @@ public class Comment {
  @ManyToOne
  @JoinColumn(name = "member_no")
  private Member member;
+ 
+ @ManyToOne
+ @JoinColumn(name = "parent_id")
+ @JsonIgnore
+ private Comment parentComment; // 父留言
+
+ @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL)
+ private List<Comment> replies = new ArrayList<>(); // 子回應
 
 public Integer getId() {
 	return id;

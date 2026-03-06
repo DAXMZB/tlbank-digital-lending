@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TL BANK - 留言板</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script type="module" src="/js/axios-config.js"></script>
+<link rel="stylesheet"
+	href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+[v-cloak] {
+	display: none;
+}
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+	<div id="app" v-cloak>
+		<tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
+
+		<main class="max-w-4xl mx-auto p-8">
+			<h2 class="text-3xl font-bold text-slate-800 mb-8 flex items-center">
+				<i class="fa-solid fa-comments text-sky-600 mr-3"></i> 社群留言板
+			</h2>
+
+			<section
+				class="bg-white rounded-xl shadow-sm p-6 mb-12 border-2 border-sky-100">
+				<h3 class="text-lg font-bold text-slate-700 mb-4">有什麼想說的嗎？</h3>
+				<div class="space-y-4">
+					<textarea v-model="newPostContent" rows="3"
+						class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
+						placeholder="今天想說點什麼..."></textarea>
+					<button @click="submitPost" :disabled="loading"
+						class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition">
+						發布留言</button>
+				</div>
+			</section>
+
+			<div v-for="post in posts" :key="post.id"
+				class="mb-6 bg-white rounded-xl shadow-sm border overflow-hidden">
+				<div class="p-6 bg-slate-50 border-b">
+					<div class="flex justify-between items-start mb-2">
+						<span class="font-bold text-sky-800">{{ post.member.name }}</span>
+						<span class="text-xs text-slate-400">{{
+							formatTime(post.postTime) }}</span>
+					</div>
+					<p class="text-slate-700">{{ post.content }}</p>
+				</div>
+
+				<div class="p-4 space-y-3 bg-white">
+					<div v-for="reply in post.comments" :key="reply.id"
+						class="flex space-x-2 text-sm border-l-2 border-slate-100 pl-4 group">
+						<div>
+							<span class="font-bold text-slate-700">{{
+								reply.member.name }}:</span> <span class="text-slate-600">{{
+								reply.content }}</span>
+						</div>
+
+						<button v-if="reply.member.memberNo == memberNo"
+							@click="deleteComment(reply.id)"
+							class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition">
+							<i class="fa-solid fa-trash-can text-xs"></i>
+						</button>
+					</div>
+
+					<div class="mt-4 flex space-x-2">
+						<input type="text" v-model="replyMap[post.id]"
+							placeholder="回覆他..."
+							class="flex-grow border rounded-full px-4 py-1 text-sm outline-none focus:border-sky-500">
+						<button @click="submitReply(post.id)"
+							class="text-sky-600 text-sm font-bold">傳送</button>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		<script type="module">
+    import TLNavbar from '/js/TLNavbar.js';
+    const { createApp } = Vue;
+
+    createApp({
+        components: { 'tl-navbar': TLNavbar },
+        data() {
+            return {
+                user: { name: sessionStorage.getItem("userName") || "" },
+                memberNo: sessionStorage.getItem("memberNo"),
+                posts: [],           // 從後端撈取的資料庫列表
+                newPostContent: "",   // 主留言內容
+                replyMap: {},        // 暫存每一則貼文的回覆文字
+                loading: false,
+				uiMsgs: {} // 存放訊息
+            }
+        },
+        async mounted() {
+			// 新增：訊息撈取邏輯，否則 comfirm 會沒有文字
+			const keys = "comment-confirm-delete,comment-msg-delete-success,comment-error-delete-forbidden";
+			try {
+				const res = await axios.get(`/api/messages/batch`, { params: { keys }});
+				this.uiMsgs = res.data;
+				console.log("成功載入訊息", this.uiMsgs);
+			} catch (e) { 
+				console.error("訊息載入失敗", e); 
+				// 即使失敗也給予空物件，避免出現 Unknown Error
+				this.uiMsgs = {};
+			}
+
+            this.refreshData();
+        },
+        methods: {
+			// 新增刪除方法
+			async deleteComment(commentId){
+				const confirmText = this.uiMsgs['comment-confirm-delete'] || "確定要刪除這條留言嗎？";
+				// 從 MessageService 預載的語系中撈取文字
+				if (confirm(confirmText)) {
+					try {
+						// 發送 Delete 請求，帶上當前 memberNo 供後端校驗
+						const res = await axios.delete(`/api/comments/${commentId}`, {
+							params: { memberNo: this.memberNo }
+						});
+
+						alert(res.data); // 顯示後端回傳訊息
+						await this.refreshData(); // 刷新列表
+					} catch (error) {
+						// 若權限不足，彈出 "comment-error-delete-forbidden" 的訊息
+						const errorMsg = error.response ? error.response.data : "刪除失敗";
+						alert(errorMsg);
+					}
+				}
+			},
+            async refreshData() {
+                // 呼叫 PostController 的 /all 獲取所有貼文 comments
+                const res = await axios.get('/api/posts/all');
+                // 回傳 Page 物件，內容在 .content 中
+                this.posts = res.data.content;
+            },
+            async submitPost() {
+                if (!this.newPostContent.trim()) return;
+                const params = new URLSearchParams();
+                params.append('memberId', this.memberNo);
+                params.append('content', this.newPostContent);
+                
+                await axios.post('/api/posts/create', params);
+                this.newPostContent = "";
+                this.refreshData();
+            },
+            async submitReply(postId) {
+                const content = this.replyMap[postId];
+                if (!content || !content.trim()) return;
+
+                const params = new URLSearchParams();
+                params.append('postId', postId);
+                params.append('memberNo', this.memberNo);
+                params.append('content', content);
+
+                await axios.post('/api/comments/create', params);
+                this.replyMap[postId] = ""; // 清空該則回覆框
+                this.refreshData();
+            },
+            formatTime(t) { return t ? t.replace('T', ' ').split('.')[0] : ''; },
+            async logout() { /* 登出邏輯... */ }
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

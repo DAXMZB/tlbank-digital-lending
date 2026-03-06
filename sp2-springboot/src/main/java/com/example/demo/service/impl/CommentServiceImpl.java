@@ -37,7 +37,7 @@ public class CommentServiceImpl implements CommentService {
 		Post post = postRepo.findById(postId)
 				.orElseThrow(() -> new MemberException(messageService.getMessage("comment-error-post-notfound")));
 		Member member = memberRepo.findById(memberNo)
-                .orElseThrow(() -> new MemberException(messageService.getMessage("common-msg-login-required")));
+				.orElseThrow(() -> new MemberException(messageService.getMessage("common-msg-login-required")));
 
 		// 建立留言物件，並設立關聯
 		Comment comment = new Comment();
@@ -49,6 +49,23 @@ public class CommentServiceImpl implements CommentService {
 		// 存入資料庫
 		commentRepo.save(comment);
 
+	}
+
+	@Override
+	@Transactional
+	public void deleteComment(Integer commentId, Integer memberNo) {
+		// 1. 找出該留言
+		Comment comment = commentRepo.findById(commentId)
+				.orElseThrow(() -> new MemberException(messageService.getMessage("comment-error-notfound")));
+
+		// 2. 校驗權限：檢查留言擁有人是否為當前操作者
+		// 透過 comment.getMember().getMemberNo() 取得留言者的 ID
+		if (!comment.getMember().getMemberNo().equals(memberNo)) {
+			throw new MemberException(messageService.getMessage("comment-error-delete-forbidden"));
+		}
+		
+		// 3. 執行刪除
+		commentRepo.delete(comment);		
 	}
 
 }

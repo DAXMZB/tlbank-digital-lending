@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -24,10 +25,11 @@ public class Post {
 	@JoinColumn(name = "member_id")
 	@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" }) // 防止延遲加載產生的 JSON 錯誤
 	private Member member; // 關聯發文會員
-
-	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+	
+	// 將 EAGER 改為 LAZY，這是 JPA 的效能優化準則。
+	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY,orphanRemoval = true)
 	@OrderBy("commentTime ASC") // 留言按時間序排序
-	private List<Comment> comments;
+	private List<Comment> comments = new ArrayList<>();
 	
 	
 	public List<Comment> getComments() {
