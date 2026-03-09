@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -147,8 +148,8 @@ public class MemberServiceImpl implements MemberService {
 		message.setText(String.format(messageService.getMessage("member-mail-reset-body"), member.getName(), newPwd));
 		mailSender.send(message);
 	}
-
 	@Override
+	@Async
 	public void sendRegistrationCode(String email) {
 		// 基本格式校驗 (防範 Log 中的 553 5.1.3 錯誤)
 		if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {

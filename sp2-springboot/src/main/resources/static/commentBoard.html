@@ -128,6 +128,19 @@
 					}
 				}
 			},
+			async logout() {
+                if (confirm("確定要登出嗎？")) {
+                    try {
+						await fetch('/api/members/logout', { method: 'POST' });							
+						} catch (error){
+						console.error("後端登出失敗，執行前端強制清理");
+					} finally{
+						sessionStorage.clear();
+						location.href ="login.html";
+					}
+                    
+                }
+            },
             async refreshData() {
                 // 呼叫 PostController 的 /all 獲取所有貼文 comments
                 const res = await axios.get('/api/posts/all');
@@ -157,8 +170,8 @@
                 this.replyMap[postId] = ""; // 清空該則回覆框
                 this.refreshData();
             },
-            formatTime(t) { return t ? t.replace('T', ' ').split('.')[0] : ''; },
-            async logout() { /* 登出邏輯... */ }
+            formatTime(t) { return t ? t.replace('T', ' ').split('.')[0] : ''; }
+            
         }
     }).mount('#app');
 </script>

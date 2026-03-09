@@ -1,83 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>TL BANK - 會員註冊</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <style>
-        [v-cloak] { display: none; }
-    </style>
+<meta charset="UTF-8">
+<title>TL BANK - 會員註冊</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<style>
+[v-cloak] {
+	display: none;
+}
+</style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-    <div id="app" v-cloak>
-        <tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
+	<div id="app" v-cloak>
+		<tl-navbar :user-name="user.name" @on-logout="logout"></tl-navbar>
 
-        <main class="max-w-2xl mx-auto px-4 mt-12 pb-24">
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                <div class="bg-sky-800 p-6 text-white text-center">
-                    <h2 class="text-2xl font-bold">{{ uiMsgs['member-register-title'] }}</h2>
-                </div>
+		<main class="max-w-2xl mx-auto px-4 mt-12 pb-24">
+			<div
+				class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+				<div class="bg-sky-800 p-6 text-white text-center">
+					<h2 class="text-2xl font-bold">{{
+						uiMsgs['member-register-title'] }}</h2>
+				</div>
 
-                <form @submit.prevent="registerMember" class="p-8 space-y-5">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ uiMsgs['member-label-username'] }}</label>
-                        <div class="flex space-x-2">
-                            <input type="text" v-model="form.username" class="flex-grow border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none">
-                            <button type="button" @click="checkUsername" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-                                {{ uiMsgs['member-btn-check'] }}
-                            </button>
-                        </div>
-                    </div>
+				<form @submit.prevent="registerMember" class="p-8 space-y-5">
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-1">{{
+							uiMsgs['member-label-username'] }}</label>
+						<div class="flex space-x-2">
+							<input type="text" v-model="form.username"
+								class="flex-grow border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none">
+							<button type="button" @click="checkUsername"
+								class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+								{{ uiMsgs['member-btn-check'] }}</button>
+						</div>
+					</div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ uiMsgs['member-label-password'] }}</label>
-                        <input type="password" v-model="form.password" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none">
-                    </div>
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-1">{{
+							uiMsgs['member-label-password'] }}</label> <input type="password"
+							v-model="form.password"
+							class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none">
+					</div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">姓名</label>
-                            <input type="text" v-model="form.name" class="w-full border rounded-lg px-4 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">電話</label>
-                            <input type="tel" v-model="form.phone" maxlength="8" @input="form.phone = form.phone.replace(/[^\d]/g,'')" class="w-full border rounded-lg px-4 py-2">
-                        </div>
-                    </div>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<label class="block text-sm font-semibold text-slate-700 mb-1">姓名</label>
+							<input type="text" v-model="form.name"
+								class="w-full border rounded-lg px-4 py-2">
+						</div>
+						<div>
+							<label class="block text-sm font-semibold text-slate-700 mb-1">市話</label>
+							<input type="tel" v-model="form.phone" maxlength="8"
+								@input="form.phone = form.phone.replace(/[^\d]/g,'')"
+								class="w-full border rounded-lg px-4 py-2" placeholder="8位數字">
+						</div>
+					</div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">地址</label>
-                        <input type="text" v-model="form.address" class="w-full border rounded-lg px-4 py-2">
-                    </div>
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-1">手機號碼</label>
+						<input type="tel" v-model="form.mobile" maxlength="10"
+							@input="form.mobile = form.mobile.replace(/[^\d]/g,'')"
+							class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
+							placeholder="0912345678">
+					</div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ uiMsgs['member-label-email'] }}</label>
-                        <div class="flex space-x-2">
-                            <input type="email" v-model="form.email" class="flex-grow border rounded-lg px-4 py-2">
-                            <button type="button" @click="sendCode" :disabled="countdown > 0" class="bg-sky-100 hover:bg-sky-200 text-sky-700 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50">
-                                {{ codeBtnText }}
-                            </button>
-                        </div>
-                    </div>
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-1">地址</label>
+						<input type="text" v-model="form.address"
+							class="w-full border rounded-lg px-4 py-2">
+					</div>
 
-                    <div v-if="codeSent">
-                        <label class="block text-sm font-semibold text-emerald-700 mb-1">請輸入 6 位驗證碼</label>
-                        <input type="text" v-model="form.vertifyCode" maxlength="6" class="w-full border-2 border-emerald-500 rounded-lg px-4 py-2 outline-none">
-                    </div>
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-1">{{
+							uiMsgs['member-label-email'] }}</label>
+						<div class="flex space-x-2">
+							<input type="email" v-model="form.email"
+								class="flex-grow border rounded-lg px-4 py-2">
+							<button type="button" @click="sendCode" :disabled="countdown > 0"
+								class="bg-sky-100 hover:bg-sky-200 text-sky-700 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50">
+								{{ codeBtnText }}</button>
+						</div>
+					</div>
 
-                    <div class="pt-4">
-                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
-                            {{ uiMsgs['member-btn-submit'] }}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </main>
-    </div>
+					<div v-if="codeSent">
+						<label class="block text-sm font-semibold text-emerald-700 mb-1">請輸入
+							6 位驗證碼</label> <input type="text" v-model="form.vertifyCode"
+							maxlength="6"
+							class="w-full border-2 border-emerald-500 rounded-lg px-4 py-2 outline-none">
+					</div>
 
-    <script type="module">
+					<div class="pt-4">
+						<button type="submit"
+							class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
+							{{ uiMsgs['member-btn-submit'] }}</button>
+					</div>
+				</form>
+			</div>
+		</main>
+	</div>
+
+	<script type="module">
         import TLNavbar from '/js/TLNavbar.js';
         const { createApp } = Vue;
 
@@ -86,7 +110,7 @@
             data() {
                 return {
                     user: { name: sessionStorage.getItem("userName") || "" },
-                    form: { username: '', password: '', name: '', address: '', phone: '', email: '', vertifyCode: '' },
+                    form: { username: '', password: '', name: '', address: '', phone: '', mobile: '', email: '', vertifyCode: '' },
                     uiMsgs: {},
                     countdown: 0,
                     codeSent: false
@@ -123,17 +147,23 @@
                 },
                 async sendCode() {
                     if (!this.form.email) { alert(this.uiMsgs['member-msg-input-email']); return; }
+
+					// UI 先行，按下立即冷卻
+					this.countdown = 60; // 立即設定秒數，讓 codeBtnText 觸發反灰
+					this.startTimer(); // 立即啟動計時
+					this.codeSent = true;
                     try {
+						// 現在才發送網路請求
                         const res = await axios.post(`/api/members/send-code?email=${this.form.email}`);
                         alert(res.data);
-                        this.codeSent = true;
-                        this.startTimer();
                     } catch (e) {
+						// 如果失敗，則重置計時器讓使用者可已重試
+						this.countdown = 0;
                         alert(e.response?.data || "發送失敗");
                     }
                 },
                 startTimer() {
-                    this.countdown = 60;
+                    
                     const timer = setInterval(() => {
                         this.countdown--;
                         if (this.countdown <= 0) clearInterval(timer);
