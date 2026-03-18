@@ -1,8 +1,10 @@
 package com.example.demo.service.impl;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,6 +16,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.demo.dto.member.MemberRegisterRequest;
+import com.example.demo.dto.member.MemberResponse;
 import com.example.demo.entity.Member;
 import com.example.demo.exception.MemberException;
 import com.example.demo.repository.MemberRepository;
@@ -25,7 +29,7 @@ import jakarta.servlet.http.HttpSession;
 @Service
 public class MemberServiceImpl implements MemberService {
 	@Autowired
-	private MemberRepository repo;
+	private MemberRepository memberRepo;
 	// 建立加密實例
 	private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -35,7 +39,7 @@ public class MemberServiceImpl implements MemberService {
 	private MessageService messageService; // ✅ 注入訊息服務
 
 	@Override
-	public String rigister(Member m) {
+	public String rigister(MemberRegisterRequest m) {
 		// TODO Auto-generated method stub
 
 		// 取得 Session 中的驗證碼與過期時間
@@ -60,16 +64,15 @@ public class MemberServiceImpl implements MemberService {
 
 		// 2. 帳號重複驗證
 		// 這裡就是「HTTP 狀態碼轉換」：根據訊息字串決定要給 409 還是 400
-		if (repo.existsByUsername(m.getUsername())) {
+		if (memberRepo.existsByUsername(m.getUsername())) {
 			// ✅ 調整：帳號重複訊息
 			throw new MemberException(messageService.getMessage("member-error-username-duplicate"));// 409
 		}
-
-		// 3. 密碼加密
-		String encodedPassword = passwordEncoder.encode(m.getPassword());
-		m.setPassword(encodedPassword);// 將加密後的字串塞回物件
-		repo.save(m);
-
+		// 將 DTO 轉為 Entity 才能存入資料庫
+		Member member = convertToEntity(m);
+		member.setPassword(passwordEncoder.encode(m.getPassword()));
+		memberRepo.save(member);
+		
 		// 註冊成功後移除 Session 中的驗證碼，防止重複使用
 		session.removeAttribute("reg_code_" + m.getEmail());
 		session.removeAttribute("reg_code_expiry_" + m.getEmail());
@@ -84,7 +87,7 @@ public class MemberServiceImpl implements MemberService {
 		// 因為資料庫現在存的是「亂碼」，不能直接用 findByUsernameAndPassword。必須先根據帳號取出資料，再比對密碼。
 		// 1.先用帳號找人
 		// ✅ 調整：帳號不存在訊息
-		Member member = repo.findByUsername(username)
+		Member member = memberRepo.findByUsername(username)
 				.orElseThrow(() -> new MemberException(messageService.getMessage("member-error-username-notfound")));
 
 		// 2.使用 matches 比對 (原始密碼，資料庫加密密碼)
@@ -100,7 +103,7 @@ public class MemberServiceImpl implements MemberService {
 	@Override
 	public boolean isUsernameExists(String username) {
 		// TODO Auto-generated method stub
-		if (repo.existsByUsername(username)) {
+		if (memberRepo.existsByUsername(username)) {
 			// 如果存在，直接拋出異常，訊息包含重複或存在
 			// 這裡就是「HTTP 狀態碼轉換」：根據訊息字串決定要給 409 還是 400
 			// ✅ 調整：帳號已存在訊息
@@ -110,15 +113,11 @@ public class MemberServiceImpl implements MemberService {
 	}
 
 	@Override
-	public Page<Member> getAllMembers(int page, int size) {
-		// TODO Auto-generated method stub
-		// page 為頁碼 (從 0 開始)，size 為每頁幾筆資料
-		Pageable pageable = PageRequest.of(page, size);
-//		呼叫 repo.findAll(pageable) 時：
-//		自動分頁：根據傳入的 page 和 size，自動在 SQL 後面加上 LIMIT 與 OFFSET (以 MySQL 為例)。
-//		自動計算總數：它會同步執行一條 SELECT COUNT(*) 的指令。
-//		封裝結果：最後將資料清單與總筆數資訊包裝成一個 Page<T> 物件回傳。
-		return repo.findAll(pageable);// 呼叫 findAll 並傳入分頁參數
+	public List<MemberResponse> getAllMembers() {
+		 return memberRepo.findAll()
+	                .stream()
+	                .map(this::convertToDTO)
+	                .collect(Collectors.toList());
 
 	}
 
@@ -129,7 +128,7 @@ public class MemberServiceImpl implements MemberService {
 	public void resetPassword(String username, String email) {
 		// 1. 核對資料
 		// ✅ 調整：核對失敗訊息
-		Member member = repo.findByUsernameAndEmail(username, email)
+		Member member = memberRepo.findByUsernameAndEmail(username, email)
 				.orElseThrow(() -> new MemberException(messageService.getMessage("member-error-reset-fail")));
 
 		// 2. 產生隨機 8 位 密碼
@@ -137,7 +136,7 @@ public class MemberServiceImpl implements MemberService {
 
 		// 3. 更新資料庫
 		member.setPassword(passwordEncoder.encode(newPwd));
-		repo.save(member);
+		memberRepo.save(member);
 
 		// 4. 發送郵件
 		SimpleMailMessage message = new SimpleMailMessage();
@@ -156,7 +155,7 @@ public class MemberServiceImpl implements MemberService {
 			throw new MemberException(messageService.getMessage("member-error-email-format"));
 		}
 		// 1. 檢查 Email 是否已被註冊
-		if (repo.existsByEmail(email)) {
+		if (memberRepo.existsByEmail(email)) {
 			// ✅ 調整：Email 已註冊訊息
 			throw new MemberException(messageService.getMessage("member-error-email-registered"));
 		}
@@ -198,5 +197,34 @@ public class MemberServiceImpl implements MemberService {
 		String sessionCode = (String) session.getAttribute("reg_code_" + email);
 		return code.equals(sessionCode);
 	}
+
+	@Override
+	public MemberResponse getMemberById(Integer id) {
+		 Member member = memberRepo.findById(id).orElseThrow(() ->
+         new RuntimeException("Member not found")
+		);
+
+		 return convertToDTO(member);
+	}
+	
+	private MemberResponse convertToDTO(Member member) {
+        MemberResponse dto = new MemberResponse();
+        dto.setMemberNo(member.getMemberNo());
+        dto.setUsername(member.getUsername());
+        dto.setName(member.getName());
+        dto.setEmail(member.getEmail());
+        return dto;
+    }
+	
+	private Member convertToEntity(MemberRegisterRequest req) {
+        Member member = new Member();
+        member.setUsername(req.getUsername());
+        member.setName(req.getName());
+        member.setEmail(req.getEmail());
+        member.setAddress(req.getAddress()); // 【修改】補上必要欄位
+        member.setPhone(req.getPhone());     // 【修改】補上必要欄位
+        member.setMobile(req.getMobile());   // 【修改】補上必要欄位
+        return member;
+    }
 
 }

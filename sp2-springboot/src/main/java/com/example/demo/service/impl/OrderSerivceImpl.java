@@ -16,16 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.dto.CartItemDTO;
 import com.example.demo.dto.OrderDTO;
 import com.example.demo.dto.OrderItemDTO;
+import com.example.demo.dto.enums.OrderStatus;
 import com.example.demo.entity.Member;
 import com.example.demo.entity.OrderItem;
 import com.example.demo.entity.Orders;
 import com.example.demo.entity.Product;
+import com.example.demo.exception.BusinessException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.exception.MemberException;
 import com.example.demo.repository.MemberRepository;
 import com.example.demo.repository.OrderRepository;
 import com.example.demo.repository.ProductRepository;
 import com.example.demo.service.MessageService;
 import com.example.demo.service.OrderService;
+import com.example.demo.util.OrderStatusValidator;
+
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 @Service
@@ -57,7 +62,7 @@ public class OrderSerivceImpl implements OrderService {
 		dto.setId(order.getId());
 		dto.setOrderNo(order.getOrderNo());
 		dto.setTotalAmount(order.getTotalAmount());
-		dto.setStatus(order.getStatus());
+		dto.setStatus(order.getStatus().name());
 		dto.setOrderTime(order.getOrderTime().toString());
 		
 		dto.setItems(order.getItems().stream().map(item -> {
@@ -99,7 +104,7 @@ public class OrderSerivceImpl implements OrderService {
 			Orders order = new Orders();
 			order.setOrderNo("TL" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 			order.setMember(member);
-			order.setStatus("Unpaid");
+			order.setStatus(OrderStatus.UNPAID);
 
 			List<OrderItem> details = new ArrayList<>();
 			// 2.處理每一項商品並轉為訂單明細
@@ -167,6 +172,41 @@ public class OrderSerivceImpl implements OrderService {
 		}
 		orderRepo.deleteById(id);
 
+	}
+	@Override
+	@Transactional
+	public Orders updateOrderStatus(String orderNo, OrderStatus newStatus) {
+		// TODO Auto-generated method stub
+		Orders order = orderRepo.findOptionalByOrderNo(orderNo)
+				.orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "查無訂單"));
+		
+		OrderStatusValidator.validateTransition(order.getStatus(), newStatus);
+		order.setStatus(newStatus);
+		return orderRepo.save(order);
+	}
+	@Override
+	@Transactional
+	public void cancelOrder(String orderNo) {
+		// TODO Auto-generated method stub
+		Orders order = orderRepo.findOptionalByOrderNo(orderNo)
+				.orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "查無訂單"));
+		
+		if (order.getStatus() == OrderStatus.CANCELLED) {
+			throw new BusinessException(ErrorCode.ORDER_STATUS_INVALID, "訂單已取消，不可重複取消");
+		}
+		
+		if (order.getStatus() == OrderStatus.REFUNDED) {
+			throw new BusinessException(ErrorCode.ORDER_STATUS_INVALID, "已退款訂單不可再取消");
+		}
+		
+		for (OrderItem item : order.getItems()) {
+			Product product = item.getProduct();
+			product.setStock(product.getStock() + item.getQuantity()); // 取消訂單回補庫存
+			productRepo.save(product);
+		}
+		
+		order.setStatus(OrderStatus.CANCELLED);
+		orderRepo.save(order);
 	}
 
 }

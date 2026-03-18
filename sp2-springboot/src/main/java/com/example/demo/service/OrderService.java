@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.example.demo.dto.CartItemDTO;
 import com.example.demo.dto.OrderDTO;
+import com.example.demo.dto.enums.OrderStatus;
 import com.example.demo.entity.Orders;
 
 public interface OrderService {
@@ -25,6 +26,11 @@ public interface OrderService {
 	OrderDTO convertToDTO(Orders order);
 	// 刪除訂單
 	void deleteOrder(Integer id);
-
+	
+	// 新增狀態流轉功能
+	Orders updateOrderStatus(String orderNo, OrderStatus newStatus);
+	
+	// 新增取消訂單功能
+	void cancelOrder(String orderNo);
 	
 }

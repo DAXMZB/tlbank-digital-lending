@@ -1,6 +1,7 @@
 package com.example.demo.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,5 +21,7 @@ public interface OrderRepository extends JpaRepository<Orders, Integer> {
 	
 	@EntityGraph(attributePaths = {"items", "items.product"})
 	Orders findByOrderNo(String orderNo);
-
+	
+	// 避免 null 判斷散落在 service
+	Optional<Orders> findOptionalByOrderNo(String orderNo);
 }

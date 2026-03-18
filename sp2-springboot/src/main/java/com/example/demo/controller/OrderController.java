@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,48 +15,56 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.common.ApiResponse;
 import com.example.demo.dto.CartItemDTO;
 import com.example.demo.dto.OrderDTO;
+import com.example.demo.dto.order.OrderCreateRequest;
+import com.example.demo.dto.order.OrderStatusUpdateRequest;
 import com.example.demo.entity.Orders;
 import com.example.demo.service.MessageService;
 import com.example.demo.service.OrderService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
 	@Autowired
-	private OrderService orderService;
+    private OrderService orderService;
 
-	@Autowired
-	private MessageService messageService;
+    @PostMapping
+    public ResponseEntity<ApiResponse<OrderDTO>> createOrder(@Valid @RequestBody OrderCreateRequest request) {
+        Orders order = orderService.createOrderBatch(request.getMemberNo(), request.getCartItems());
+        return ResponseEntity.ok(ApiResponse.success(orderService.convertToDTO(order), "訂單建立成功"));
+    }
 
-	@PostMapping("/createBatch")
-	public ResponseEntity<?> createOrderBatch(@RequestParam Integer memberId, @RequestBody List<CartItemDTO> carItems) {
-		// 這裡現在會接收到單個 Orders 物件（ 執行結帳邏輯取得實體
-		Orders order = orderService.createOrderBatch(memberId, carItems);
-		// 將實體轉為 DTO (使用寫好的 Service 轉換邏輯)
-		OrderDTO orderDto = orderService.convertToDTO(order);
-		// 從 MessageService 撈取格式化範本，並填入訂單資訊
-		// 並填入 DTO 的資訊
-		String successMsg = String.format(messageService.getMessage("order-success-alert"), orderDto.getOrderNo(),
-				orderDto.getTotalAmount());
-		
-		// 封裝 DTO 在 Map 中回傳，避免前端直接碰到 Entity
-		return ResponseEntity.ok(Map.of("order", orderDto, "message", successMsg));
-	}
+    @GetMapping("/member/{memberNo}")
+    public ResponseEntity<ApiResponse<List<OrderDTO>>> getOrdersByMember(@PathVariable Integer memberNo) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.getOrdersMember(memberNo)));
+    }
 
-	@GetMapping("/member/{memberId}")
-	public ResponseEntity<List<OrderDTO>> getMemberOrder(@PathVariable Integer memberId) {
-		// 呼叫 Service 取得該會員所有訂單
-		// 回傳乾淨的 DTO 列表
-		return ResponseEntity.ok(orderService.getOrdersMember(memberId));
+    @GetMapping("/{orderNo}")
+    public ResponseEntity<ApiResponse<OrderDTO>> getByOrderNo(@PathVariable String orderNo) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.convertToDTO(orderService.getByOrderNo(orderNo))));
+    }
 
-	}
+    @PatchMapping("/{orderNo}/status")
+    public ResponseEntity<ApiResponse<OrderDTO>> updateStatus(
+            @PathVariable String orderNo,
+            @Valid @RequestBody OrderStatusUpdateRequest request) {
+        Orders order = orderService.updateOrderStatus(orderNo, request.getStatus());
+        return ResponseEntity.ok(ApiResponse.success(orderService.convertToDTO(order), "訂單狀態更新成功"));
+    }
 
-	@DeleteMapping("/{id}")
-	public ResponseEntity<String> deleteOrder(@PathVariable Integer id) {
-		orderService.deleteOrder(id);
-		String successMsg = messageService.getMessage("order-success-delete");
-		return ResponseEntity.ok(successMsg);
-	}
+    @PostMapping("/{orderNo}/cancel")
+    public ResponseEntity<ApiResponse<String>> cancelOrder(@PathVariable String orderNo) {
+        orderService.cancelOrder(orderNo);
+        return ResponseEntity.ok(ApiResponse.success("OK", "訂單取消成功並已回補庫存"));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteOrder(@PathVariable Integer id) {
+        orderService.deleteOrder(id);
+        return ResponseEntity.ok(ApiResponse.success("OK", "訂單刪除成功"));
+    }
 }
