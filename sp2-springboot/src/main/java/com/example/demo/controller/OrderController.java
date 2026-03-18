@@ -31,6 +31,19 @@ import jakarta.validation.Valid;
 public class OrderController {
 	@Autowired
     private OrderService orderService;
+	
+	// 🚀 【新增】對接前端的批量結帳路徑
+    @PostMapping("/createBatch")
+    public ApiResponse<OrderDTO> createOrderBatch(
+            @RequestBody List<CartItemDTO> cartItems, 
+            @RequestParam Integer memberId) {
+        
+        // 呼叫 Service 執行扣庫存、存訂單邏輯
+        Orders order = orderService.createOrderBatch(memberId, cartItems);
+        
+        // 轉為 DTO 並回傳
+        return ApiResponse.success(orderService.convertToDTO(order), "訂單建立成功！");
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<OrderDTO>> createOrder(@Valid @RequestBody OrderCreateRequest request) {

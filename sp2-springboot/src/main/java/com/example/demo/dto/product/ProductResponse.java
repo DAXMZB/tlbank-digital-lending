@@ -7,6 +7,15 @@ public class ProductResponse {
     private String productName;
     private BigDecimal price;
 	private Integer stock;
+	private String description;
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
 	public Integer getId() {
 		return id;

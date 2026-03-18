@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.common.ApiResponse;
 import com.example.demo.dto.product.ProductResponse;
 import com.example.demo.entity.Product;
 import com.example.demo.service.ProductService;
@@ -22,20 +23,23 @@ public class ProductController {
 	private ProductService productService;
 
 	@GetMapping
-	public ResponseEntity<List<ProductResponse>> getAllProducts() { // 【修改】不再呼叫不存在的分頁方法
-		return ResponseEntity.ok(productService.getAllProducts());
+	public ApiResponse<List<ProductResponse>> getAllProducts() { // 【修改】不再呼叫不存在的分頁方法
+        return ApiResponse.success(productService.getAllProducts()); // 【修改】統一回傳格式
+
 	}
 
 	// 取得商品清單 API
 	@GetMapping("/list")
-	public ResponseEntity<List<ProductResponse>> getProductList() {
+	public ApiResponse<List<ProductResponse>> getProductList() {
 
-		return ResponseEntity.ok(productService.getAllProducts());
+        return ApiResponse.success(productService.getAllProducts()); // 【修改】統一回傳格式
+
 	}
 
 	// 取得單一商品 API (可用於商品詳情頁)
 	@GetMapping("/{id}")
-	public ResponseEntity<ProductResponse> getProduct(@PathVariable Integer id) {
-		return ResponseEntity.ok(productService.getProductById(id));
+	public ApiResponse<ProductResponse> getProduct(@PathVariable Integer id) {
+        return ApiResponse.success(productService.getProductById(id)); // 【修改】統一回傳格式
+
 	}
 }

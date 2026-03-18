@@ -154,9 +154,13 @@
                 async loadOrders() {
                     try {
                         const response = await axios.get('/api/orders/member/' + this.memberNo);
-                        this.orders = response.data; // 直接接收包含已算好小計的 DTO
+						// 🚀 【關鍵修改】對應後端 ApiResponse 結構
+                    	// response.data 是 axios 的，response.data.data 才是 OrderDTO 列表
+                        this.orders = response.data.data || []; // 直接接收包含已算好小計的 DTO
+						console.log("訂單載入成功", this.orders);
                     } catch (error) {
                         console.error("載入訂單失敗", error);
+						this.orders = [];
                     }
                 },
                 async deleteOrder(id) {
@@ -164,13 +168,15 @@
                         try {
                         	// 呼叫後端 API
                         	const response = await axios.delete('/api/orders/' +id);
+							// 🚀 【關鍵修改】顯示 ApiResponse 封裝的 message
                         	// 顯示後端 MessageService 撈到的成功訊息
-                        	alert(response.data);
+                        	alert(response.data.message || "刪除成功");
                             // 從畫面上移除資料
                             this.orders = this.orders.filter(o => o.id !== id);
                             this.selectedOrderIds = this.selectedOrderIds.filter(sid => sid !== id);
                         } catch (error) {
-                        	const errorMsg = error.response ? error.response.data : "刪除失敗";
+							// 🚀 【關鍵修改】防止 [object Object] 報錯
+                        	const errorMsg = error.response?.data?.message || "刪除失敗";
                             alert(errorMsg);
                             // 將整個 JavaScript 的 Error 物件（包含 Stack Trace 堆疊追蹤、
                             //發生錯誤的檔名與行號、以及 Axios 完整的 Response 物件）輸出到瀏覽器的開發者工具中。

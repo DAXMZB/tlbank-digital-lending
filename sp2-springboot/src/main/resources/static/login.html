@@ -76,11 +76,24 @@
                     try {
                         const response = await axios.post('/api/members/login', this.formData);
                         const member = response.data;
-                        sessionStorage.setItem("userName", member.name);
-                        sessionStorage.setItem("memberNo", member.memberNo);
-                        window.location.href = "index.html";
+						// 【關鍵修改】檢查 ApiResponse 的 success 標記
+						if (response.data.success) {
+							const loginData = response.data.data;
+
+							// 儲存資訊到 SessionStorage
+							sessionStorage.setItem("userName", loginData.name);
+                        	sessionStorage.setItem("memberNo", loginData.memberNo);
+							alert(loginData.message || "登入成功");
+                        	window.location.href = "index.html";	
+						}else{
+							// 顯示後端 ApiResponse 帶回的錯誤訊息
+                        	alert(response.data.message || "登入失敗");
+						}
+                        
                     } catch (error) {
-                        alert(error.response ? error.response.data : "連線失敗");
+                        // 處理網路錯誤或 401/403/500 等攔截
+                    	const errorMsg = error.response?.data?.message || "系統錯誤，請稍後再試";
+                    	alert(errorMsg);
                     } finally {
                         this.loading = false;
                     }
@@ -97,12 +110,20 @@
                         const params = new URLSearchParams({ username, email });
                         try {
                             const res = await axios.post('/api/members/forgot-password', params);
-                            alert(res.data);
+							if (res.data.success) {
+                            	alert(res.data.data); // 顯示成功文字
+                        	} else {
+								alert("請求失敗：" + (err.response?.data?.message || "連線異常"));
+                        	}
                         } catch (err) {
                             alert("錯誤：" + (err.response ? err.response.data : "請求失敗"));
                         }
                     }
-                }
+                },
+				handleLogout() {
+                	sessionStorage.clear();
+                	window.location.href = "login.html";
+            	}
             }
         }).mount('#app');
     </script>
