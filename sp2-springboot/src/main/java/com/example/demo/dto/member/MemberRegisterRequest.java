@@ -35,6 +35,8 @@ public class MemberRegisterRequest {
 
     @NotBlank(message = "驗證碼不可為空") // 【修改】補上 vertifyCode，對應你目前 service 的寫法
     private String vertifyCode;
+    
+    
 
     public String getUsername() {
         return username;

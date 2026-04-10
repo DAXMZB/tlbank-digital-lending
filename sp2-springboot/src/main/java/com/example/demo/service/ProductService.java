@@ -9,7 +9,7 @@ import com.example.demo.entity.Product;
 
 public interface ProductService {
 	//取得所有商品 (支援分頁)
-	List<ProductResponse> getAllProducts();
+	Page<ProductResponse> getAllProducts(int page, int size);
 	
 	//根據 ID 取得商品詳細資訊
 	ProductResponse getProductById(Integer id);

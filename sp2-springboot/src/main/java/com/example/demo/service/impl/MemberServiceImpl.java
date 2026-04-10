@@ -109,6 +109,13 @@ public class MemberServiceImpl implements MemberService {
 			// ✅ 調整：帳號已存在訊息
 			throw new MemberException(messageService.getMessage("member-error-username-duplicate"));// 400
 		}
+		
+		// 1. 手動檢查長度 (對齊 Entity 的 @Size(min = 8))
+	    if (username == null || username.length() < 8) {
+	        // 從資料庫撈取「帳號長度不足」的訊息
+	        throw new MemberException(messageService.getMessage("member-error-username-length"));
+	    }
+	    
 		return false;
 	}
 
@@ -148,7 +155,6 @@ public class MemberServiceImpl implements MemberService {
 		mailSender.send(message);
 	}
 	@Override
-	@Async
 	public void sendRegistrationCode(String email) {
 		// 基本格式校驗 (防範 Log 中的 553 5.1.3 錯誤)
 		if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
@@ -160,34 +166,41 @@ public class MemberServiceImpl implements MemberService {
 			throw new MemberException(messageService.getMessage("member-error-email-registered"));
 		}
 
+		// 調用實際執行發信的私有非同步方法 (或保持原樣，只要檢驗在 Async 之前即可)
+	    executeAsyncEmailSending(email);
+
+	}
+	
+	@Async
+	private void executeAsyncEmailSending(String email) {
+	    // 原本產生驗證碼、存入 Session、發送郵件的邏輯放這裡...
 		// 2. 產生 6 位隨機數字驗證碼
-		String code = String.format("%06d", new Random().nextInt(1000000));
+				String code = String.format("%06d", new Random().nextInt(1000000));
 
-		// 取得目前時間並加上 5 分鐘 (30,000 毫秒)
-		long expiryTime = System.currentTimeMillis() + (300000); // 5 * 60 * 1000
+				// 取得目前時間並加上 5 分鐘 (30,000 毫秒)
+				long expiryTime = System.currentTimeMillis() + (300000); // 5 * 60 * 1000
 
-		// 3. 存入 Session (Key 使用 email 確保唯一)
-		// session.setAttribute("標籤名", 內容)：這是在櫃子裡放進一個盒子，並在盒子上貼一個特定的標籤。
-		session.setAttribute("reg_code_" + email, code); // 在 set 的時候貼的是 "reg_code_eric@gmail.com"
-		session.setAttribute("reg_code_expiry_" + email, expiryTime); // 貼上標籤 及 過期時間
+				// 3. 存入 Session (Key 使用 email 確保唯一)
+				// session.setAttribute("標籤名", 內容)：這是在櫃子裡放進一個盒子，並在盒子上貼一個特定的標籤。
+				session.setAttribute("reg_code_" + email, code); // 在 set 的時候貼的是 "reg_code_eric@gmail.com"
+				session.setAttribute("reg_code_expiry_" + email, expiryTime); // 貼上標籤 及 過期時間
 
-		// 4. SimpleMailMessage
-		//  發送郵件並捕捉潛在異常
-		try {
-			SimpleMailMessage message = new SimpleMailMessage();
-			message.setTo(email);
-			message.setSubject(messageService.getMessage("member-mail-code-subject"));
-			message.setText(String.format(messageService.getMessage("member-mail-code-body"), code));
-			mailSender.send(message);
-		} catch (org.springframework.mail.MailSendException e) {
-			// ✅ 捕捉 Log 中出現的郵件發送失敗異常
-			System.err.println("郵件發送失敗詳情: " + e.getMessage());
-			throw new MemberException(messageService.getMessage("member-error-email-invalid-address"));
-		} catch (Exception e) {
-			// ✅ 捕捉其他系統級郵件錯誤
-			throw new MemberException(messageService.getMessage("member-error-mail-service"));
-		}
-
+				// 4. SimpleMailMessage
+				//  發送郵件並捕捉潛在異常
+				try {
+					SimpleMailMessage message = new SimpleMailMessage();
+					message.setTo(email);
+					message.setSubject(messageService.getMessage("member-mail-code-subject"));
+					message.setText(String.format(messageService.getMessage("member-mail-code-body"), code));
+					mailSender.send(message);
+				} catch (org.springframework.mail.MailSendException e) {
+					// ✅ 捕捉 Log 中出現的郵件發送失敗異常
+					System.err.println("郵件發送失敗詳情: " + e.getMessage());
+					throw new MemberException(messageService.getMessage("member-error-email-invalid-address"));
+				} catch (Exception e) {
+					// ✅ 捕捉其他系統級郵件錯誤
+					throw new MemberException(messageService.getMessage("member-error-mail-service"));
+				}
 	}
 
 	@Override

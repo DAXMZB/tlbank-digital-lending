@@ -24,12 +24,17 @@ public class ProductServiceImpl implements ProductService {
 	@Autowired
 	private MessageService messageService; // ✅ 注入訊息服務
 	@Override
-	public List<ProductResponse> getAllProducts() {
+	public Page<ProductResponse> getAllProducts(int page, int size) {
 		// 建立分頁請求物件
-		return productRepo.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+		// 1. 建立分頁請求物件 (page 是從 0 開始的索引)
+		Pageable pageable = PageRequest.of(page, size);
+		
+		// 2. 直接呼叫 Repository 的分頁查詢功能
+		Page<Product> productPage = productRepo.findAll(pageable);
+		
+		// 3. 利用 Page 的 map 方法，將每一筆 Entity 轉為 DTO
+	    // 這會維持分頁的所有元數據 (metadata)，如總頁數、是否為第一頁等
+		return productPage.map(this::convertToDTO);
 	}
 
 	@Override

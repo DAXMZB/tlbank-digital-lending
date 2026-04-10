@@ -125,29 +125,51 @@
             },
             methods: {
                 async loadProducts(page) {
-                    try {
-                        const response = await axios.get('/api/products/list', {
+                    
+						
+						// 防止超出範圍
+						if (page < 0 ) {
+							return;
+						}
+						if (this.pageInfo.totalPages > 0 && page >= this.pageInfo.totalPages) return;
+						
+						try {
+							const response = await axios.get('/api/products/list', {
                             params: { page: page, size: this.pageSize }
                         });
-						// 【修改】後端現在回傳 ApiResponse<List<ProductResponse>>
-						const productList = response.data.data || [];
-
-                        this.products = productList.map(p => ({
-							...p,
-							selectedQty: 1,
+							const apiRes = response.data;
+						if(apiRes && apiRes.success && apiRes.data) {
+							const pageData = apiRes.data;
+							
+							this.products = pageData.content.map(p => ({
+								id: p.id,
+                				productName: p.productName,
+                				price: p.price,
+                				stock: p.stock,
+								selectedQty: 1,
 							// 防呆：確保 description 不會是 null
-							description: p.description || "提供精選咖啡與優質點心服務"
-						}));
-						// 後端 getAllProducts 回傳 List 而非 Page 物件，暫時固定分頁資訊
-                        this.pageInfo = { number: 0, totalPages: 1, first: true, last: true };
-						
-						console.log("產品載入成功", this.products);
-                    } catch (error) {
-                        console.error("載入商品失敗", error);
-                    }
+								description: p.description || "提供精選咖啡與優質點心服務"
+							}));
+
+							this.pageInfo = { 
+        						number: Number(pageData.number),
+        						totalPages: Number(pageData.totalPages),
+                				first: pageData.first,
+                				last: pageData.last
+    						};
+							console.log("response.data =", response.data);
+							console.log("apiRes.data =", response.data.data);
+							console.log(`載入成功：第 ${this.pageInfo.number + 1} 頁，共 ${this.pageInfo.totalPages} 頁`);
+						}
+							// 讀取完後自動捲動到頂部
+							window.scrollTo({ top: 0, behavior: 'smooth' });
+						}catch (error) {
+                        	console.error("載入商品失敗", error);
+                    	}
                 },
                 changePage(delta) {
-                    this.loadProducts(this.pageInfo.number + delta);
+                    const nextPage = this.pageInfo.number + delta;
+					this.loadProducts(nextPage);
                 },
                 addToCart(product) {
                     const exist = this.cart.find(item => item.id === product.id);

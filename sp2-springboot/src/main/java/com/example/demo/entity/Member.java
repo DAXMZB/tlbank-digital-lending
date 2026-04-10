@@ -17,6 +17,7 @@ public class Member {
 	private Integer memberNo;
 	
 	@NotBlank(message = "註冊帳號不可為空") // 自動檢查 null 與 空字串
+	@Size(min = 8, message = "帳號長度最少為8位")
 	@Column(name = "username", length = 50)
 	private String username;
 
@@ -44,6 +45,8 @@ public class Member {
 	@NotBlank(message = "email 不可為空")
 	@Column(length = 100)
 	private String email;
+	
+	
 
 	@Transient // 僅用於接收前端資料，不對應資料庫欄位
 	private String vertifyCode;
