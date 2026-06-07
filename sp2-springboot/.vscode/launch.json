@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Sp2SpringbootApplication",
+      "request": "launch",
+      "mainClass": "com.example.demo.Sp2SpringbootApplication",
+      "projectName": "sp2-springboot",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

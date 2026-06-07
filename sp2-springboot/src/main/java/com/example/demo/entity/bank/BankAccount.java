@@ -8,6 +8,7 @@ import com.example.demo.entity.Member;
 
 import jakarta.persistence.*;
 
+// This entity store account master data and use optimistic locking  @Version
 @Entity
 @Table
 public class BankAccount {
