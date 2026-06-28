@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head('Apply for Credit Card - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">Credit Card Application</h1>
+        <p class="text-muted mb-0">Please fill in the applicant information below</p>
+    </div>
+
+    <div class="card card-tl">
+        <div class="card-body p-4">
+            <form th:action="@{/apply}" th:object="${applicationForm}" method="post">
+                <input type="hidden" th:field="*{cardProductId}">
+
+                <h5 class="fw-bold mb-3">Personal Information</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label" for="fullName">Full Name</label>
+                        <input type="text" class="form-control" id="fullName" th:field="*{fullName}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="nationalId">National ID</label>
+                        <input type="text" class="form-control" id="nationalId" th:field="*{nationalId}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="mobile">Mobile Number</label>
+                        <input type="tel" class="form-control" id="mobile" th:field="*{mobile}"
+                               pattern="09\d{8}" placeholder="0912345678" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" class="form-control" id="email" th:field="*{email}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="dateOfBirth">Date of Birth</label>
+                        <input type="date" class="form-control" id="dateOfBirth" th:field="*{dateOfBirth}" required>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold mb-3">Mailing Address</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label" for="city">City</label>
+                        <input type="text" class="form-control" id="city" th:field="*{city}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="district">District</label>
+                        <input type="text" class="form-control" id="district" th:field="*{district}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="zipCode">Zip Code</label>
+                        <input type="text" class="form-control" id="zipCode" th:field="*{zipCode}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="street">Street Address</label>
+                        <input type="text" class="form-control" id="street" th:field="*{street}" required>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-tl-primary">Submit Application</button>
+                    <a href="/products" class="btn btn-outline-secondary">Back to Products</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

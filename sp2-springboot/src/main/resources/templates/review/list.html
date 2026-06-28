@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout/base :: head('Review Cases - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">Credit Card Review Cases</h1>
+        <p class="text-muted mb-0">Search and process submitted credit card applications</p>
+    </div>
+
+    <div class="card card-tl mb-4">
+        <div class="card-body">
+            <form method="get" th:action="@{/review/cases}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="status">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All</option>
+                        <option th:each="s : ${statuses}"
+                                th:value="${s}"
+                                th:text="${s}"
+                                th:selected="${status == s}">PENDING</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="applicantName">Applicant Name</label>
+                    <input type="text" class="form-control" id="applicantName" name="applicantName"
+                           th:value="${applicantName}" placeholder="Enter name keyword">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="dateFrom">Submitted From</label>
+                    <input type="date" class="form-control" id="dateFrom" name="dateFrom"
+                           th:value="${dateFrom}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="dateTo">Submitted To</label>
+                    <input type="date" class="form-control" id="dateTo" name="dateTo"
+                           th:value="${dateTo}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-tl-primary w-100">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card card-tl">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Application ID</th>
+                        <th>Applicant</th>
+                        <th>Product</th>
+                        <th>Status</th>
+                        <th>Submitted At</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${cases.content()}"
+                        th:onclick="|window.location='@{/review/cases/{id}(id=${item.reviewCaseId()})}'|"
+                        style="cursor: pointer;">
+                        <td th:text="${item.applicationId()}">APP-20250607-1234</td>
+                        <td th:text="${item.applicantName()}">J***e</td>
+                        <td th:text="${item.productName()}">TL Classic Card</td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${item.reviewStatus().name() == 'PENDING'} ? ' text-bg-secondary' :
+                                                  (${item.reviewStatus().name() == 'UNDER_REVIEW'} ? ' text-bg-warning' :
+                                                  (${item.reviewStatus().name() == 'APPROVED'} ? ' text-bg-success' : ' text-bg-danger'))"
+                                  th:text="${item.reviewStatus()}">PENDING</span>
+                        </td>
+                        <td th:text="${item.submittedAt() != null ? #temporals.format(item.submittedAt(), 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    </tr>
+                    <tr th:if="${cases.content().isEmpty()}">
+                        <td colspan="5" class="text-center text-muted py-4">No matching cases found</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center" th:if="${cases.totalPages() > 1}">
+            <span class="text-muted small"
+                  th:text="'Total ' + ${cases.totalElements()} + ' records, page ' + (${cases.page()} + 1) + ' / ' + ${cases.totalPages()}">
+                Total 0 records
+            </span>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${cases.page() == 0} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/review/cases(page=${cases.page() - 1}, size=${cases.size()}, status=${status}, applicantName=${applicantName}, dateFrom=${dateFrom}, dateTo=${dateTo})}">Previous</a>
+                    </li>
+                    <li class="page-item" th:classappend="${cases.page() + 1 >= cases.totalPages()} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/review/cases(page=${cases.page() + 1}, size=${cases.size()}, status=${status}, applicantName=${applicantName}, dateFrom=${dateFrom}, dateTo=${dateTo})}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

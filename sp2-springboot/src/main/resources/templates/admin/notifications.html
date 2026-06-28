@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout/base :: head('Notifications - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Notifications</h1>
+            <p class="text-muted mb-0">OTP and application status notification events (from audit logs)</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 text-muted small">
+            <span class="badge text-bg-success" id="liveStatusBadge">Live</span>
+            <span id="lastUpdatedText">Auto-refresh every 5 seconds</span>
+        </div>
+    </div>
+
+    <div class="card card-tl">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Notification Type</th>
+                        <th>Result</th>
+                        <th>OTP Code</th>
+                        <th>Detail</th>
+                        <th>Time</th>
+                    </tr>
+                    </thead>
+                    <tbody id="notificationTableBody">
+                    <tr th:each="log : ${logs.content()}"
+                        th:attr="data-log-id=${log.logId()}">
+                        <td th:text="${log.username()}">system</td>
+                        <td>
+                            <span class="badge text-bg-primary" th:text="${log.action()}">OTP_SEND</span>
+                        </td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${log.result() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-danger'"
+                                  th:text="${log.result()}">SUCCESS</span>
+                        </td>
+                        <td>
+                            <code th:if="${log.otpCode() != null}" th:text="${log.otpCode()}">123456</code>
+                            <span th:if="${log.otpCode() == null}" class="text-muted">-</span>
+                        </td>
+                        <td class="small" th:text="${log.detail() != null ? log.detail() : '-'}">detail</td>
+                        <td th:text="${log.createdAt() != null ? #temporals.format(log.createdAt(), 'yyyy-MM-dd HH:mm:ss') : '-'}">-</td>
+                    </tr>
+                    <tr id="notificationEmptyRow" th:if="${logs.content().isEmpty()}">
+                        <td colspan="6" class="text-center text-muted py-4">No notification records found</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center"
+             id="notificationPagination"
+             th:if="${logs.totalPages() > 1}">
+            <span class="text-muted small" id="paginationSummary"
+                  th:text="'Total ' + ${logs.totalElements()} + ' records, page ' + (${logs.page()} + 1) + ' / ' + ${logs.totalPages()}">
+                Total 0 records
+            </span>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${logs.page() == 0} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/notifications(page=${logs.page() - 1}, size=${logs.size()})}">Previous</a>
+                    </li>
+                    <li class="page-item" th:classappend="${logs.page() + 1 >= logs.totalPages()} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/notifications(page=${logs.page() + 1}, size=${logs.size()})}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const POLL_INTERVAL_MS = 5000;
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = parseInt(urlParams.get('page') || '0', 10);
+    const pageSize = parseInt(urlParams.get('size') || '20', 10);
+
+    let knownLogIds = new Set(
+        Array.from(document.querySelectorAll('#notificationTableBody tr[data-log-id]'))
+            .map(row => row.dataset.logId)
+    );
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshNotifications();
+        setInterval(refreshNotifications, POLL_INTERVAL_MS);
+    });
+
+    async function refreshNotifications() {
+        try {
+            const response = await fetch(
+                `/api/v1/admin/notifications?page=${currentPage}&size=${pageSize}`,
+                { headers: { 'Accept': 'application/json' } }
+            );
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                updateLiveStatus(false);
+                return;
+            }
+
+            renderNotificationTable(result.data);
+            updateLiveStatus(true);
+            updateLastUpdatedText();
+        } catch (error) {
+            updateLiveStatus(false);
+        }
+    }
+
+    function renderNotificationTable(pageData) {
+        const tbody = document.getElementById('notificationTableBody');
+        const newLogIds = pageData.content.map(log => String(log.logId));
+        const hasChanges = newLogIds.length !== knownLogIds.size
+            || newLogIds.some(logId => !knownLogIds.has(logId));
+
+        if (!hasChanges) {
+            return;
+        }
+
+        const previousKnownLogIds = knownLogIds;
+        tbody.replaceChildren();
+
+        if (pageData.content.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.id = 'notificationEmptyRow';
+            const cell = document.createElement('td');
+            cell.colSpan = 6;
+            cell.className = 'text-center text-muted py-4';
+            cell.textContent = 'No notification records found';
+            emptyRow.appendChild(cell);
+            tbody.appendChild(emptyRow);
+        } else {
+            let hasNewRows = false;
+            pageData.content.forEach(log => {
+                const isNew = !previousKnownLogIds.has(String(log.logId));
+                if (isNew) {
+                    hasNewRows = true;
+                }
+                tbody.appendChild(createNotificationRow(log, isNew));
+            });
+            if (hasNewRows) {
+                highlightNewRows();
+            }
+        }
+
+        knownLogIds = new Set(newLogIds);
+        updatePaginationSummary(pageData);
+    }
+
+    function createNotificationRow(log, isNew) {
+        const row = document.createElement('tr');
+        row.dataset.logId = String(log.logId);
+        if (isNew) {
+            row.classList.add('table-warning', 'new-notification-row');
+        }
+
+        row.appendChild(createTextCell(log.username));
+        row.appendChild(createActionCell(log.action));
+        row.appendChild(createResultCell(log.result));
+        row.appendChild(createOtpCell(log.otpCode));
+        row.appendChild(createDetailCell(log.detail));
+        row.appendChild(createTextCell(formatDateTime(log.createdAt)));
+
+        return row;
+    }
+
+    function createTextCell(text) {
+        const cell = document.createElement('td');
+        cell.textContent = text || '-';
+        return cell;
+    }
+
+    function createActionCell(action) {
+        const cell = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = 'badge text-bg-primary';
+        badge.textContent = action;
+        cell.appendChild(badge);
+        return cell;
+    }
+
+    function createResultCell(result) {
+        const cell = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = 'badge ' + (result === 'SUCCESS' ? 'text-bg-success' : 'text-bg-danger');
+        badge.textContent = result;
+        cell.appendChild(badge);
+        return cell;
+    }
+
+    function createOtpCell(otpCode) {
+        const cell = document.createElement('td');
+        if (otpCode) {
+            const code = document.createElement('code');
+            code.textContent = otpCode;
+            cell.appendChild(code);
+        } else {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'text-muted';
+            placeholder.textContent = '-';
+            cell.appendChild(placeholder);
+        }
+        return cell;
+    }
+
+    function createDetailCell(detail) {
+        const cell = document.createElement('td');
+        cell.className = 'small';
+        cell.textContent = detail || '-';
+        return cell;
+    }
+
+    function updatePaginationSummary(pageData) {
+        const summary = document.getElementById('paginationSummary');
+        if (!summary) {
+            return;
+        }
+        summary.textContent = `Total ${pageData.totalElements} records, page ${pageData.page + 1} / ${pageData.totalPages}`;
+    }
+
+    function updateLiveStatus(isLive) {
+        const badge = document.getElementById('liveStatusBadge');
+        badge.className = isLive ? 'badge text-bg-success' : 'badge text-bg-secondary';
+        badge.textContent = isLive ? 'Live' : 'Paused';
+    }
+
+    function updateLastUpdatedText() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('lastUpdatedText').textContent =
+            `Last updated ${hours}:${minutes}:${seconds}`;
+    }
+
+    function highlightNewRows() {
+        document.querySelectorAll('.new-notification-row').forEach(row => {
+            setTimeout(() => row.classList.remove('table-warning', 'new-notification-row'), 3000);
+        });
+    }
+
+    function formatDateTime(value) {
+        if (!value) {
+            return '-';
+        }
+        const date = new Date(value);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+</script>
+</body>
+</html>

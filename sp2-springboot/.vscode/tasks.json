@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Prepare Dev Launch",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/prepare-dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "JAVA_HOME": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+        }
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Compile",
+      "type": "shell",
+      "command": "mvn compile -q",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "JAVA_HOME": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+        }
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: Clean Compile",
+      "type": "shell",
+      "command": "mvn clean compile -q",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "JAVA_HOME": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+        }
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Spring Boot: Run (dev)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/start-dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "JAVA_HOME": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

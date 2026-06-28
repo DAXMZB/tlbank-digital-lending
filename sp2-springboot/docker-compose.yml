@@ -1,41 +1,80 @@
 services:
-  # 資料庫服務
-  db:
-    image: mysql:8.0
-    container_name: mysql-db
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tlbank-sqlserver
     environment:
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_PASSWORD: ${DB_ROOT_PASSWORD}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD}
+      MSSQL_PID: Developer
     ports:
-      - "3306:3306"
-  # 新增：資料持久化設定
+      - "1433:1433"
     volumes:
-      - mysql_data:/var/lib/mysql
-  # 新增：讓 Docker 檢查 MySQL 是否真的跑起來了
+      - sqlserver-data:/var/opt/mssql
+      - ./docker/sqlserver/init:/scripts:ro
+    networks:
+      - tlbank-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
-  # Java 應用程式服務
-  app:
-    build: .
-    container_name: spring-app
-    env_file: .env
-    ports:
-      - "8080:8080"
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tlbank-db-init
     depends_on:
-      db:
+      sqlserver:
         condition: service_healthy
     environment:
-      # 將資料庫連線位址改為 db (Docker 內部的服務名稱)
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
-      GMAIL_USER: ${GMAIL_USER}
-      GMAIL_PWD: ${GMAIL_PWD}
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD}
+    volumes:
+      - ./docker/sqlserver/init:/scripts:ro
+    networks:
+      - tlbank-network
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -i /scripts/01-init-database.sql &&
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -i /scripts/02-create-app-user.sql
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: tlbank-app
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-staging}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SERVER_SERVLET_SESSION_TIMEOUT: ${APP_SESSION_TIMEOUT:-30m}
+      TLBANK_UPLOAD_BASE_PATH: ${APP_UPLOAD_PATH:-/app/uploads}
+    ports:
+      - "8080:8080"
+    volumes:
+      - app-uploads:/app/uploads
+      - app-logs:/app/logs
+    networks:
+      - tlbank-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
 volumes:
-  mysql_data:
+  sqlserver-data:
+  app-uploads:
+  app-logs:
+
+networks:
+  tlbank-network:
+    driver: bridge

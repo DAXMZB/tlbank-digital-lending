@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head('Document Upload - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">Upload Application Documents</h1>
+        <p class="text-muted mb-0">
+            Application ID: <code th:text="${appDetail.applicationId()}">APP-xxx</code>
+        </p>
+    </div>
+
+    <div id="uploadAlert" class="alert d-none" role="alert"></div>
+
+    <div class="row g-4">
+        <div class="col-md-6" th:each="docType : ${documentTypes}">
+            <div class="card card-tl h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h2 class="h6 fw-bold mb-0" th:text="${docType}">NATIONAL_ID</h2>
+                        <span class="badge upload-status-badge"
+                              th:classappend="${uploadedTypes.contains(docType)} ? 'text-bg-success' : 'text-bg-secondary'"
+                              th:text="${uploadedTypes.contains(docType)} ? 'Uploaded' : 'Pending'">Pending</span>
+                    </div>
+
+                    <form class="upload-form" th:attr="data-doc-type=${docType}">
+                        <input type="hidden" name="applicationId" th:value="${appDetail.applicationId()}">
+                        <div class="mb-3">
+                            <input type="file" class="form-control form-control-sm upload-file-input"
+                                   accept=".jpg,.jpeg,.png,.pdf" required
+                                   th:disabled="${uploadedTypes.contains(docType)}">
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-tl-primary upload-submit-btn"
+                                th:disabled="${uploadedTypes.contains(docType)}">
+                            Upload
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-tl mt-4">
+        <div class="card-header bg-white">
+            <h2 class="h6 fw-bold mb-0">Uploaded Documents</h2>
+        </div>
+        <ul id="uploadedList" class="list-group list-group-flush"
+            th:classappend="${#lists.isEmpty(appDetail.documents())} ? ' d-none' : ''">
+            <li class="list-group-item d-flex justify-content-between"
+                th:each="doc : ${appDetail.documents()}">
+                <span>
+                    <strong th:text="${doc.documentType()}">NATIONAL_ID</strong>
+                    <span class="text-muted" th:text="' - ' + ${doc.fileName()}"> - id.pdf</span>
+                </span>
+                <small class="text-muted"
+                       th:text="${#temporals.format(doc.uploadedAt(), 'yyyy-MM-dd HH:mm')}">2024-01-01</small>
+            </li>
+        </ul>
+        <div id="uploadedEmpty" class="card-body text-muted"
+             th:classappend="${!#lists.isEmpty(appDetail.documents())} ? ' d-none' : ''">
+            No documents uploaded yet
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <a id="submitLink" th:href="@{/apply/submit(applicationId=${appDetail.applicationId()})}"
+           class="btn btn-tl-primary"
+           th:classappend="${allDocumentsUploaded} ? '' : ' disabled'"
+           th:attr="aria-disabled=${!allDocumentsUploaded}">
+            Proceed to Submit
+        </a>
+        <a href="/products" class="btn btn-outline-secondary">Back to Products</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const applicationId = /*[[${appDetail.applicationId()}]]*/ '';
+    const requiredDocCount = /*[[${#lists.size(documentTypes)}]]*/ 3;
+    let uploadedCount = /*[[${#lists.size(uploadedTypes)}]]*/ 0;
+
+    document.querySelectorAll('.upload-form').forEach(form => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const submitBtn = form.querySelector('.upload-submit-btn');
+            if (submitBtn.disabled) {
+                return;
+            }
+
+            const docType = form.dataset.docType;
+            const fileInput = form.querySelector('.upload-file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                showAlert('Please select a file first', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('documentType', docType);
+            formData.append('file', file);
+
+            const originalLabel = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Uploading...';
+
+            try {
+                const response = await fetch(`/api/v1/applications/${applicationId}/documents`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    markDocumentUploaded(form, result.data);
+                    showAlert(`${docType} uploaded successfully`, 'success');
+                    return;
+                }
+                showAlert(result.message || 'Upload failed', 'danger');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalLabel;
+            } catch (error) {
+                showAlert('Upload failed. Please try again later.', 'danger');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalLabel;
+            }
+        });
+    });
+
+    function markDocumentUploaded(form, documentInfo) {
+        const card = form.closest('.card');
+        const badge = card.querySelector('.upload-status-badge');
+        badge.textContent = 'Uploaded';
+        badge.classList.remove('text-bg-secondary');
+        badge.classList.add('text-bg-success');
+
+        const fileInput = form.querySelector('.upload-file-input');
+        fileInput.value = '';
+        fileInput.disabled = true;
+
+        const submitBtn = form.querySelector('.upload-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Upload';
+
+        appendUploadedDocument(documentInfo);
+        uploadedCount += 1;
+        updateSubmitButton();
+    }
+
+    function appendUploadedDocument(documentInfo) {
+        const emptyState = document.getElementById('uploadedEmpty');
+        const uploadedList = document.getElementById('uploadedList');
+
+        emptyState.classList.add('d-none');
+        uploadedList.classList.remove('d-none');
+
+        const item = document.createElement('li');
+        item.className = 'list-group-item d-flex justify-content-between';
+        item.innerHTML = `
+            <span>
+                <strong>${documentInfo.documentType}</strong>
+                <span class="text-muted"> - ${documentInfo.fileName}</span>
+            </span>
+            <small class="text-muted">${formatUploadedAt(documentInfo.uploadedAt)}</small>
+        `;
+        uploadedList.appendChild(item);
+    }
+
+    function updateSubmitButton() {
+        const submitLink = document.getElementById('submitLink');
+        if (uploadedCount >= requiredDocCount) {
+            submitLink.classList.remove('disabled');
+            submitLink.setAttribute('aria-disabled', 'false');
+        }
+    }
+
+    function formatUploadedAt(uploadedAt) {
+        const date = new Date(uploadedAt);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
+    function showAlert(message, type) {
+        const alertBox = document.getElementById('uploadAlert');
+        alertBox.textContent = message;
+        alertBox.className = 'alert alert-' + type;
+        alertBox.classList.remove('d-none');
+    }
+</script>
+</body>
+</html>

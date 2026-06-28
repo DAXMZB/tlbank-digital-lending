@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head('Application Complete - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="card card-tl mx-auto" style="max-width: 600px;">
+        <div class="card-body p-5 text-center">
+            <div class="mb-3">
+                <span class="badge fs-6 text-bg-success"
+                      th:if="${submitted}">Application Submitted</span>
+                <span class="badge fs-6 text-bg-success"
+                      th:if="${verified and !submitted}">OTP Verified</span>
+                <span class="badge fs-6 text-bg-success"
+                      th:if="${!verified and !submitted}">Application Created</span>
+            </div>
+            <h1 class="h4 fw-bold mb-3"
+                th:if="${submitted}">Your application has been submitted successfully</h1>
+            <h1 class="h4 fw-bold mb-3"
+                th:if="${verified and !submitted}">Mobile verification successful</h1>
+            <h1 class="h4 fw-bold mb-3"
+                th:if="${!verified and !submitted}">Your application has been created successfully</h1>
+            <p class="text-muted mb-4">
+                Application ID:
+                <code class="fs-5" th:text="${applicationId}">APP-20250607120000-1234</code>
+            </p>
+            <div class="alert alert-info text-start" th:if="${submitted}">
+                <strong>Next step:</strong> Wait for a reviewer to process your application<br>
+                <span class="text-muted">You can check the status anytime using your application ID</span>
+            </div>
+            <div class="alert alert-info text-start" th:if="${verified and !submitted}">
+                <strong>Next step:</strong> Upload application documents<br>
+                <span class="text-muted">Please prepare your ID and income proof documents</span>
+            </div>
+            <a href="/" class="btn btn-tl-primary">Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

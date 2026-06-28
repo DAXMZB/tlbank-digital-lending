@@ -4,8 +4,11 @@ HELP.md
 
 # 忽略編譯產物
 target/
+bin/
+uploads/
 *.jar
 *.war
+*.log
 
 # 忽略 Eclipse 相關設定
 .settings/

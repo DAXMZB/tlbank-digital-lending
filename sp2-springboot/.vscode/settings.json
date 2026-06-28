@@ -6,5 +6,12 @@
       "default": true
     }
   ],
-  "java.jdt.ls.java.home": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+  "java.jdt.ls.java.home": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.import.maven.enabled": true,
+  "java.compile.nullAnalysis.mode": "disabled",
+  "java.project.outputPath": "bin",
+  "java.autobuild.enabled": false,
+  "java.debug.settings.forceBuildBeforeLaunch": false,
+  "java.debug.settings.vmArgs": "-Dspring.profiles.active=dev"
 }

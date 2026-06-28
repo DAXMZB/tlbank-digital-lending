@@ -3,11 +3,17 @@
   "configurations": [
     {
       "type": "java",
-      "name": "Sp2SpringbootApplication",
+      "name": "TlbankLendingApplication (dev)",
       "request": "launch",
-      "mainClass": "com.example.demo.Sp2SpringbootApplication",
-      "projectName": "sp2-springboot",
-      "envFile": "${workspaceFolder}/.env"
+      "mainClass": "com.tlbank.lending.TlbankLendingApplication",
+      "projectName": "tlbank-lending",
+      "args": "--spring.profiles.active=dev",
+      "vmArgs": "-Dspring.profiles.active=dev",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Prepare Dev Launch",
+      "env": {
+        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
+      }
     }
   ]
 }

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head('OTP Verification - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="card card-tl mx-auto" style="max-width: 520px;">
+        <div class="card-body p-4">
+            <h1 class="h4 fw-bold mb-2">OTP Mobile Verification</h1>
+            <p class="text-muted mb-4">
+                Verification code sent to
+                <strong th:text="${maskedMobile}">0912****78</strong>
+            </p>
+
+            <div id="otpAlert" class="alert d-none" role="alert"></div>
+
+            <form id="verifyOtpForm">
+                <input type="hidden" id="applicationId" th:value="${applicationId}">
+                <input type="hidden" id="mobile" th:value="${mobile}">
+
+                <div class="mb-3">
+                    <label class="form-label" for="otpCode">6-digit verification code</label>
+                    <input type="text" class="form-control form-control-lg text-center"
+                           id="otpCode" maxlength="6" minlength="6"
+                           pattern="\d{6}" placeholder="000000" required>
+                </div>
+
+                <div class="d-grid gap-2 mb-3">
+                    <button type="submit" class="btn btn-tl-primary btn-lg">Verify</button>
+                </div>
+            </form>
+
+            <div class="text-center">
+                <button type="button" class="btn btn-link" id="resendBtn" onclick="resendOtp()">
+                    Resend verification code
+                </button>
+            </div>
+
+            <p class="text-muted small text-center mt-3 mb-0" id="expiryInfo"
+               th:if="${expiredAt != null}"
+               th:text="'Valid until: ' + ${#temporals.format(expiredAt, 'yyyy-MM-dd HH:mm')}"></p>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const applicationId = /*[[${applicationId}]]*/ '';
+    const mobile = /*[[${mobile}]]*/ '';
+    const purpose = 'APPLICATION_VERIFICATION';
+
+    document.getElementById('verifyOtpForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const otpCode = document.getElementById('otpCode').value.trim();
+        const response = await fetch('/api/v1/otp/actions/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ applicationId, mobile, otpCode })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            window.location.href = '/apply/upload?applicationId=' + encodeURIComponent(applicationId);
+            return;
+        }
+        showAlert(result.message || 'Verification failed', 'danger');
+    });
+
+    async function resendOtp() {
+        const response = await fetch('/api/v1/otp/actions/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ applicationId, mobile, purpose })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            showAlert('Verification code resent', 'success');
+            if (result.data && result.data.expiredAt) {
+                document.getElementById('expiryInfo').textContent =
+                    'Valid until: ' + result.data.expiredAt.replace('T', ' ').substring(0, 16);
+            }
+            return;
+        }
+        showAlert(result.message || 'Failed to send code', 'danger');
+    }
+
+    function showAlert(message, type) {
+        const alertBox = document.getElementById('otpAlert');
+        alertBox.textContent = message;
+        alertBox.className = 'alert alert-' + type;
+        alertBox.classList.remove('d-none');
+    }
+</script>
+</body>
+</html>

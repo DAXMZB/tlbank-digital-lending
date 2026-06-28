@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head('Confirm Submission - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="card card-tl mx-auto" style="max-width: 720px;">
+        <div class="card-body p-4">
+            <h1 class="h4 fw-bold mb-4">Confirm Application Submission</h1>
+
+            <dl class="row mb-4">
+                <dt class="col-sm-4">Application ID</dt>
+                <dd class="col-sm-8"><code th:text="${appDetail.applicationId()}">APP-xxx</code></dd>
+
+                <dt class="col-sm-4">Applicant</dt>
+                <dd class="col-sm-8" th:text="${appDetail.maskedApplicant().fullName()}">John Doe</dd>
+
+                <dt class="col-sm-4">Mobile</dt>
+                <dd class="col-sm-8" th:text="${appDetail.maskedApplicant().maskedMobile()}">0912****78</dd>
+
+                <dt class="col-sm-4">Product</dt>
+                <dd class="col-sm-8" th:text="${appDetail.cardProductName()}">TL Classic Card</dd>
+
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8" th:text="${appDetail.status()}">DOCUMENT_UPLOADED</dd>
+
+                <dt class="col-sm-4">Uploaded Documents</dt>
+                <dd class="col-sm-8">
+                    <ul class="mb-0">
+                        <li th:each="doc : ${appDetail.documents()}"
+                            th:text="${doc.documentType() + ' - ' + doc.fileName()}">NATIONAL_ID - id.pdf</li>
+                    </ul>
+                </dd>
+            </dl>
+
+            <div class="alert alert-warning">
+                After submission, your application will enter the review process. Please confirm all details are correct.
+            </div>
+
+            <form th:action="@{/apply/submit}" method="post" class="d-inline">
+                <input type="hidden" name="applicationId" th:value="${appDetail.applicationId()}">
+                <button type="submit" class="btn btn-tl-primary me-2">Confirm Submit</button>
+            </form>
+            <a th:href="@{/apply/upload(applicationId=${appDetail.applicationId()})}"
+               class="btn btn-outline-secondary">Back to Upload</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

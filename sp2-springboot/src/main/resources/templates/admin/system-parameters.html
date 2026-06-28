@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout/base :: head('System Parameters - TLBank')}"></head>
+<body>
+<div th:replace="~{layout/base :: navbar}"></div>
+
+<div class="container pb-5">
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">System Parameters</h1>
+        <p class="text-muted mb-0">Manage system configuration parameters grouped by category</p>
+    </div>
+
+    <div th:each="groupEntry : ${parameterGroups}" class="card card-tl mb-4">
+        <div class="card-header bg-white">
+            <h2 class="h5 fw-bold mb-0" th:text="${groupEntry.key}">OTP</h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%">Parameter Key</th>
+                        <th style="width: 35%">Parameter Value</th>
+                        <th style="width: 30%">Description</th>
+                        <th class="text-end" style="width: 10%">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="systemParam : ${groupEntry.value}">
+                        <td>
+                            <code th:text="${systemParam.paramKey()}">expiry.minutes</code>
+                        </td>
+                        <td>
+                            <input type="text"
+                                   class="form-control form-control-sm param-value-input"
+                                   th:id="'param-value-' + ${systemParam.paramId()}"
+                                   th:value="${systemParam.paramValue()}">
+                        </td>
+                        <td>
+                            <small class="text-muted"
+                                   th:text="${systemParam.description()}"
+                                   th:title="${systemParam.description()}">OTP expiry in minutes</small>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-tl-primary"
+                                    th:attr="data-param-id=${systemParam.paramId()}"
+                                    onclick="saveParameter(this)">
+                                Save
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${#maps.isEmpty(parameterGroups)}" class="alert alert-info">
+        No enabled system parameters found.
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function saveParameter(button) {
+        const paramId = button.dataset.paramId;
+        const input = document.getElementById('param-value-' + paramId);
+        const paramValue = input.value.trim();
+
+        if (!paramValue) {
+            alert('Parameter value cannot be blank');
+            return;
+        }
+
+        const response = await fetch(`/api/v1/admin/system-parameters/${paramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ paramId: Number(paramId), paramValue })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            input.value = result.data.paramValue;
+            button.textContent = 'Saved';
+            setTimeout(() => { button.textContent = 'Save'; }, 1500);
+            return;
+        }
+
+        const result = await response.json();
+        alert(result.message || 'Failed to update parameter');
+    }
+</script>
+</body>
+</html>

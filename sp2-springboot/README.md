@@ -1,60 +1,258 @@
-📣 心情社群平台 (Social Interaction Platform)
-這是一個基於 Spring Boot 3 與 MySQL 8.0 構建的互動式社群系統，專注於處理 RDBMS 多表關聯設計、RESTful API 安全性控管及容器化部署實踐。本專案已全面導入 Docker 容器化技術，並落實 Secret Management 資安規範，確保開發環境與部署環境的高度一致性與安全性。
+# TLBank Digital Lending Platform
 
-🌟 核心技術亮點
-1. 容器化運維與資安管理 (Docker & Security)
-環境變數隔離：落實 12-Factor App 規範，透過 .env 檔案與 Docker Compose 注入環境變數，確保資料庫憑證與 SMTP 密鑰不進入版本控制系統。
+> **Fictional portfolio project** simulating an enterprise banking internal credit card application system.  
+> This is not affiliated with any real financial institution and is intended for demonstration and learning purposes only.
 
-服務編排自動化：實作多容器協作架構，利用 depends_on 管理 Spring Boot 與 MySQL 的啟動依賴，並配置持久化數據卷 (Volumes) 確保資料安全性。
+## Tech Stack
 
-2. 全自動化身分服務 (Identity & Mail Service)
-密碼重設流：整合 Spring Mail (SMTP) 與 Google App Password 機制，實作具備身分校驗的非對稱密碼重置邏輯。
+| Layer | Technology |
+|-------|------------|
+| Language | Java 17 |
+| Framework | Spring Boot 3.4 |
+| Security | Spring Security (session-based) |
+| Persistence | Spring Data JPA, Flyway |
+| Database (dev) | H2 in-memory |
+| Database (staging/prod) | Microsoft SQL Server 2022 |
+| UI | Thymeleaf + Bootstrap 5 |
+| API Docs | SpringDoc OpenAPI 3 |
+| Reports | Apache POI, iText7 |
+| Build | Maven |
+| Container | Docker, Docker Compose |
 
-Session 同步機制：結合後端 HttpSession 與前端 AJAX 主動驗證，實作伺服器重啟即自動登出的安全機制，確保客戶端與伺服器狀態高度一致。
+## Architecture
 
-3. 多表關聯與 Nesting 回應系統
-JPA 深度實作：利用 @OneToMany 與 @ManyToOne 實作 Member、Post 與 Comment 的三層巢狀關聯，並透過 @OrderBy 優化留言的時間排序。
+The project follows **Clean Architecture** with **Domain-Driven Design (DDD)** principles:
 
-循環引用防護：精確配置 Jackson 序列化策略，解決雙向關聯遞迴問題，提供穩定的 JSON 數據接口。
+- **Domain** — entities, value objects, domain events, repository ports
+- **Application** — use cases, application services, DTOs
+- **Infrastructure** — JPA adapters, cache, notification, schedulers, report generators
+- **Presentation** — REST API controllers, Thymeleaf web controllers
 
-4. 前端交互與分頁優化
-非同步數據加載：利用 jQuery AJAX 與 ES6 Template Literals 實作 SPA (Single Page Application) 般的流暢體驗，包含無刷新發文、即時留言與分頁切換。
+Cross-cutting concerns (audit logging, security, caching) are implemented via AOP and decorators without polluting business logic.
 
-數據傳輸優化：整合 Spring Data JPA 的分頁機制，顯著降低大數據量下的伺服器負載與網絡延遲。
+```mermaid
+flowchart TB
+    subgraph presentation [Presentation Layer]
+        Web[Thymeleaf Web UI]
+        API[REST API Controllers]
+    end
 
-🛠️ 技術棧 (Tech Stack)
-Backend: Java 17, Spring Boot 3, Spring Data JPA, Spring Security (BCrypt)
+    subgraph application [Application Layer]
+        AppSvc[Application Services]
+        DTO[DTOs / Commands]
+    end
 
-Database: MySQL 8.0
+    subgraph domain [Domain Layer]
+        Agg[Aggregates]
+        VO[Value Objects]
+        EVT[Domain Events]
+        Ports[Repository Ports]
+    end
 
-DevOps: Docker, Docker Compose, Secret Management (.env)
+    subgraph infrastructure [Infrastructure Layer]
+        JPA[JPA Repositories]
+        Cache[Cache Store]
+        Notify[SMS / Email Adapters]
+        Report[Report Generators]
+        Sched[Schedulers]
+    end
 
-Mail Service: JavaMailSender (SMTP over TLS)
+    Web --> AppSvc
+    API --> AppSvc
+    AppSvc --> Agg
+    AppSvc --> Ports
+    Ports --> JPA
+    EVT --> Notify
+    AppSvc --> Cache
+    AppSvc --> Report
+    Sched --> AppSvc
+```
 
-Frontend: jQuery, AJAX, Bootstrap (UI), HTML5/CSS3
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│  Web / API  │────▶│ Application Svc  │────▶│   Domain    │
+└─────────────┘     └────────┬─────────┘     └──────┬──────┘
+                             │                      │
+                             ▼                      ▼
+                    ┌────────────────────────────────────┐
+                    │         Infrastructure (JPA,       │
+                    │    Cache, Notification, Reports)   │
+                    └────────────────────────────────────┘
+```
 
-🚀 快速啟動 (Quick Start)
-1. 準備環境變數
-為了系統安全，請在專案根目錄建立 .env 檔案，並參考以下內容進行配置：
+## Domain Mapping (TLBank ↔ Payment System)
 
-Plaintext
-# 資料庫設定
-DB_NAME=Company
-DB_ROOT_PASSWORD=您的密碼
+> This project simulates a **credit card application platform**, but its domain patterns map directly to concepts used in **payment / transaction backends**. Use this section when explaining the portfolio in interviews or when extending the system toward payment-domain equivalents.
 
-# Gmail SMTP 發信設定
-GMAIL_USER=您的Gmail@gmail.com
-GMAIL_PWD=您的16位元應用程式密碼
-2. 編譯與運行
-Bash
-# 編譯產出 jar 檔
-mvn clean package -DskipTests
+| TLBank Concept | Payment System Equivalent | Purpose |
+|----------------|---------------------------|---------|
+| **Application Aggregate** | **Transaction Aggregate** | Root entity with lifecycle, invariants, and status-driven behavior |
+| **Workflow Engine** | **Payment State Machine** (`PENDING → AUTHORIZED → CAPTURED → SETTLED → REFUNDED`) | Enforces valid state transitions only; invalid moves raise domain exceptions |
+| **OTP Verification** | **3D Secure / Step-up Authentication** | Out-of-band customer verification before proceeding to the next state |
+| **ReviewCase** (人工審核) | **Fraud Review Queue** | Human-in-the-loop decision after automated checks |
+| **Audit Log** | **Transaction Ledger / Reconciliation Log** | Immutable operational record for compliance and end-of-day matching |
 
-# 一鍵啟動容器化環境
-docker compose up --build -d
-3. 訪問系統
-前端頁面: http://localhost:8080/index.html
+### Workflow ↔ Payment State Machine
 
-API 文檔: http://localhost:8080/swagger-ui/index.html (若有導入)
+Both systems model a long-running business process as a **finite state machine**:
 
-日誌監控: docker logs -f spring-app
+```text
+Payment:   PENDING → AUTHORIZED → CAPTURED → SETTLED → REFUNDED
+
+TLBank:    INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_REVIEW → APPROVED | REJECTED
+```
+
+| TLBank Application State | Payment Transaction State | Meaning |
+|--------------------------|---------------------------|---------|
+| `INIT` | `PENDING` | Record created, awaiting customer action |
+| `OTP_VERIFIED` | `AUTHORIZED` | Customer identity confirmed (step-up auth passed) |
+| `DOCUMENT_UPLOADED` | `CAPTURED` | Supporting evidence collected |
+| `SUBMITTED` | `SETTLED` | Submitted for downstream processing |
+| `UNDER_REVIEW` | *(Fraud hold / manual review)* | Queued for analyst decision |
+| `APPROVED` / `REJECTED` | `COMPLETED` / `REFUNDED` | Terminal outcome |
+
+**Design parallel:** just as a payment gateway rejects `CAPTURED → PENDING`, TLBank's workflow engine rejects invalid application transitions (e.g. `INIT → SUBMITTED` without OTP). Both patterns protect business invariants at the domain layer.
+
+## Design Decisions
+
+### Why Clean Architecture / DDD?
+
+Business rules live in the domain layer (aggregates, value objects, workflow transitions) independent of Spring or JPA. This keeps credit review, OTP, and application lifecycle logic testable without a database and makes the codebase easier to extend.
+
+### Why Session over JWT?
+
+This is an internal bank staff + applicant portal used via browser forms. Server-side sessions with Spring Security provide simpler logout, session invalidation, and concurrent-login control (`maximumSessions=1`) without client-side token management.
+
+### Why Domain Events for Notifications?
+
+`ApplicationSubmittedEvent`, `ApplicationApprovedEvent`, and `ApplicationRejectedEvent` decouple core workflow from SMS/email delivery. Notification failures are caught in event handlers and never roll back business transactions.
+
+### Future Enhancements
+
+- **Redis** — distributed cache and session store for horizontal scaling
+- **Real SMS/Email** — replace mock adapters with Twilio/SendGrid integrations
+- **Kafka** — async event bus for notifications, audit, and analytics pipelines
+
+## Quick Start (Docker)
+
+```bash
+cp .env.example .env
+# Edit .env if needed, then start the stack
+docker-compose up -d
+```
+
+Access the application at: **http://localhost:8080**
+
+Verify deployment:
+
+```bash
+chmod +x scripts/verify.sh
+./scripts/verify.sh
+```
+
+## Default Accounts
+
+| Username | Password | Role | Profile |
+|----------|----------|------|---------|
+| admin | Password123! | ADMIN | dev (H2 seed) |
+| reviewer1 | Password123! | REVIEWER | dev (H2 seed) |
+| applicant1 | Password123! | USER | dev (H2 seed) |
+| 136628 | 123 | USER | dev (H2 seed) |
+| admin | Password@123 | ADMIN | Docker / staging |
+| reviewer | Password@123 | REVIEWER | Docker / staging |
+| user01 | Password@123 | USER | Docker / staging |
+
+## API Documentation
+
+Swagger UI (enabled in dev/staging): **http://localhost:8080/swagger-ui.html**
+
+OpenAPI JSON: **http://localhost:8080/v3/api-docs**
+
+> Swagger is completely disabled in the `prod` profile.
+
+## Modules
+
+| # | Module | Description |
+|---|--------|-------------|
+| 1 | User & Security | Session login, role-based access control, password encryption |
+| 2 | Card Products | Product catalog with features and caching |
+| 3 | Applications | Credit card application lifecycle (create → submit → cancel) |
+| 4 | OTP Verification | Mobile OTP send/verify with expiry and retry limits |
+| 5 | Document Upload | Identity and income document storage |
+| 6 | Credit Review | Reviewer workflow — approve, reject, remarks |
+| 7 | System Parameters | Grouped runtime configuration with cache |
+| 8 | Audit Log | AOP-based operation audit trail |
+| 9 | Cache | In-memory cache with TTL and admin refresh |
+| 10 | Notification | SMS/email notifications via domain events |
+| 11 | Report | Daily statistics export (Excel/PDF) |
+| 12 | Scheduler | Background OTP cleanup, cache refresh, daily stats |
+
+## Development
+
+Requires **JDK 17**.
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+- H2 console: http://localhost:8080/h2-console
+- Uses H2-compatible Flyway migrations (`db/migration/`) plus dev seed data
+
+## Testing
+
+Requires **JDK 17**. All tests use `@ActiveProfiles("dev")` with the H2 in-memory database.
+
+```bash
+mvn clean verify
+```
+
+This runs the full unit and integration test suite and generates a JaCoCo coverage report.
+
+### Coverage Report
+
+After `mvn verify`, open the HTML report:
+
+```
+target/site/jacoco/index.html
+```
+
+JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main class from coverage metrics.
+
+### Test Categories
+
+| Category | Examples |
+|----------|----------|
+| Domain unit tests | `ApplicationTest`, `OtpRecordTest`, `ReviewCaseTest`, `WorkflowDomainServiceTest` |
+| Application service tests | `ApplicationAppServiceTest`, `OtpAppServiceTest`, `ReviewAppServiceTest` |
+| Integration tests | `ApplicationFlowIntegrationTest`, `ReviewFlowIntegrationTest`, `SecurityIntegrationTest` |
+| Infrastructure tests | `ExcelReportGeneratorTest`, `NotificationServiceImplTest` |
+
+100+ tests covering domain logic, application services, security, and end-to-end workflows.
+
+## Deployment Profiles
+
+| Profile | Database | Flyway Location | Swagger |
+|---------|----------|-----------------|---------|
+| `dev` | H2 in-memory | `db/migration/` + `db/dev-seed/` | Enabled |
+| `staging` | SQL Server | `db/migration-sqlserver/` | Enabled |
+| `prod` | SQL Server | `db/migration-sqlserver/` | Disabled |
+
+## Project Structure
+
+```
+src/main/java/com/tlbank/lending/
+├── domain/           # Domain model & ports
+├── application/      # Use cases & services
+├── infrastructure/   # JPA, cache, notification, scheduler, report
+├── presentation/     # REST API & web controllers
+├── security/         # Spring Security config
+└── common/           # Shared utilities, audit, config
+
+docker/
+├── app/Dockerfile    # Multi-stage build (non-root user)
+└── sqlserver/init/   # Idempotent DB init scripts
+```
+
+## License
+
+This is a fictional portfolio project for educational purposes.
