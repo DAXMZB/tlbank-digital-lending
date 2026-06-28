@@ -1,7 +1,15 @@
 # TLBank Digital Lending Platform
 
-> **Fictional portfolio project** simulating an enterprise banking internal credit card application system.  
-> This is not affiliated with any real financial institution and is intended for demonstration and learning purposes only.
+TLBank is a fictional enterprise backend project built to simulate a real-world digital lending system.
+
+It focuses on:
+
+- **Clean Architecture**
+- **Domain-Driven Design**
+- **Spring Boot**
+- **Enterprise backend patterns**
+
+> TLBank is not affiliated with any real financial institution. It is intended for demonstration and learning purposes only.
 
 ## Tech Stack
 
