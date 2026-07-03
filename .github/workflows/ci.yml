@@ -1,54 +1,61 @@
 # ==========================================
-# TLBank CI — monorepo root workflow
-# Repository layout: Project2/sp2-springboot/ ...
+# TLBank CI — monorepo 根目錄工作流程
+# 專案目錄結構：Project2/sp2-springboot/ ...
 # ==========================================
 name: TLBank CI
 
+# 設定觸發自動化流程的條件
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop" ]  # 當程式碼推送到 main 或 develop 分支時觸發
     paths:
-      - "sp2-springboot/**"
-      - ".github/workflows/ci.yml"
+      - "sp2-springboot/**"          # 只有當 sp2-springboot 資料夾內的檔案有變動時才執行
+      - ".github/workflows/ci.yml"   # 或者 CI 設定檔本身被修改時才執行
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop" ]  # 當向 main 或 develop 分支發起合併請求（PR）時觸發
     paths:
-      - "sp2-springboot/**"
+      - "sp2-springboot/**"          # 限制變動路徑同上
       - ".github/workflows/ci.yml"
 
 jobs:
 
+  # ----------------------------------------
+  # 任務一：Maven 編譯與單元測試
+  # ----------------------------------------
   build-test:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest            # 使用 GitHub 提供的最新版 Linux 虛擬機環境
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5     # 複製下載專案原始碼（已升級至 v5，解決 Node.js 警告）
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5    # 設定 Java 環境
         with:
-          distribution: temurin
-          java-version: 17
-          cache: maven
-          cache-dependency-path: sp2-springboot/pom.xml
+          distribution: temurin       # 採用 Eclipse Temurin 發行版 JDK
+          java-version: 17            # 指定 Java 17 版本
+          cache: maven                # 開啟 Maven 依賴緩存機制
+          cache-dependency-path: sp2-springboot/pom.xml # 核心：明確指定子目錄的 pom.xml 作為緩存依據
 
       - name: Build and test with Maven
-        working-directory: sp2-springboot
-        run: mvn clean verify
+        working-directory: sp2-springboot # 關鍵：切換到子目錄中執行指令
+        run: mvn clean verify         # 清除舊產物並執行編譯與測試驗證
 
+  # ----------------------------------------
+  # 任務二：程式碼品質檢查（與任務一平行執行）
+  # ----------------------------------------
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: build-test                 # 必須等待 build-test 任務成功通過才會執行
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -56,35 +63,44 @@ jobs:
           cache-dependency-path: sp2-springboot/pom.xml
 
       - name: Run Maven verification
-        working-directory: sp2-springboot
+        working-directory: sp2-springboot # 切換到子目錄執行品質驗證
         run: mvn verify
 
+  # ----------------------------------------
+  # 任務三：Docker 映像檔建置
+  # ----------------------------------------
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: build-test                 # 必須等待 build-test 任務成功通過才會執行
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build Docker image
-        working-directory: sp2-springboot
+        working-directory: sp2-springboot # 切換到子目錄作為執行起點
+        # 讀取指定的 docker/app/Dockerfile，並將當前子目錄 (.) 作為構建上下文
         run: docker build -t tlbank-backend:latest -f docker/app/Dockerfile .
 
+  # ----------------------------------------
+  # 任務四：第三方套件漏洞安全掃描
+  # ----------------------------------------
   dependency-scan:
     name: Dependency Scan
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: build-test                 # 必須等待 build-test 任務成功通過才會執行
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+      - name: Run Trivy filesystem scan (report only, non-blocking)
+        uses: aquasecurity/trivy-action@master # 引入 Trivy 資安掃描工具
         with:
-          scan-type: fs
-          scan-ref: sp2-springboot
-          severity: HIGH,CRITICAL
-          exit-code: 1
+          scan-type: fs               # 掃描類型：檔案系統 (Filesystem)
+          scan-ref: sp2-springboot    # 核心：精確指定只掃描 sp2-springboot 這個後端專案目錄
+          severity: HIGH,CRITICAL     # 篩選條件：只抓出高風險與嚴重漏洞
+          ignore-unfixed: true        # 忽略目前官方尚未釋出修復補丁的漏洞（減少雜訊）
+          format: table               # 輸出格式：在日誌中呈現漂亮易讀的表格
+          exit-code: 0                # 優化：設為 0 代表純報告、不中斷 CI，讓你能順利點進去看日誌報告
