@@ -1,0 +1,8 @@
+.git
+.github
+target
+*.log
+.DS_Store
+.idea
+.vscode
+*.zip
