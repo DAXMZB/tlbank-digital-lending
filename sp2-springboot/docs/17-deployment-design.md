@@ -23,23 +23,24 @@ flowchart LR
 |---|---|
 | Build tool | Maven (`./mvnw clean package -DskipTests -Pstaging`) |
 | Packaging | Executable fat JAR (`spring-boot-maven-plugin`), Lombok excluded from the repackaged JAR |
-| Image base (build stage) | `eclipse-temurin:17-jdk-alpine` |
-| Image base (runtime stage) | `eclipse-temurin:17-jre-alpine` |
+| Image base (build stage) | `eclipse-temurin:17-jdk` (multi-arch: amd64 + arm64) |
+| Image base (runtime stage) | `eclipse-temurin:17-jre` (multi-arch: amd64 + arm64) |
 | Runtime user | Non-root `tlbank` user/group, created explicitly in the Dockerfile |
 | Exposed port | `8080` |
 | JVM flags | `-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom` |
 | Volumes declared in image | `/app/uploads`, `/app/logs` |
 
 ```dockerfile
-# docker/app/Dockerfile (canonical build — see note in §7 about the legacy root Dockerfile)
-FROM eclipse-temurin:17-jdk-alpine AS builder
+# docker/app/Dockerfile (canonical build)
+FROM eclipse-temurin:17-jdk AS builder
 WORKDIR /workspace
 COPY pom.xml . ; COPY src ./src ; COPY mvnw . ; COPY .mvn .mvn
 RUN chmod +x mvnw && ./mvnw clean package -DskipTests -Pstaging
 
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre AS runtime
 WORKDIR /app
-RUN apk add --no-cache wget && addgroup -S tlbank && adduser -S tlbank -G tlbank
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/* && groupadd -r tlbank && useradd -r -g tlbank tlbank
 USER tlbank
 COPY --from=builder /workspace/target/*.jar app.jar
 VOLUME /app/uploads
@@ -112,10 +113,10 @@ auto-generates or alters schema in any environment; Flyway is the only source of
 
 ## 7. Operational Notes / Known Gaps
 
-- **Legacy root `Dockerfile`.** A second, simpler `Dockerfile` exists at the project root (single-stage,
-  copies a pre-built `target/*.jar`, contains Chinese-language comments from an earlier iteration). It is
-  **not** referenced by `docker-compose.yml` (which explicitly points at `docker/app/Dockerfile`) and should
-  be deleted to avoid confusion — tracked in `20-maintenance-and-future-enhancement.md`.
+- **Legacy root `Dockerfile` removed.** The old single-stage root `Dockerfile` was deleted; use
+  `docker build -t tlbank-backend:latest -f docker/app/Dockerfile .` (also used by `docker-compose.yml` and
+  CI). Runtime images use Debian-based Temurin (`17-jre`) instead of Alpine for multi-arch support on Apple
+  Silicon and Linux amd64 without `--platform` overrides.
 - **`.env.example` documents `APP_OTP_EXPIRE_MINUTES`/`APP_OTP_MAX_RETRY`** as if they were environment-level
   overrides, but the current `OtpAppService` reads these values exclusively from the `system_parameters`
   table via `SystemParameterService`, with no Spring `@Value` binding to those environment variable names.

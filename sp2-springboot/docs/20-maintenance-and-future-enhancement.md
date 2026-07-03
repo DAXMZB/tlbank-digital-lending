@@ -13,7 +13,7 @@ hypothesized — each is cross-referenced to the document where it is explained 
 | 1 | ~~`REVIEW_CASE_NOT_FOUND` resolves to HTTP `400` instead of `404`~~ | `10-error-handling.md` §3 | **Resolved (Sprint 17)** |
 | 2 | ~~`SystemParameterService.update()` does not evict the corresponding cache entry~~ | `12-cache-design.md` §8 | **Resolved (Sprint 17)** |
 | 3 | `SchedulingConfig` and `SchedulerConfig` both declare `@EnableScheduling` redundantly | `13-scheduler-design.md` §1 | Open — delete one of the two classes |
-| 4 | A legacy, single-stage root-level `Dockerfile` (with non-English comments from an earlier iteration) exists alongside the canonical `docker/app/Dockerfile`; only the latter is referenced by `docker-compose.yml` | `17-deployment-design.md` §7 | Open — delete the root `Dockerfile` |
+| 4 | ~~Legacy root-level `Dockerfile` alongside `docker/app/Dockerfile`~~ | `17-deployment-design.md` §7 | **Resolved** — root `Dockerfile` deleted; `docker/app/Dockerfile` uses multi-arch Temurin `17-jdk`/`17-jre` (non-Alpine) |
 | 5 | `.env.example` documents `APP_OTP_EXPIRE_MINUTES`/`APP_OTP_MAX_RETRY` as environment overrides, but `OtpAppService` only reads these from `system_parameters` via `SystemParameterService` — there is no `@Value` binding to those env var names | `17-deployment-design.md` §7 | Open — wire env vars or remove from `.env.example` |
 | 6 | `ExcelReportGenerator` and `PdfReportGenerator` duplicate the identical percentage-formatting logic | `14-report-design.md` §5 | Open — extract util if a third format is added |
 | 7 | `domain.event.ApplicationCancelledEvent` and `OtpGeneratedEvent` are defined but never published by any current code path | `04-domain-model.md` §11 | Open — wire cancel event; decide on OTP event |
