@@ -85,6 +85,8 @@ jobs:
 
   # ----------------------------------------
   # 任務四：第三方套件漏洞安全掃描
+  # 說明：先把 Maven 相依套件下載到本機（~/.m2），
+  #       讓 Trivy 能實際掃到 JAR 檔中的 CVE，而非只掃 pom.xml 宣告。
   # ----------------------------------------
   dependency-scan:
     name: Dependency Scan
@@ -93,7 +95,28 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v5     # 下載 Monorepo 全部原始碼（含 sp2-springboot 子專案）
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5   # 掃描前必須先架好 JDK，才能執行 Maven 指令
+        with:
+          distribution: temurin       # 採用 Eclipse Temurin 發行版 JDK
+          java-version: 17            # 對齊 build-test 的 Java 版本
+          cache: maven                # 開啟 setup-java 內建的 Maven 依賴快取
+          cache-dependency-path: sp2-springboot/pom.xml # 明確指向子專案的 pom.xml 作為快取鍵值
+
+      - name: Resolve Maven dependencies
+        working-directory: sp2-springboot # 關鍵：切換到子專案目錄，才能讀到正確的 pom.xml
+        # 只下載相依套件、不編譯，把 JAR 全數拉進 ~/.m2 供 Trivy 掃描
+        run: mvn -B -q dependency:resolve
+
+      - name: Cache Maven local repository
+        uses: actions/cache@v4        # 對 ~/.m2 做一份額外快取，加速後續 CI 執行
+        with:
+          path: ~/.m2                 # 快取整個 Maven 本機倉庫
+          key: maven-${{ hashFiles('sp2-springboot/pom.xml') }} # 以子專案 pom.xml 的 hash 作為主鍵
+          restore-keys: |
+            maven-                    # 找不到完全相同的 key 時，回退到最近一份 maven- 開頭的快取
 
       - name: Run Trivy filesystem scan (report only, non-blocking)
         uses: aquasecurity/trivy-action@master # 引入 Trivy 資安掃描工具
@@ -103,4 +126,4 @@ jobs:
           severity: HIGH,CRITICAL     # 篩選條件：只抓出高風險與嚴重漏洞
           ignore-unfixed: true        # 忽略目前官方尚未釋出修復補丁的漏洞（減少雜訊）
           format: table               # 輸出格式：在日誌中呈現漂亮易讀的表格
-          exit-code: 0                # 優化：設為 0 代表純報告、不中斷 CI，讓你能順利點進去看日誌報告
+          exit-code: 0                # 純報告、不中斷 CI，讓你能點進去完整檢視漏洞日誌
