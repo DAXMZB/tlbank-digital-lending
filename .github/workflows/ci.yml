@@ -263,7 +263,7 @@ jobs:
 
       # 🎯 本機直發部署：完全在你的 Mac 本機背景發動指令，不需要任何 SSH 遠端金鑰
       - name: Pull and restart containers locally
-        working-directory: ~/tlbank                   # 直接在 Mac 本地的專案維運目錄下執行
+        working-directory: /Users/lidong/tlbank                   # 直接在 Mac 本地的專案維運目錄下執行
         run: |
           set -e
           # 🔐 利用在 GitHub 設定好的 Token 讓 Mac 登入 GHCR，解鎖拉取私有映像檔的權限
