@@ -265,22 +265,28 @@ jobs:
           DOCKER_CONFIG: ${{ runner.temp }}/.docker
         run: |
           set -e
-          
-          # 建立乾淨臨時 Docker 設定資料夾
+
+          # 建立乾淨臨時 Docker 設定資料夾，阻絕舊快取與實體系統鑰匙圈干擾
           mkdir -p "$DOCKER_CONFIG"
-          
-          # 🔒 關鍵修正：硬性覆寫設定檔，徹底阻斷 Docker 調用 macOS 的 credential helper 鑰匙圈機制
-          cat > "$DOCKER_CONFIG/config.json" << 'EOF'
+
+          # 🔐 核心防禦：直接把帳密寫成 base64 塞進 auths，完全跳過 docker login 與 keychain 機制
+          # 透過將「使用者名稱:Token」進行 Base64 編碼，生成符合 Docker 規範的憑證字串並過濾換行符號
+          AUTH=$(printf '%s:%s' "${{ secrets.GHCR_USERNAME }}" "${{ secrets.GHCR_TOKEN }}" | base64 | tr -d '\n')
+
+          # 🔒 關鍵修正：硬性覆寫設定檔，直接將驗證金鑰寫入臨時設定，徹底阻斷 Docker 調用 macOS 的鑰匙圈機制
+          cat > "$DOCKER_CONFIG/config.json" << EOF
           {
-            "credHelpers": {},
-            "credsStore": ""
+            "auths": {
+              "ghcr.io": {
+                "auth": "$AUTH"
+              }
+            }
           }
           EOF
-          
-          # 🔐 由於加上了完整的 config 隔離，此處的 login 將以純非互動模式完美通關！
-          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
-          
-          # 🚀 網內直發：重拉最新映像檔、背景重啟容器、清空舊殘留鏡像
+
+          # 🚀 網內直發：繞過登入儲存限制，直接使用臨時驗證拉取最新映像檔
           docker compose pull app
+          # 🔄 背景重啟應用容器，完成無感部署
           docker compose up -d
+          # 🧹 強制清空本地因重拉映像檔而產生的舊殘留鏡像 (Dangling Images)
           docker image prune -f
