@@ -263,6 +263,8 @@ jobs:
         env:
           # 💡 核心防禦：強迫 Docker 使用 Actions 虛擬機提供的臨時空目錄作為 config 儲存點
           DOCKER_CONFIG: ${{ runner.temp }}/.docker
+          # 📌 架構對齊：明確固定 project 名稱，避免因目錄別名造成的不確定性
+          COMPOSE_PROJECT_NAME: tlbank
         run: |
           set -e
 
@@ -294,9 +296,18 @@ jobs:
           }
           EOF
 
+          # 🗑️ 環境清理：先清掉「tlbank」這個 compose 專案的殘留容器，確保部署環境乾淨
+          docker compose down --remove-orphans 2>/dev/null || true
+
+          # 🧹 保險：不管容器屬於哪個 compose 專案，只要名字撞到就強制移除，
+          # 避免其他手動起的 compose 專案（例如本機開發用的 sp2-springboot）佔用同名容器
+          for c in tlbank-sqlserver tlbank-db-init tlbank-app; do
+            docker rm -f "$c" >/dev/null 2>&1 || true
+          done
+
           # 🚀 網內直發：繞過登入儲存限制，直接使用臨時驗證拉取最新映像檔
           docker compose pull app
-          # 🔄 背景重啟應用容器，完成無感部署
+          # 🔄 背景重啟應用與資料庫容器，完成無感部署
           docker compose up -d
           # 🧹 強制清空本地因重拉映像檔而產生的舊殘留鏡像 (Dangling Images)
           docker image prune -f
