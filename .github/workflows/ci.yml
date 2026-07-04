@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@v5     # 下載專案原始碼
 
       - name: Set up Java 17
-        uses: actions/setup-java@v5    # 載入 Java 17 環境
+        uses: actions/setup-java@v5    # 載入 Java 17環境
         with:
           distribution: temurin
           java-version: 17
@@ -163,113 +163,118 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
   # ==========================================================================
-  # 🚀 任務五：本機 Mac 手動部署 (Deploy to Staging Server) —— 🎯 跑在你的 Mac 本機上！
+  # 🚀 任務五：本機 Mac 手動部署 (Deploy to Staging Server) —— 僅限手動觸發
   # ==========================================================================
   deploy-staging:
     name: Deploy to Staging Server
-    runs-on: [self-hosted, macos]      # 🎯 核心更動：指定由你 Mac 上註冊的自託管執行器（Self-hosted Runner）主動接單執行
-    needs: build-and-push-image       # 順序控管：必須等待新版映像檔在雲端封裝成功後，才能進行部署更新
+    runs-on: [self-hosted, macos]      # 跑在你本機 Mac 的自託管執行器上
+    needs: build-and-push-image
 
-    # 🔒 鋼鐵門禁：只有在 GitHub 網頁上手動點擊「Run workflow」觸發時，本部署任務才會啟動！
-    # 平常任何 git push ，CI 主線永遠保持 100% 綠燈
+    # 🔒 唯一允許執行條件：只有你在 GitHub Actions 網頁上手動點擊「Run workflow」時才會啟動
     if: github.event_name == 'workflow_dispatch'
 
     steps:
-      # 💡 為了在 Mac 的環境中正確獲取全小寫的 GitHub 映像檔路徑，在此重新計算並存入本機 runner 環境變數中
       - name: Set lowercase GHCR image name
         run: |
           OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
           echo "IMAGE_NAME=ghcr.io/${OWNER}/tlbank-backend" >> "$GITHUB_ENV"
 
-      # 🛠️ 直接在 Mac 本機硬碟中動態建立或更新符合專案規格的 docker-compose.yml 檔案
+      # 🛠️ 步驟 1：直接在你的 Mac 本機硬碟中動態建立或更新 docker-compose.yml 檔案
       - name: Write docker-compose.yml on local Mac
         run: |
-          set -e                       # 防禦語法：只要有任何一條指令出錯，立刻中斷自動化流程
-          mkdir -p ~/tlbank              # 在 Mac 家目錄下建立一個維運專案專屬的資料夾
+          set -e                       # 防禦語法：只要有任何一條指令出錯，立刻中斷
+          mkdir -p ~/tlbank              # 在你的 Mac 家目錄下建立專屬維運資料夾
           cd ~/tlbank                  # 切換進該資料夾內
 
-          # 💡 使用 INNER_EOF 機制建立檔案。內部的環境變數（如 $IMAGE_NAME）會留到本機執行時才展開
-          # 內嵌的雙大括號（如 secrets.MSSQL_SA_PASSWORD）會在 GitHub 端置換為在 Docker Desktop 查到的真實密碼
           cat > docker-compose.yml << 'INNER_EOF'
           services:
             sqlserver:
-              image: mcr.microsoft.com/mssql/server:2022-latest #  SQL Server 2022 映像檔（純字串，非 Markdown 連結）
+              image: mcr.microsoft.com/mssql/server:2022-latest
               container_name: tlbank-sqlserver
               environment:
-                ACCEPT_EULA: "Y"                           # 接受微軟終端使用者授權合約
-                MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 從 GitHub 安全通道帶入本機真實密碼 
-                MSSQL_PID: Developer                       # 指定運行版本為免費授權的開發者版本 (Developer Edition)
+                ACCEPT_EULA: "Y"                           # 同意微軟官方授權條款 (End User License Agreement)
+                MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 帶入本機真實密碼 (ChangeMe@SA2024)
+                MSSQL_PID: Developer                       # 設定 SQL Server 產品識別碼為免費的開發者版本 (Developer)
               ports:
-                - "1433:1433"                              # 將 Mac 本地的 1433 埠口與資料庫容器內部 1433 連接埠對接映射
+                - "1433:1433"                              # 將容器的 1433 埠對外映射到 Mac 本地的 1433 埠
               volumes:
-                - sqlserver-data:/var/opt/mssql            # 持久化設定：將資料檔案鎖在 Mac 硬碟磁碟卷中，重啟容器資料不會遺失
+                - sqlserver-data:/var/opt/mssql            # 將資料庫實體檔案持久化掛載至 Mac 本地磁碟
               networks:
-                - tlbank-network                            # 把資料庫劃歸進獨立的虛擬內部網路中
-              healthcheck:                                 # 健康檢查：每 15 秒自行驗證一次 SQL 連線，確保資料庫真正「活著」
+                - tlbank-network                            # 加入內部專屬虛擬網路，確保容器間可以互相通訊
+              healthcheck:                                 # 資料庫健康檢查機制
                 test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "SELECT 1" || exit 1
-                interval: 15s
-                timeout: 10s
-                retries: 10
-                start_period: 40s
+                interval: 15s                              # 每隔 15 秒檢測一次健康狀態
+                timeout: 10s                               # 每次檢測連線超時上限為 10 秒
+                retries: 10                                # 允許連續失敗的最大重試次數為 10 次
+                start_period: 40s                          # 容器啟動後的前 40 秒為緩衝期，不計入失敗次數
 
             db-init:
-              image: mcr.microsoft.com/mssql/server:2022-latest # 復用同一個微軟 SQL 映像檔進行自動化建庫
+              image: mcr.microsoft.com/mssql/server:2022-latest # 復用微軟官方映像檔作為指令執行工具
               container_name: tlbank-db-init
               depends_on:
                 sqlserver:
-                  condition: service_healthy              # 嚴格相依：必須等待 sqlserver 通過健康檢查、可以接客了，本初始化容器才開工
+                  condition: service_healthy              # 嚴格要求：必須等待 sqlserver 容器健康檢查完全通過後才啟動
               environment:
                 MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}"
               networks:
                 - tlbank-network
-              entrypoint: ["/bin/bash", "-c"]             # 使用 bash 蓋掉原本微軟預設的啟動入口
-              command:                                     # 一鍵全自動化建庫：登入 sa，如果 tlbank 資料庫還不存在，就秒速自動建立它！
+              entrypoint: ["/bin/bash", "-c"]             # 覆寫預設進入點，指定使用 bash 終端機執行初始化
+              command:                                     # 自動化 SQL 語法：若 tlbank 資料庫不存在則自動建立
                 - >
                   /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'tlbank') CREATE DATABASE tlbank;"
-              restart: "no"                                # 本工作屬於一次性任務，跑完就自毀休眠，絕對不重複重啟
+              restart: "no"                                # 任務完成即關閉，不需要反覆重啟容器
 
             app:
-              image: ${{ env.IMAGE_NAME }}:latest         # 讀取剛剛在雲端任務四由 Linux 虛擬機最新打包、封裝出爐的 Java 後端應用程式
+              image: ${{ env.IMAGE_NAME }}:latest         # 抓取剛才封裝好並上傳到 GHCR 的最新後端映像檔
               container_name: tlbank-app
               depends_on:
                 sqlserver:
-                  condition: service_healthy              # 必須等資料庫健康就緒
+                  condition: service_healthy              # 基礎依賴：確保資料庫已經處於健康可連線狀態
                 db-init:
-                  condition: service_completed_successfully # 且必須等 db-init 自動建庫成功結束後，Java 程式才准啟動
+                  condition: service_completed_successfully # 基礎依賴：確保資料庫 tlbank 已經成功被初始化建立
               ports:
-                - "8080:8080"                              # 開放 Mac 的 8080 埠口，供外面呼叫 API 與 Swagger 網頁
-              environment:                                 # 🛠️ 核心對接：為 Spring Boot 後端注入最重要的環境參數（已加雙引號防範特殊符號解析崩潰）
-                SPRING_PROFILES_ACTIVE: staging            # 啟動 Staging 生產測試設定組
-                SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=tlbank;encrypt=false; # 網內直連：直接以內部容器名稱 sqlserver 作為連線 Host
-                SPRING_DATASOURCE_USERNAME: sa             # 以管理員 sa 身份登入
-                SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 帶入密碼
-                SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 網頁 Session 超時時間設為 30 分鐘
-                TLBANK_UPLOAD_BASE_PATH: /app/uploads     # 掛載在 Linux 容器內的文件上傳實體路徑
+                - "8080:8080"                              # 將後端 Java 應用的 8080 埠對外映射到 Mac 的 8080 埠
+              environment:                                 # 注入 Spring Boot 執行環境變數
+                SPRING_PROFILES_ACTIVE: staging            # 啟用 staging 環境設定（對應 application-staging.yml）
+                SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=tlbank;encrypt=false; # 資料庫連線字串
+                SPRING_DATASOURCE_USERNAME: sa             # 資料庫登入帳號
+                SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 資料庫登入密碼
+                SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 設定使用者登入 Session 逾時時間為 30 分鐘
+                TLBANK_UPLOAD_BASE_PATH: /app/uploads      # 指定檔案上傳在本機容器內的實體根路徑
               volumes:
-                - app-uploads:/app/uploads                 # 持久化：客戶上傳的財力證明、雙證件等實體檔案，持久化保存到 Mac 本地硬碟中
-                - app-logs:/app/logs                       # 將 Spring Boot 的運行日誌（Logs）導流出來方便隨時在本機查看
+                - app-uploads:/app/uploads                 # 掛載持久化硬碟空間，避免上傳的圖片因容器重啟而消失
+                - app-logs:/app/logs                       # 掛載日誌檔案路徑，將 Spring Boot Log 導出至 Mac 本地方便排查
               networks:
                 - tlbank-network
 
           volumes:
-            sqlserver-data:                                # 宣告與向系統註冊這三個實體持久化磁碟卷名稱
-            app-uploads:
-            app-logs:
+            sqlserver-data:                                # 定義 SQL Server 資料持久化磁碟卷
+            app-uploads:                                   # 定義應用程式檔案上傳持久化磁碟卷
+            app-logs:                                      # 定義應用程式日誌持久化磁碟卷
 
           networks:
             tlbank-network:
-              driver: bridge                               # 採用橋接網路模式，將上述三個容器鎖在同一個封閉安全的內網網段中
+              driver: bridge                               # 採用橋接模式 (Bridge) 建立容器間的內部隔離虛擬網路
           INNER_EOF
 
-      # 🎯 本機直發部署：完全在你的 Mac 本機背景發動指令，不需要任何 SSH 遠端金鑰
+      # 🎯 步驟 2：隔離 macOS 鑰匙圈！在本機直接執行安全部署
       - name: Pull and restart containers locally
-        working-directory: /Users/lidong/tlbank                   # 直接在 Mac 本地的專案維運目錄下執行
+        working-directory: /Users/lidong/tlbank
+        env:
+          # 💡 核心防禦：強迫 Docker 使用 Actions 虛擬機提供的臨時空目錄作為 config 儲存點。
+          # 阻斷 Docker 去尋找並呼叫 Mac 實體系統的 docker-credential-osxkeychain，防止 (-25308) 錯誤
+          DOCKER_CONFIG: ${{ runner.temp }}/.docker
         run: |
           set -e
-          # 🔐 利用在 GitHub 設定好的 Token 讓 Mac 登入 GHCR，解鎖拉取私有映像檔的權限
+          
+          # 建立乾淨臨時 Docker 設定資料夾，阻絕舊快取干擾
+          mkdir -p "$DOCKER_CONFIG"
+          echo "{}" > "$DOCKER_CONFIG/config.json"
+          
+          # 🔐 由於加上了上面的 DOCKER_CONFIG 隔離，此處的 login 將以純非互動模式完美通關！
           echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
           
-          # 🚀 執行本地無縫升級：重拉最新 Java 鏡像檔 ➔ 背景啟動所有服務 ➔ 強制清空 Mac 內部老舊、殘留的垃圾映像檔以釋放空間
+          # 🚀 網內直發：重拉最新映像檔、背景重啟容器、清空舊殘留鏡像
           docker compose pull app
           docker compose up -d
           docker image prune -f
