@@ -1,129 +1,270 @@
-# ==========================================
-# TLBank CI — monorepo 根目錄工作流程
-# 專案目錄結構：Project2/sp2-springboot/ ...
-# ==========================================
-name: TLBank CI
+# ==========================================================================
+# 🏦 TLBank CI/CD — 多專案根目錄自動化完整工作流程 (精準註解版)
+# 功能：原始碼檢出 ➔ Maven 編譯測試 ➔ 程式碼品質檢查 ➔ 資安漏洞掃描 ➔ 鏡像封裝 ➔ SSH 遠端部署
+# 適用環境：本機 Mac (Docker Desktop + SQL Server 2022 容器架構)
+# ==========================================================================
+name: TLBank CI/CD
 
-# 設定觸發自動化流程的條件
+# --------------------------------------------------------------------------
+# 🎯 自動化觸發條件設定 (Triggers)
+# --------------------------------------------------------------------------
 on:
   push:
-    branches: [ "main", "develop" ]  # 當程式碼推送到 main 或 develop 分支時觸發
+    branches: [ "main", "develop" ]  # 當程式碼 Push（推送）到 main 或 develop 分支時觸發流程
     paths:
-      - "sp2-springboot/**"          # 只有當 sp2-springboot 資料夾內的檔案有變動時才執行
-      - ".github/workflows/ci.yml"   # 或者 CI 設定檔本身被修改時才執行
+      - "sp2-springboot/**"          # 限制只有當後端子專案資料夾內的檔案有變動時，才執行此 CI/CD
+      - ".github/workflows/ci.yml"   # 如果本自動化設定檔本身被修改，也同步觸發執行
   pull_request:
-    branches: [ "main", "develop" ]  # 當向 main 或 develop 分支發起合併請求（PR）時觸發
+    branches: [ "main", "develop" ]  # 對 main 或 develop 分支發起合併請求（PR）時觸發
     paths:
-      - "sp2-springboot/**"          # 限制變動路徑同上
+      - "sp2-springboot/**"          # 限制只有 PR 內容涉及後端專案時才審查
       - ".github/workflows/ci.yml"
+
+# --------------------------------------------------------------------------
+# 🔒 執行身份存取權限控管 (Permissions)
+# --------------------------------------------------------------------------
+permissions:
+  contents: read                     # 賦予 GitHub Actions 安全讀取本專案原始碼的權限
+  packages: write                    # 賦予 GitHub Actions 寫入與上傳 Docker 映像檔到 GitHub 套件庫 (GHCR) 的權限
+
+# --------------------------------------------------------------------------
+# 🌐 全域環境變數定義 (Global Environment Variables)
+# --------------------------------------------------------------------------
+env:
+  APP_DIR: sp2-springboot            # 單一真相來源：定義後端主專案的根目錄資料夾名稱，方便後續步驟統一引用
 
 jobs:
 
-  # ----------------------------------------
-  # 任務一：Maven 編譯與單元測試
-  # ----------------------------------------
+  # ==========================================================================
+  # 🧪 任務一：Maven 編譯與單元測試 (Build and Test)
+  # ==========================================================================
   build-test:
-    name: Build and Test
-    runs-on: ubuntu-latest            # 使用 GitHub 提供的最新版 Linux 虛擬機環境
+    name: Build and Test             # 在 GitHub 儀表板上顯示的任務名稱
+    runs-on: ubuntu-latest            # 指派 GitHub 官方在雲端背景配置一台全新、乾淨的 Linux (Ubuntu) 虛擬機來跑這段工作
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v5     # 複製下載專案原始碼（已升級至 v5，解決 Node.js 警告）
+        uses: actions/checkout@v5     # 步驟 1：下載並檢出本專案的最新原始碼到虛擬機中
 
       - name: Set up Java 17
-        uses: actions/setup-java@v5    # 設定 Java 環境
+        uses: actions/setup-java@v5    # 步驟 2：在虛擬機中快速配置 Java 17 JDK 環境
         with:
-          distribution: temurin       # 採用 Eclipse Temurin 發行版 JDK
-          java-version: 17            # 指定 Java 17 版本
-          cache: maven                # 開啟 Maven 依賴緩存機制
-          cache-dependency-path: sp2-springboot/pom.xml # 核心：明確指定子目錄的 pom.xml 作為緩存依據
+          distribution: temurin      # 採用 Eclipse Temurin 發行版
+          java-version: 17           # 指定使用 Java 17 版本編譯
+          cache: maven                # 開啟內建的 Maven 快取，job 結束時自動保存，下次執行自動還原
+          cache-dependency-path: ${{ env.APP_DIR }}/pom.xml # 以子目錄下的 pom.xml 作為快取是否過期的比對密鑰
 
       - name: Build and test with Maven
-        working-directory: sp2-springboot # 關鍵：切換到子目錄中執行指令
-        run: mvn clean verify         # 清除舊產物並執行編譯與測試驗證
+        working-directory: ${{ env.APP_DIR }} # 切換工作目錄至後端子專案資料夾下
+        run: mvn clean verify         # 執行 Maven 指令：清理舊編譯檔、編譯主程式、跑單元測試與整合測試
 
-  # ----------------------------------------
-  # 任務二：程式碼品質檢查（與任務一平行執行）
-  # ----------------------------------------
+  # ==========================================================================
+  # 🔍 任務二：程式碼品質與靜態檢查 (Code Quality)
+  # ==========================================================================
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    needs: build-test                 # 必須等待 build-test 任務成功通過才會執行
+    needs: build-test                 # 必須等待「任務一：編譯與測試」完全成功綠燈通過後，才允許執行
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v5     # 下載專案原始碼
 
+      - name: Set up Java 17
+        uses: actions/setup-java@v5    # 載入 Java 17 環境
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven                # 繼續復用並共享上一步儲存的 Maven 快取，避免重複下載套件
+          cache-dependency-path: ${{ env.APP_DIR }}/pom.xml
+
+      - name: Run Maven verification
+        working-directory: ${{ env.APP_DIR }}
+        run: mvn verify               # 執行驗證階段，用於觸發專案內建的程式碼風格或靜態品質掃描插件
+
+  # ==========================================================================
+  # 🛡️ 任務三：第三方套件安全漏洞掃描 (Dependency Scan)
+  # ==========================================================================
+  dependency-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    needs: build-test                 # 等待「任務一：編譯與測試」綠燈通過才執行
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5     # 下載專案原始碼
+
+      # 💡 先執行 setup-java 來還原 Maven 本地倉庫的快取檔案
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-          cache: maven
-          cache-dependency-path: sp2-springboot/pom.xml
+          cache: maven                # 確保在分析前，~/.m2 目錄就已經灌入快取好的 JAR 檔
+          cache-dependency-path: ${{ env.APP_DIR }}/pom.xml
 
-      - name: Run Maven verification
-        working-directory: sp2-springboot # 切換到子目錄執行品質驗證
-        run: mvn verify
-
-  # ----------------------------------------
-  # 任務三：Docker 映像檔建置
-  # ----------------------------------------
-  docker-build:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    needs: build-test                 # 必須等待 build-test 任務成功通過才會執行
-
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v5
-
-      - name: Build Docker image
-        working-directory: sp2-springboot # 切換到子目錄作為執行起點
-        # 讀取指定的 docker/app/Dockerfile，並將當前子目錄 (.) 作為構建上下文
-        run: docker build -t tlbank-backend:latest -f docker/app/Dockerfile .
-
-  # ----------------------------------------
-  # 任務四：第三方套件漏洞安全掃描
-  # 說明：先把 Maven 相依套件下載到本機（~/.m2），
-  #       讓 Trivy 能實際掃到 JAR 檔中的 CVE，而非只掃 pom.xml 宣告。
-  # ----------------------------------------
-  dependency-scan:
-    name: Dependency Scan
-    runs-on: ubuntu-latest
-    needs: build-test                 # 必須等待 build-test 任務成功通過才會執行
-
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v5     # 下載 Monorepo 全部原始碼（含 sp2-springboot 子專案）
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v5   # 掃描前必須先架好 JDK，才能執行 Maven 指令
-        with:
-          distribution: temurin       # 採用 Eclipse Temurin 發行版 JDK
-          java-version: 17            # 對齊 build-test 的 Java 版本
-          cache: maven                # 開啟 setup-java 內建的 Maven 依賴快取
-          cache-dependency-path: sp2-springboot/pom.xml # 明確指向子專案的 pom.xml 作為快取鍵值
-
+      # 💡 先在本地解析專案相依套件，阻斷 Trivy 觸發遠端中央倉庫 429 流量限流拒絕服務
       - name: Resolve Maven dependencies
-        working-directory: sp2-springboot # 關鍵：切換到子專案目錄，才能讀到正確的 pom.xml
-        # 只下載相依套件、不編譯，把 JAR 全數拉進 ~/.m2 供 Trivy 掃描
-        run: mvn -B -q dependency:resolve
+        working-directory: ${{ env.APP_DIR }}
+        run: mvn -B -q dependency:resolve # 以批次、安靜模式下載解析套件至虛擬機本地
 
-      - name: Cache Maven local repository
-        uses: actions/cache@v4        # 對 ~/.m2 做一份額外快取，加速後續 CI 執行
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0 # 鎖定 Trivy 穩定版套件，防止追蹤 master 分支時因上游改版導致 CI 當機
         with:
-          path: ~/.m2                 # 快取整個 Maven 本機倉庫
-          key: maven-${{ hashFiles('sp2-springboot/pom.xml') }} # 以子專案 pom.xml 的 hash 作為主鍵
-          restore-keys: |
-            maven-                    # 找不到完全相同的 key 時，回退到最近一份 maven- 開頭的快取
+          scan-type: fs               # 指定掃描類型為：檔案系統本體掃描 (Filesystem)
+          scan-ref: ${{ env.APP_DIR }} # 只掃描後端子專案目錄，剔除雜訊
+          severity: HIGH,CRITICAL     # 風險控管：只揪出「高風險」與「災難級嚴重」的第三方套件資安漏洞
+          ignore-unfixed: true        # 過濾雜訊：忽略目前全球官方尚未釋出修復補丁的漏洞，專注在可以立刻修復的套件上
+          format: table               # 格式化輸出：以清晰流暢的表格型式將資安報告呈現在 GitHub 日誌中
+          exit-code: 0                # 報告模式：純產出漏洞報告，不因為發現舊漏洞而強行掐斷或卡死後續的部署流程
 
-      - name: Run Trivy filesystem scan (report only, non-blocking)
-        uses: aquasecurity/trivy-action@master # 引入 Trivy 資安掃描工具
+  # ==========================================================================
+  # 🐳 任務四：Docker 映像檔封裝與上傳 (Build and Push Image) -> CD 的起點
+  # ==========================================================================
+  build-and-push-image:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    # 鋼鐵防禦鏈：必須前面三個 CI 任務（測試、品質、資安）全數完美通過，才放行進入封裝生產線
+    needs: [build-test, code-quality, dependency-scan]
+
+    # 限制只有當事件是真正的 Push（非 PR），且分支鎖定在正式主分支（main）時，才啟動封裝程序
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5     # 下載專案原始碼
+
+      # 💡 GHCR 架構修正：GitHub 映像檔倉庫規範其路徑字元必須「全小寫」。透過 Linux 的 tr 指令將含有大寫的使用者名稱轉為小寫
+      - name: Set lowercase GHCR image name
+        run: |
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${OWNER}/tlbank-backend" >> "$GITHUB_ENV" # 寫入環境變數供下一步引用
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3   # 登入到 GitHub 官方 Container Registry 映像檔倉庫
         with:
-          scan-type: fs               # 掃描類型：檔案系統 (Filesystem)
-          scan-ref: sp2-springboot    # 核心：精確指定只掃描 sp2-springboot 這個後端專案目錄
-          severity: HIGH,CRITICAL     # 篩選條件：只抓出高風險與嚴重漏洞
-          ignore-unfixed: true        # 忽略目前官方尚未釋出修復補丁的漏洞（減少雜訊）
-          format: table               # 輸出格式：在日誌中呈現漂亮易讀的表格
-          exit-code: 0                # 純報告、不中斷 CI，讓你能點進去完整檢視漏洞日誌
+          registry: ghcr.io
+          username: ${{ github.actor }} # 讀取當前發動此自動化流程的 GitHub 帳號名稱
+          password: ${{ secrets.GITHUB_TOKEN }} # 使用 Actions 內建短暫產生的隱形權杖安全登入
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6 # 呼叫 Docker 官方頂規的進階構建打包套件
+        with:
+          context: ${{ env.APP_DIR }} # 宣告 Docker 構建的上下文起點為後端專案目錄
+          file: ${{ env.APP_DIR }}/docker/app/Dockerfile # 精準讀取子專案目錄底下的 Dockerfile 封裝食譜
+          push: true                  # 打包成功後，立刻以加密通道推送到 GitHub 雲端套件庫上
+          tags: |                     # 同時為這枚映像檔貼上兩種識別標籤：
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # ==========================================================================
+  # 🚀 任務五：遠端本機 Mac 自動化部署 (Deploy to Staging Server)
+  # ==========================================================================
+  deploy-staging:
+    name: Deploy to Staging Server
+    runs-on: ubuntu-latest
+    needs: build-and-push-image       # 必須等新版映像檔封裝完並順利躺在雲端後，才能進行部署更新
+
+    # 過濾只有正式 main 分支被 Push 時才發動 Mac 實體重啟部署
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      # 與任務四對應：動態生成全小寫的映像檔路徑變數，供 docker-compose 內部引用
+      - name: Set lowercase GHCR image name
+        run: |
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${OWNER}/tlbank-backend" >> "$GITHUB_ENV"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1   # 呼叫 SSH 安全隧道連線套件，
+        with:
+          host: ${{ secrets.SERVER_HOST }}     # 自動讀取安全金鑰庫中 Mac 的真實公網 IP 
+          username: ${{ secrets.SERVER_USER }} # 自動讀取你 Mac 的使用者帳號 
+          key: ${{ secrets.SERVER_SSH_KEY }}   # 自動讀取你 Mac 專屬的 SSH 私鑰完整內容
+          script: |                           # 🔓 成功連入 Mac 後，在 Mac 終端機背景實際執行的 Linux 指令：
+            set -e                            # 防禦語法：只要有任何一行指令不如預期或報錯，立刻中斷自動化，防止錯誤擴大
+
+            mkdir -p ~/tlbank                  # 在 Mac 家目錄建立專屬的專案維運資料夾
+            cd ~/tlbank                       # 切換進該資料夾下
+
+            # 🛠️ 核心優化：利用 heredoc 機制動態在 Mac 生成符合專案現況的 SQL Server 2022 生態圈食譜
+            # 說明：<< 'EOF' 外帶單引號能極其關鍵地防止 Mac 提早去展開內部的變數；
+            # 而雙大括號 ${{ secrets.MSSQL_SA_PASSWORD }} 則會在 GitHub 端就被置換為本機的實際密碼
+            cat > docker-compose.yml << 'EOF'
+            services:
+              sqlserver:
+                image: mcr.microsoft.com/mssql/server:2022-latest # 正宗微軟 SQL Server 2022 映像檔（已移除 Markdown 連結殘渣）
+                container_name: tlbank-sqlserver
+                environment:
+                  ACCEPT_EULA: "Y"                           # 接受微軟終端使用者授權合約
+                  MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 從安全通道灌入真實密碼
+                  MSSQL_PID: Developer                       # 指定運行版本為免費授權的開發者版本
+                ports:
+                  - "1433:1433"                              # 將 Mac 本地的 1433 埠口與容器內部 1433 對接映射
+                volumes:
+                  - sqlserver-data:/var/opt/mssql            # 持久化設定：將資料庫檔案鎖在 Mac 的實體硬碟磁碟卷中，重啟容器資料不會遺失
+                networks:
+                  - tlbank-network                            # 把資料庫劃歸進獨立的虛擬內部網路中
+                healthcheck:                                 # 健康檢查：每 15 秒由內部自行發動一次 SQL 連線驗證，確保資料庫真正「活著」
+                  test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "SELECT 1" || exit 1
+                  interval: 15s
+                  timeout: 10s
+                  retries: 10
+                  start_period: 40s
+
+              db-init:
+                image: mcr.microsoft.com/mssql/server:2022-latest # 復用同一個 SQL 映像檔進行建庫
+                container_name: tlbank-db-init
+                depends_on:
+                  sqlserver:
+                    condition: service_healthy              # 必須等待隔壁的 sqlserver 通過檢查，本初始化容器才開工
+                environment:
+                  MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}"
+                networks:
+                  - tlbank-network
+                entrypoint: ["/bin/bash", "-c"]             # 使用 bash 蓋掉原本微軟預設的啟動入口
+                command:                                     # 一鍵全自動化建庫：登入 sa，如果 tlbank 資料庫還不存在，就秒速自動建立它！
+                  - >
+                    /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'tlbank') CREATE DATABASE tlbank;"
+                restart: "no"                                # 本工作屬於一次性任務，跑完就自毀休眠，絕對不重複重啟
+
+              app:
+                image: ${{ env.IMAGE_NAME }}:latest         # 讀取剛剛在雲端由任務四最新編譯、封裝出爐的 Java 後端應用程式
+                container_name: tlbank-app
+                depends_on:
+                  sqlserver:
+                    condition: service_healthy              # 必須等資料庫健康就緒
+                  db-init:
+                    condition: service_completed_successfully # 且必須等 db-init 自動建庫成功結束後，Java 程式才准發動
+                ports:
+                  - "8080:8080"                              # 開放 Mac 的 8080 埠口，供外面呼叫 API 與網頁
+                environment:                                 # 🛠️ 核心對接：為 Spring Boot 後端注入最重要的 Staging 變數參數（已加雙引號防範特殊符號崩潰）
+                  SPRING_PROFILES_ACTIVE: staging            # 啟動 Staging 設定組
+                  SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=tlbank;encrypt=false; # 網內對接，直接以內部容器名稱 sqlserver 作為 Host 連線
+                  SPRING_DATASOURCE_USERNAME: sa             # 以管理員 sa 身份登入
+                  SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 密碼完美帶入，拒絕明文進版控！
+                  SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 網頁 Session 超時設為 30 分鐘
+                  TLBANK_UPLOAD_BASE_PATH: /app/uploads     # 掛載在 Linux 容器內的文件上傳路徑
+                volumes:
+                  - app-uploads:/app/uploads                 # 客戶上傳的財力證明、雙證件等實體檔案，持久化保存到 Mac 硬碟中
+                  - app-logs:/app/logs                       # 將 Spring Boot 的運行日誌（Logs）導流出來方便隨時查看
+                networks:
+                  - tlbank-network
+
+            volumes:
+              sqlserver-data:                                # 宣告與向系統註冊這三個實體持久化磁碟卷名稱
+              app-uploads:
+              app-logs:
+
+            networks:
+              tlbank-network:
+                driver: bridge                               # 採用橋接網路模式，將上述三個容器鎖在同一個封閉安全的內網網段中
+            EOF
+
+            # 🔐 利用在 GitHub 設定好的 Token 登入 GHCR，解鎖拉取私有映像檔的權限
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            # 🎯 拉取最新程式碼 ➔ 背景無縫更新重啟所有容器 ➔ 強制清空 Mac 內部老舊、殘留的 Docker 垃圾映像檔釋放硬碟空間
+            docker compose pull app
+            docker compose up -d
+            docker image prune -f
