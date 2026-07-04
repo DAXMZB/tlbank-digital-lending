@@ -261,17 +261,23 @@ jobs:
       - name: Pull and restart containers locally
         working-directory: /Users/lidong/tlbank
         env:
-          # 💡 核心防禦：強迫 Docker 使用 Actions 虛擬機提供的臨時空目錄作為 config 儲存點。
-          # 阻斷 Docker 去尋找並呼叫 Mac 實體系統的 docker-credential-osxkeychain，防止 (-25308) 錯誤
+          # 💡 核心防禦：強迫 Docker 使用 Actions 虛擬機提供的臨時空目錄作為 config 儲存點
           DOCKER_CONFIG: ${{ runner.temp }}/.docker
         run: |
           set -e
           
-          # 建立乾淨臨時 Docker 設定資料夾，阻絕舊快取干擾
+          # 建立乾淨臨時 Docker 設定資料夾
           mkdir -p "$DOCKER_CONFIG"
-          echo "{}" > "$DOCKER_CONFIG/config.json"
           
-          # 🔐 由於加上了上面的 DOCKER_CONFIG 隔離，此處的 login 將以純非互動模式完美通關！
+          # 🔒 關鍵修正：硬性覆寫設定檔，徹底阻斷 Docker 調用 macOS 的 credential helper 鑰匙圈機制
+          cat > "$DOCKER_CONFIG/config.json" << 'EOF'
+          {
+            "credHelpers": {},
+            "credsStore": ""
+          }
+          EOF
+          
+          # 🔐 由於加上了完整的 config 隔離，此處的 login 將以純非互動模式完美通關！
           echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
           
           # 🚀 網內直發：重拉最新映像檔、背景重啟容器、清空舊殘留鏡像
