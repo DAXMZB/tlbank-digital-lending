@@ -269,6 +269,16 @@ jobs:
           # 建立乾淨臨時 Docker 設定資料夾，阻絕舊快取與實體系統鑰匙圈干擾
           mkdir -p "$DOCKER_CONFIG"
 
+          # 關鍵補丁：把原本 Docker Desktop 裝好的 cli-plugins（含 docker-compose）
+          # 複製進隔離用的臨時 config 目錄，避免 DOCKER_CONFIG 覆寫後找不到 compose 外掛
+          if [ -d "$HOME/.docker/cli-plugins" ]; then
+            mkdir -p "$DOCKER_CONFIG/cli-plugins"
+            cp -a "$HOME/.docker/cli-plugins/." "$DOCKER_CONFIG/cli-plugins/"
+          fi
+
+          # 驗證 compose 外掛是否真的能被找到（方便排查，可事後拿掉）
+          docker compose version
+
           # 🔐 核心防禦：直接把帳密寫成 base64 塞進 auths，完全跳過 docker login 與 keychain 機制
           # 透過將「使用者名稱:Token」進行 Base64 編碼，生成符合 Docker 規範的憑證字串並過濾換行符號
           AUTH=$(printf '%s:%s' "${{ secrets.GHCR_USERNAME }}" "${{ secrets.GHCR_TOKEN }}" | base64 | tr -d '\n')
