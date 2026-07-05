@@ -34,7 +34,7 @@ classDiagram
 ## 3. `ErrorCode` Catalogue
 
 | `ErrorCode` | HTTP Status | Typical Trigger |
-|---|---|---|
+| --- | --- | --- |
 | `VALIDATION_FAILED` | 400 | `@Valid` constraint violation (`MethodArgumentNotValidException`) |
 | `INVALID_WORKFLOW_TRANSITION` | 409 | `Application`/`ReviewCase` transition guard |
 | `APPLICATION_ALREADY_SUBMITTED` | 400 *(default branch)* | Reserved for explicit double-submit detection |
@@ -62,7 +62,7 @@ classDiagram
 ## 4. Exception → Response Mapping
 
 | Exception | Handler method | HTTP Status | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `BusinessException` | `handleBusinessException` | switch on `ErrorCode` (see §3) | `ApiResponse.error(code, message, null)` |
 | `WorkflowException` | `handleWorkflowException` | 409 | Always `INVALID_WORKFLOW_TRANSITION`, even if a subclass somehow carried a different code |
 | `MethodArgumentNotValidException` | `handleValidationException` | 400 | Populates `fieldErrors: [{field, message}]` from `BindingResult` |

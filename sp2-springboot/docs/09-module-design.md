@@ -14,7 +14,7 @@ role-based access control on every protected endpoint and page.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `security.config.SecurityConfig` | Wires the `SecurityFilterChain`: URL authorization matrix, form login, logout, session management, exception handling |
 | `security.service.UserDetailsServiceImpl` | Loads a `UserEntity` by username, maps `user_roles` to Spring `GrantedAuthority` |
 | `security.model.AuthenticatedUser` | Principal carrying `fullName` alongside standard Spring `User` fields |
@@ -36,7 +36,7 @@ anonymous applicant flow, which has no account at all.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.user.User` | Aggregate: `enable()`, `disable()`, `assignRole()`, `removeRole()`, `hasRole()` |
 | `domain.user.UserId` / `Role` | Business identifier (`USR-XXXXXXXX`) and role enum |
 | `domain.user.repository.UserRepository` | Port: `findById`, `save`, `existsByUsername`, `findAll` |
@@ -46,6 +46,7 @@ anonymous applicant flow, which has no account at all.
 | `presentation.web.AdminController#users` | Thymeleaf user list page |
 
 **Business rules:**
+
 - Username must be unique (`DUPLICATE_USERNAME` → HTTP 409).
 - New users default to `ROLE_USER` if no roles are supplied.
 - Passwords are hashed with the shared `PasswordEncoder` bean (BCrypt, strength 12) before persistence — the
@@ -64,7 +65,7 @@ applicant through to a final decision.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.application.Application` | Aggregate root, full lifecycle behavior (see `04-domain-model.md`) |
 | `domain.application.{Applicant, Address, MobileNumber, Email, DocumentInfo, WorkflowHistory}` | Value objects |
 | `domain.application.ApplicationStatus` | State machine + transition validation |
@@ -92,7 +93,7 @@ check before allowing document upload.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.otp.OtpRecord` | Aggregate: `verify(code, maxRetry, clock)`, `isExpired`, `markExpired`, `cancel` |
 | `domain.otp.{OtpPurpose, OtpStatus, VerifyResult}` | Supporting enums |
 | `domain.otp.repository.OtpRepository` | Port: `save`, `findLatestPendingByMobile`, `markExpiredBefore` |
@@ -101,13 +102,17 @@ check before allowing document upload.
 | `presentation.api.v1.OtpApiController` | `POST /api/v1/otp/actions/send`, `POST /api/v1/otp/actions/verify` |
 
 **Business rules:**
+
 - Sending a new OTP **cancels** any existing `PENDING` OTP for the same mobile number first (one active code
   per mobile at a time).
+
 - 6-digit numeric code generated with `java.security.SecureRandom` (cryptographically strong, not
   `Math.random()`).
+
 - Expiry window and max retry count are **not hardcoded** — read from `SystemParameterService`
   (`OTP.expire_minutes`, default 5; `OTP.max_retry`, default 3), so an administrator can tune them live
   without a deployment.
+
 - `AuditContext.put("otpCode", otpCode)` stashes the generated code into the current request's audit detail
   *before* it gets masked for the notification log display (`AuditLogService.extractOtpCode`) — this exists
   purely so administrators can see the OTP value in the **Notification Logs** admin screen during
@@ -128,7 +133,7 @@ reject with remark), and a running commentary trail per case.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.review.ReviewCase` | Aggregate: `createFor(applicationId)`, `assign`, `startReview`, `approve`, `reject`, `addRemark` |
 | `domain.review.{ReviewCaseId, ReviewStatus, ReviewRemark, ReviewCaseSearchCriteria}` | Identifier, state enum, remark value object, search filter record |
 | `domain.review.repository.ReviewCaseRepository` | Port: `findById`, `save`, `search(criteria, pageable)` |
@@ -156,7 +161,7 @@ an `Application` (or `ReviewCase`) into an invalid state.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.application.ApplicationStatus` | Declares `ALLOWED_TRANSITIONS` and exposes `canTransitionTo(next)` |
 | `domain.service.WorkflowDomainService` | Stateless domain service: `validateTransition(from, to)`, throws `WorkflowException` |
 | `common.exception.WorkflowException` | Specialized `BusinessException` mapped to HTTP 409 |
@@ -182,7 +187,7 @@ at runtime.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.parameter.SystemParameter` | Aggregate: `updateValue(newValue)` (rejects blank) |
 | `domain.parameter.SystemParameterRepository` | Port: `findByGroupAndKey`, `findAllByGroup`, `findAllEnabled`, `save` |
 | `infrastructure.persistence.parameter.*` | `SystemParameterEntity`, `SystemParameterJpaRepository`, `SystemParameterRepositoryImpl` |
@@ -209,7 +214,7 @@ OTP (`OTP.expire_minutes`, `OTP.max_retry`), File Upload (`UPLOAD.max.size.mb`),
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `infrastructure.cache.CacheStore` (port) / `InMemoryCacheStore` (adapter) | Thread-safe `ConcurrentHashMap`-backed store with per-entry TTL and a `@Scheduled` sweep of expired entries |
 | `infrastructure.cache.CacheEntry<V>` | `(value, expiresAt)` record with `isExpired(clock)` |
 | `infrastructure.cache.CacheKeys` | Centralized key-naming helpers (`systemParamKey`, `cardProductKey`) |
@@ -230,7 +235,7 @@ delivery infrastructure via mock adapters.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `infrastructure.notification.{SmsSender, EmailSender}` (ports) | Delivery abstractions |
 | `infrastructure.notification.{MockSmsSender, MockEmailSender}` | Log-only adapters, `@ConditionalOnProperty(tlbank.notification.mode=mock)` |
 | `infrastructure.notification.NotificationTemplate` | Centralized `MessageFormat`-based message templates (OTP, submitted, approved, rejected) |
@@ -251,7 +256,7 @@ dedicated notification log table).
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `application.report.service.ReportDataService` | Aggregates `DailyStatisticsData` (total count, per-status counts, per-product counts) from `ApplicationJpaRepository`/`CardProductJpaRepository` for a given date |
 | `application.report.service.ReportAppService` | Use case: `generateDailyStatisticsReport(request)` — delegates to the right generator by `ReportFormat`; `@Auditable(REPORT_EXPORT)` |
 | `application.report.service.{DailyStatisticsData, ReportFormat}` | Aggregation result record, supported format enum (`EXCEL`, `PDF`) |
@@ -272,7 +277,7 @@ still allowing an administrator to trigger any of them on demand.
 **Key classes:**
 
 | Class | Cron property | Responsibility |
-|---|---|---|
+| --- | --- | --- |
 | `infrastructure.scheduler.OtpCleanupScheduler` | `tlbank.scheduler.otp-cleanup.cron` | Marks expired `PENDING` OTPs as `EXPIRED` (`OtpRepository.markExpiredBefore`) |
 | `infrastructure.scheduler.CacheRefreshScheduler` | `tlbank.scheduler.cache-refresh.cron` | Reloads system parameter cache, evicts card product cache keys |
 | `infrastructure.scheduler.DailyStatisticsScheduler` | `tlbank.scheduler.daily-stats.cron` | Builds and logs the previous day's statistics (does not itself generate a file — see Report Generation) |
@@ -290,7 +295,7 @@ troubleshooting, with automatic PII masking.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `common.audit.{Auditable, AuditAspect}` | Declarative method-level audit logging via Spring AOP |
 | `common.audit.AuditContext` | Thread-local supplemental detail accumulator, cleared at the end of every aspect invocation |
 | `common.audit.AuditDetailBuilder` | Builds a sanitized, masked detail string from method arguments |
@@ -310,7 +315,7 @@ Full detail: `11-audit-logging.md`.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `domain.application.{DocumentType, DocumentInfo}` | Document category enum + value object metadata |
 | `infrastructure.storage.DocumentStorageService` (port) / `LocalDocumentStorageService` (adapter) | Validation + filesystem persistence |
 | `infrastructure.persistence.application.ApplicationDocumentEntity` | Persisted document metadata row |
@@ -330,7 +335,7 @@ parsing logic.
 **Key classes:**
 
 | Class | Responsibility |
-|---|---|
+| --- | --- |
 | `common.exception.ErrorCode` | Enum of every recognized business/system error |
 | `common.exception.BusinessException` / `WorkflowException` | Exception hierarchy carrying an `ErrorCode` |
 | `presentation.api.advice.GlobalExceptionHandler` | `@RestControllerAdvice` mapping exception types/codes → HTTP status + `ApiResponse` |
