@@ -13,14 +13,14 @@ role-based access control on every protected endpoint and page.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `security.config.SecurityConfig` | Wires the `SecurityFilterChain`: URL authorization matrix, form login, logout, session management, exception handling |
-| `security.service.UserDetailsServiceImpl` | Loads a `UserEntity` by username, maps `user_roles` to Spring `GrantedAuthority` |
-| `security.model.AuthenticatedUser` | Principal carrying `fullName` alongside standard Spring `User` fields |
-| `security.handler.*` | `LoginSuccessHandler`, `LoginFailureHandler`, `LogoutSuccessHandlerImpl`, `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler`, `SessionExpiredStrategy` |
-| `security.util.LoginResponseMode` / `JsonResponseWriter` | Decide and produce JSON vs. browser-redirect responses for auth events |
-| `security.filter.MdcLoggingFilter` | Attaches `requestId`/`username` to SLF4J MDC for every request |
+| Class                                                    | Responsibility                                                                                                                                                    |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `security.config.SecurityConfig`                         | Wires the `SecurityFilterChain`: URL authorization matrix, form login, logout, session management, exception handling                                             |
+| `security.service.UserDetailsServiceImpl`                | Loads a `UserEntity` by username, maps `user_roles` to Spring `GrantedAuthority`                                                                                  |
+| `security.model.AuthenticatedUser`                       | Principal carrying `fullName` alongside standard Spring `User` fields                                                                                             |
+| `security.handler.*`                                     | `LoginSuccessHandler`, `LoginFailureHandler`, `LogoutSuccessHandlerImpl`, `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler`, `SessionExpiredStrategy` |
+| `security.util.LoginResponseMode` / `JsonResponseWriter` | Decide and produce JSON vs. browser-redirect responses for auth events                                                                                            |
+| `security.filter.MdcLoggingFilter`                       | Attaches `requestId`/`username` to SLF4J MDC for every request                                                                                                    |
 
 **Interacts with:** User Management (loads `UserEntity`), Audit Log (writes `USER_LOGIN`/`USER_LOGIN_FAILED`/`USER_LOGOUT`).
 
@@ -35,15 +35,15 @@ anonymous applicant flow, which has no account at all.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.user.User` | Aggregate: `enable()`, `disable()`, `assignRole()`, `removeRole()`, `hasRole()` |
-| `domain.user.UserId` / `Role` | Business identifier (`USR-XXXXXXXX`) and role enum |
-| `domain.user.repository.UserRepository` | Port: `findById`, `save`, `existsByUsername`, `findAll` |
-| `infrastructure.persistence.user.UserEntity` / `UserJpaRepository` / `UserRepositoryImpl` | JPA adapter |
-| `application.user.service.UserAppService` | Use cases: `createUser`, `updateStatus`, `findAll`, `findById` |
-| `presentation.api.v1.UserManagementApiController` | `GET/POST /api/v1/admin/users`, `GET/PUT .../{userId}` |
-| `presentation.web.AdminController#users` | Thymeleaf user list page |
+| Class                                                                                     | Responsibility                                                                  |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `domain.user.User`                                                                        | Aggregate: `enable()`, `disable()`, `assignRole()`, `removeRole()`, `hasRole()` |
+| `domain.user.UserId` / `Role`                                                             | Business identifier (`USR-XXXXXXXX`) and role enum                              |
+| `domain.user.repository.UserRepository`                                                   | Port: `findById`, `save`, `existsByUsername`, `findAll`                         |
+| `infrastructure.persistence.user.UserEntity` / `UserJpaRepository` / `UserRepositoryImpl` | JPA adapter                                                                     |
+| `application.user.service.UserAppService`                                                 | Use cases: `createUser`, `updateStatus`, `findAll`, `findById`                  |
+| `presentation.api.v1.UserManagementApiController`                                         | `GET/POST /api/v1/admin/users`, `GET/PUT .../{userId}`                          |
+| `presentation.web.AdminController#users`                                                  | Thymeleaf user list page                                                        |
 
 **Business rules:**
 
@@ -64,16 +64,16 @@ applicant through to a final decision.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.application.Application` | Aggregate root, full lifecycle behavior (see `04-domain-model.md`) |
-| `domain.application.{Applicant, Address, MobileNumber, Email, DocumentInfo, WorkflowHistory}` | Value objects |
-| `domain.application.ApplicationStatus` | State machine + transition validation |
-| `domain.application.repository.ApplicationRepository` | Port |
-| `infrastructure.persistence.application.*` | `ApplicationEntity` + embeddables (`ApplicantEmbeddable`, `AddressEmbeddable`) + child entities (`WorkflowHistoryEntity`, `ApplicationDocumentEntity`) + `ApplicationJpaRepository` + `ApplicationRepositoryImpl` |
-| `application.application.service.ApplicationAppService` | Use cases: `createApplication`, `getApplication`, `uploadDocuments`, `submitApplication`, `cancelApplication`, `findAllEnabledProducts` |
-| `presentation.api.v1.ApplicationApiController` / `CardProductApiController` | Public REST surface |
-| `presentation.web.ApplicationWebController` | Public Thymeleaf flow: product list → apply form → OTP page → upload page → submit confirm → complete page |
+| Class                                                                                         | Responsibility                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain.application.Application`                                                              | Aggregate root, full lifecycle behavior (see `04-domain-model.md`)                                                                                                                                                |
+| `domain.application.{Applicant, Address, MobileNumber, Email, DocumentInfo, WorkflowHistory}` | Value objects                                                                                                                                                                                                     |
+| `domain.application.ApplicationStatus`                                                        | State machine + transition validation                                                                                                                                                                             |
+| `domain.application.repository.ApplicationRepository`                                         | Port                                                                                                                                                                                                              |
+| `infrastructure.persistence.application.*`                                                    | `ApplicationEntity` + embeddables (`ApplicantEmbeddable`, `AddressEmbeddable`) + child entities (`WorkflowHistoryEntity`, `ApplicationDocumentEntity`) + `ApplicationJpaRepository` + `ApplicationRepositoryImpl` |
+| `application.application.service.ApplicationAppService`                                       | Use cases: `createApplication`, `getApplication`, `uploadDocuments`, `submitApplication`, `cancelApplication`, `findAllEnabledProducts`                                                                           |
+| `presentation.api.v1.ApplicationApiController` / `CardProductApiController`                   | Public REST surface                                                                                                                                                                                               |
+| `presentation.web.ApplicationWebController`                                                   | Public Thymeleaf flow: product list → apply form → OTP page → upload page → submit confirm → complete page                                                                                                        |
 
 **Business rules:** see `08-workflow-design.md` for the full state machine; see `15-file-upload-design.md`
 for document validation; PII is always masked in outbound DTOs via `MaskingUtil` (`toMaskedApplicant`).
@@ -92,14 +92,14 @@ check before allowing document upload.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.otp.OtpRecord` | Aggregate: `verify(code, maxRetry, clock)`, `isExpired`, `markExpired`, `cancel` |
-| `domain.otp.{OtpPurpose, OtpStatus, VerifyResult}` | Supporting enums |
-| `domain.otp.repository.OtpRepository` | Port: `save`, `findLatestPendingByMobile`, `markExpiredBefore` |
-| `infrastructure.persistence.otp.*` | `OtpRecordEntity`, `OtpJpaRepository`, `OtpRepositoryImpl` |
-| `application.otp.service.OtpAppService` | Use cases: `sendOtp`, `verifyOtp` |
-| `presentation.api.v1.OtpApiController` | `POST /api/v1/otp/actions/send`, `POST /api/v1/otp/actions/verify` |
+| Class                                              | Responsibility                                                                   |
+| -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `domain.otp.OtpRecord`                             | Aggregate: `verify(code, maxRetry, clock)`, `isExpired`, `markExpired`, `cancel` |
+| `domain.otp.{OtpPurpose, OtpStatus, VerifyResult}` | Supporting enums                                                                 |
+| `domain.otp.repository.OtpRepository`              | Port: `save`, `findLatestPendingByMobile`, `markExpiredBefore`                   |
+| `infrastructure.persistence.otp.*`                 | `OtpRecordEntity`, `OtpJpaRepository`, `OtpRepositoryImpl`                       |
+| `application.otp.service.OtpAppService`            | Use cases: `sendOtp`, `verifyOtp`                                                |
+| `presentation.api.v1.OtpApiController`             | `POST /api/v1/otp/actions/send`, `POST /api/v1/otp/actions/verify`               |
 
 **Business rules:**
 
@@ -132,15 +132,15 @@ reject with remark), and a running commentary trail per case.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.review.ReviewCase` | Aggregate: `createFor(applicationId)`, `assign`, `startReview`, `approve`, `reject`, `addRemark` |
-| `domain.review.{ReviewCaseId, ReviewStatus, ReviewRemark, ReviewCaseSearchCriteria}` | Identifier, state enum, remark value object, search filter record |
-| `domain.review.repository.ReviewCaseRepository` | Port: `findById`, `save`, `search(criteria, pageable)` |
-| `infrastructure.persistence.review.*` | `ReviewCaseEntity`, `ReviewRemarkEntity`, `ReviewCaseJpaRepository`, `ReviewCaseRepositoryImpl` |
-| `application.review.service.ReviewAppService` | Use cases: `searchCases`, `getCaseDetail`, `startCaseReview`, `approveCase`, `rejectCase`, `addRemark` |
-| `presentation.api.v1.ReviewApiController` (+ `review.*Request` DTOs) | REST surface |
-| `presentation.web.ReviewController` | Thymeleaf review queue + case detail pages |
+| Class                                                                                | Responsibility                                                                                         |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `domain.review.ReviewCase`                                                           | Aggregate: `createFor(applicationId)`, `assign`, `startReview`, `approve`, `reject`, `addRemark`       |
+| `domain.review.{ReviewCaseId, ReviewStatus, ReviewRemark, ReviewCaseSearchCriteria}` | Identifier, state enum, remark value object, search filter record                                      |
+| `domain.review.repository.ReviewCaseRepository`                                      | Port: `findById`, `save`, `search(criteria, pageable)`                                                 |
+| `infrastructure.persistence.review.*`                                                | `ReviewCaseEntity`, `ReviewRemarkEntity`, `ReviewCaseJpaRepository`, `ReviewCaseRepositoryImpl`        |
+| `application.review.service.ReviewAppService`                                        | Use cases: `searchCases`, `getCaseDetail`, `startCaseReview`, `approveCase`, `rejectCase`, `addRemark` |
+| `presentation.api.v1.ReviewApiController` (+ `review.*Request` DTOs)                 | REST surface                                                                                           |
+| `presentation.web.ReviewController`                                                  | Thymeleaf review queue + case detail pages                                                             |
 
 **Business rules:** see `08-workflow-design.md` §2–§3. A `ReviewCase` is **never created directly by a
 reviewer** — it is always a side effect of `ApplicationSubmittedEvent`. Approving/rejecting a case
@@ -160,13 +160,13 @@ an `Application` (or `ReviewCase`) into an invalid state.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.application.ApplicationStatus` | Declares `ALLOWED_TRANSITIONS` and exposes `canTransitionTo(next)` |
-| `domain.service.WorkflowDomainService` | Stateless domain service: `validateTransition(from, to)`, throws `WorkflowException` |
-| `common.exception.WorkflowException` | Specialized `BusinessException` mapped to HTTP 409 |
+| Class                                                   | Responsibility                                                                        |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `domain.application.ApplicationStatus`                  | Declares `ALLOWED_TRANSITIONS` and exposes `canTransitionTo(next)`                    |
+| `domain.service.WorkflowDomainService`                  | Stateless domain service: `validateTransition(from, to)`, throws `WorkflowException`  |
+| `common.exception.WorkflowException`                    | Specialized `BusinessException` mapped to HTTP 409                                    |
 | `domain.application.Application#transitionTo` (private) | The single internal call site that both checks the rule and records `WorkflowHistory` |
-| `domain.review.ReviewCase#transitionTo` (private) | The equivalent, simpler, inline transition table for review status |
+| `domain.review.ReviewCase#transitionTo` (private)       | The equivalent, simpler, inline transition table for review status                    |
 
 This module is intentionally **not** a generic, configurable workflow/BPM engine (no external rule DSL, no
 admin-editable transition graph) — it is a deliberately simple, compile-time-checked state machine, which is
@@ -186,14 +186,14 @@ at runtime.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.parameter.SystemParameter` | Aggregate: `updateValue(newValue)` (rejects blank) |
-| `domain.parameter.SystemParameterRepository` | Port: `findByGroupAndKey`, `findAllByGroup`, `findAllEnabled`, `save` |
-| `infrastructure.persistence.parameter.*` | `SystemParameterEntity`, `SystemParameterJpaRepository`, `SystemParameterRepositoryImpl` |
+| Class                                                  | Responsibility                                                                                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `domain.parameter.SystemParameter`                     | Aggregate: `updateValue(newValue)` (rejects blank)                                                                                               |
+| `domain.parameter.SystemParameterRepository`           | Port: `findByGroupAndKey`, `findAllByGroup`, `findAllEnabled`, `save`                                                                            |
+| `infrastructure.persistence.parameter.*`               | `SystemParameterEntity`, `SystemParameterJpaRepository`, `SystemParameterRepositoryImpl`                                                         |
 | `application.parameter.service.SystemParameterService` | Use cases: `getValue` (cached, throws if missing), `getValueOrDefault`, `getIntValue`, `findByGroup`, `findAllEnabled`, `update`, `refreshCache` |
-| `presentation.api.v1.SystemParameterApiController` | `GET/PUT /api/v1/admin/system-parameters` |
-| `presentation.web.AdminController#systemParameters` | Thymeleaf grouped parameter editor |
+| `presentation.api.v1.SystemParameterApiController`     | `GET/PUT /api/v1/admin/system-parameters`                                                                                                        |
+| `presentation.web.AdminController#systemParameters`    | Thymeleaf grouped parameter editor                                                                                                               |
 
 **Design note:** `getValue` is the only read path that consults the cache (`CacheKeys.systemParamKey`);
 `getIntValue`/`getValueOrDefault` intentionally bypass the cache and read straight from the repository with
@@ -213,15 +213,15 @@ OTP (`OTP.expire_minutes`, `OTP.max_retry`), File Upload (`UPLOAD.max.size.mb`),
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `infrastructure.cache.CacheStore` (port) / `InMemoryCacheStore` (adapter) | Thread-safe `ConcurrentHashMap`-backed store with per-entry TTL and a `@Scheduled` sweep of expired entries |
-| `infrastructure.cache.CacheEntry<V>` | `(value, expiresAt)` record with `isExpired(clock)` |
-| `infrastructure.cache.CacheKeys` | Centralized key-naming helpers (`systemParamKey`, `cardProductKey`) |
-| `infrastructure.cache.CacheTtlProvider` | Resolves TTL from `SystemParameterRepository` (`CACHE.ttl_seconds`, default 6h) |
-| `infrastructure.cache.CachedCardProductRepository` | `@Primary` caching decorator around the JPA-backed `CardProductRepository`, selected automatically over the plain `@Qualifier("cardProductRepositoryImpl")` bean |
-| `application.cache.service.CacheManagementService` | Admin use cases: `refreshAll`, `refreshSystemParameters`, `refreshProducts`, `getStats` |
-| `presentation.api.v1.CacheManagementApiController` | `POST .../cache/refresh*`, `GET .../cache/stats` |
+| Class                                                                     | Responsibility                                                                                                                                                   |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `infrastructure.cache.CacheStore` (port) / `InMemoryCacheStore` (adapter) | Thread-safe `ConcurrentHashMap`-backed store with per-entry TTL and a `@Scheduled` sweep of expired entries                                                      |
+| `infrastructure.cache.CacheEntry<V>`                                      | `(value, expiresAt)` record with `isExpired(clock)`                                                                                                              |
+| `infrastructure.cache.CacheKeys`                                          | Centralized key-naming helpers (`systemParamKey`, `cardProductKey`)                                                                                              |
+| `infrastructure.cache.CacheTtlProvider`                                   | Resolves TTL from `SystemParameterRepository` (`CACHE.ttl_seconds`, default 6h)                                                                                  |
+| `infrastructure.cache.CachedCardProductRepository`                        | `@Primary` caching decorator around the JPA-backed `CardProductRepository`, selected automatically over the plain `@Qualifier("cardProductRepositoryImpl")` bean |
+| `application.cache.service.CacheManagementService`                        | Admin use cases: `refreshAll`, `refreshSystemParameters`, `refreshProducts`, `getStats`                                                                          |
+| `presentation.api.v1.CacheManagementApiController`                        | `POST .../cache/refresh*`, `GET .../cache/stats`                                                                                                                 |
 
 Full detail: `12-cache-design.md`.
 
@@ -234,13 +234,13 @@ delivery infrastructure via mock adapters.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `infrastructure.notification.{SmsSender, EmailSender}` (ports) | Delivery abstractions |
-| `infrastructure.notification.{MockSmsSender, MockEmailSender}` | Log-only adapters, `@ConditionalOnProperty(tlbank.notification.mode=mock)` |
-| `infrastructure.notification.NotificationTemplate` | Centralized `MessageFormat`-based message templates (OTP, submitted, approved, rejected) |
-| `application.notification.service.{NotificationService, NotificationServiceImpl}` | Use-case-facing port + implementation, best-effort delivery (catches and logs failures, never throws) |
-| `infrastructure.event.NotificationEventHandler` | Listens for `ApplicationSubmittedEvent` / `ApplicationApprovedEvent` / `ApplicationRejectedEvent` and dispatches the matching notification |
+| Class                                                                                                 | Responsibility                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `infrastructure.notification.{SmsSender, EmailSender}` (ports)                                        | Delivery abstractions                                                                                                                              |
+| `infrastructure.notification.{MockSmsSender, MockEmailSender}`                                        | Log-only adapters, `@ConditionalOnProperty(tlbank.notification.mode=mock)`                                                                         |
+| `infrastructure.notification.NotificationTemplate`                                                    | Centralized `MessageFormat`-based message templates (OTP, submitted, approved, rejected)                                                           |
+| `application.notification.service.{NotificationService, NotificationServiceImpl}`                     | Use-case-facing port + implementation, best-effort delivery (catches and logs failures, never throws)                                              |
+| `infrastructure.event.NotificationEventHandler`                                                       | Listens for `ApplicationSubmittedEvent` / `ApplicationApprovedEvent` / `ApplicationRejectedEvent` and dispatches the matching notification         |
 | `presentation.web.AdminController#notifications` / `presentation.api.v1.NotificationLogApiController` | Admin visibility into notification *attempts*, sourced from the audit log (there is no separate `notifications` table — see `11-audit-logging.md`) |
 
 **Interacts with:** OTP (direct synchronous call from `OtpAppService`), Credit Card Application & Credit
@@ -255,15 +255,15 @@ dedicated notification log table).
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `application.report.service.ReportDataService` | Aggregates `DailyStatisticsData` (total count, per-status counts, per-product counts) from `ApplicationJpaRepository`/`CardProductJpaRepository` for a given date |
-| `application.report.service.ReportAppService` | Use case: `generateDailyStatisticsReport(request)` — delegates to the right generator by `ReportFormat`; `@Auditable(REPORT_EXPORT)` |
-| `application.report.service.{DailyStatisticsData, ReportFormat}` | Aggregation result record, supported format enum (`EXCEL`, `PDF`) |
-| `infrastructure.report.ExcelReportGenerator` | Apache POI: "Summary" sheet (totals + status breakdown with percentages) + "By Product" sheet |
-| `infrastructure.report.PdfReportGenerator` | iText 7: title, totals, status table, product table, generation timestamp footer |
-| `presentation.api.v1.ReportApiController` | `POST /api/v1/reports/daily-statistics` — returns the raw file with a `Content-Disposition` header |
-| `presentation.web.AdminController#reports` | Thymeleaf report trigger page |
+| Class                                                            | Responsibility                                                                                                                                                    |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application.report.service.ReportDataService`                   | Aggregates `DailyStatisticsData` (total count, per-status counts, per-product counts) from `ApplicationJpaRepository`/`CardProductJpaRepository` for a given date |
+| `application.report.service.ReportAppService`                    | Use case: `generateDailyStatisticsReport(request)` — delegates to the right generator by `ReportFormat`; `@Auditable(REPORT_EXPORT)`                              |
+| `application.report.service.{DailyStatisticsData, ReportFormat}` | Aggregation result record, supported format enum (`EXCEL`, `PDF`)                                                                                                 |
+| `infrastructure.report.ExcelReportGenerator`                     | Apache POI: "Summary" sheet (totals + status breakdown with percentages) + "By Product" sheet                                                                     |
+| `infrastructure.report.PdfReportGenerator`                       | iText 7: title, totals, status table, product table, generation timestamp footer                                                                                  |
+| `presentation.api.v1.ReportApiController`                        | `POST /api/v1/reports/daily-statistics` — returns the raw file with a `Content-Disposition` header                                                                |
+| `presentation.web.AdminController#reports`                       | Thymeleaf report trigger page                                                                                                                                     |
 
 Full detail: `14-report-design.md`.
 
@@ -276,12 +276,12 @@ still allowing an administrator to trigger any of them on demand.
 
 **Key classes:**
 
-| Class | Cron property | Responsibility |
-| --- | --- | --- |
-| `infrastructure.scheduler.OtpCleanupScheduler` | `tlbank.scheduler.otp-cleanup.cron` | Marks expired `PENDING` OTPs as `EXPIRED` (`OtpRepository.markExpiredBefore`) |
-| `infrastructure.scheduler.CacheRefreshScheduler` | `tlbank.scheduler.cache-refresh.cron` | Reloads system parameter cache, evicts card product cache keys |
-| `infrastructure.scheduler.DailyStatisticsScheduler` | `tlbank.scheduler.daily-stats.cron` | Builds and logs the previous day's statistics (does not itself generate a file — see Report Generation) |
-| `presentation.api.v1.SchedulerApiController` | n/a | Manual trigger endpoints for all three jobs |
+| Class                                               | Cron property                         | Responsibility                                                                                          |
+| --------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `infrastructure.scheduler.OtpCleanupScheduler`      | `tlbank.scheduler.otp-cleanup.cron`   | Marks expired `PENDING` OTPs as `EXPIRED` (`OtpRepository.markExpiredBefore`)                           |
+| `infrastructure.scheduler.CacheRefreshScheduler`    | `tlbank.scheduler.cache-refresh.cron` | Reloads system parameter cache, evicts card product cache keys                                          |
+| `infrastructure.scheduler.DailyStatisticsScheduler` | `tlbank.scheduler.daily-stats.cron`   | Builds and logs the previous day's statistics (does not itself generate a file — see Report Generation) |
+| `presentation.api.v1.SchedulerApiController`        | n/a                                   | Manual trigger endpoints for all three jobs                                                             |
 
 Full detail: `13-scheduler-design.md`.
 
@@ -294,15 +294,15 @@ troubleshooting, with automatic PII masking.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `common.audit.{Auditable, AuditAspect}` | Declarative method-level audit logging via Spring AOP |
-| `common.audit.AuditContext` | Thread-local supplemental detail accumulator, cleared at the end of every aspect invocation |
-| `common.audit.AuditDetailBuilder` | Builds a sanitized, masked detail string from method arguments |
-| `common.audit.{AuditLog, AuditLogRepository, AuditLogWriter}` | Entity, Spring Data repository, async `REQUIRES_NEW` writer |
-| `common.audit.AuditIpResolver` | Client IP resolution honoring `X-Forwarded-For` |
-| `application.audit.service.AuditLogService` | Admin query use cases: `search`, `searchNotificationAttempts` |
-| `presentation.api.v1.{AuditLogApiController, NotificationLogApiController}` | Admin REST surfaces |
+| Class                                                                       | Responsibility                                                                              |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `common.audit.{Auditable, AuditAspect}`                                     | Declarative method-level audit logging via Spring AOP                                       |
+| `common.audit.AuditContext`                                                 | Thread-local supplemental detail accumulator, cleared at the end of every aspect invocation |
+| `common.audit.AuditDetailBuilder`                                           | Builds a sanitized, masked detail string from method arguments                              |
+| `common.audit.{AuditLog, AuditLogRepository, AuditLogWriter}`               | Entity, Spring Data repository, async `REQUIRES_NEW` writer                                 |
+| `common.audit.AuditIpResolver`                                              | Client IP resolution honoring `X-Forwarded-For`                                             |
+| `application.audit.service.AuditLogService`                                 | Admin query use cases: `search`, `searchNotificationAttempts`                               |
+| `presentation.api.v1.{AuditLogApiController, NotificationLogApiController}` | Admin REST surfaces                                                                         |
 
 Full detail: `11-audit-logging.md`.
 
@@ -314,13 +314,13 @@ Full detail: `11-audit-logging.md`.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `domain.application.{DocumentType, DocumentInfo}` | Document category enum + value object metadata |
-| `infrastructure.storage.DocumentStorageService` (port) / `LocalDocumentStorageService` (adapter) | Validation + filesystem persistence |
-| `infrastructure.persistence.application.ApplicationDocumentEntity` | Persisted document metadata row |
-| `application.application.service.ApplicationAppService#uploadDocuments` | Orchestrates validate → store → append to aggregate → persist |
-| `presentation.api.v1.ApplicationApiController#uploadDocument` | `POST /applications/{id}/documents` (multipart) |
+| Class                                                                                            | Responsibility                                                |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `domain.application.{DocumentType, DocumentInfo}`                                                | Document category enum + value object metadata                |
+| `infrastructure.storage.DocumentStorageService` (port) / `LocalDocumentStorageService` (adapter) | Validation + filesystem persistence                           |
+| `infrastructure.persistence.application.ApplicationDocumentEntity`                               | Persisted document metadata row                               |
+| `application.application.service.ApplicationAppService#uploadDocuments`                          | Orchestrates validate → store → append to aggregate → persist |
+| `presentation.api.v1.ApplicationApiController#uploadDocument`                                    | `POST /applications/{id}/documents` (multipart)               |
 
 Full detail: `15-file-upload-design.md`.
 
@@ -334,12 +334,12 @@ parsing logic.
 
 **Key classes:**
 
-| Class | Responsibility |
-| --- | --- |
-| `common.exception.ErrorCode` | Enum of every recognized business/system error |
-| `common.exception.BusinessException` / `WorkflowException` | Exception hierarchy carrying an `ErrorCode` |
-| `presentation.api.advice.GlobalExceptionHandler` | `@RestControllerAdvice` mapping exception types/codes → HTTP status + `ApiResponse` |
-| `common.response.{ApiResponse, FieldErrorDetail, PageResponse}` | Response envelope types |
+| Class                                                           | Responsibility                                                                      |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `common.exception.ErrorCode`                                    | Enum of every recognized business/system error                                      |
+| `common.exception.BusinessException` / `WorkflowException`      | Exception hierarchy carrying an `ErrorCode`                                         |
+| `presentation.api.advice.GlobalExceptionHandler`                | `@RestControllerAdvice` mapping exception types/codes → HTTP status + `ApiResponse` |
+| `common.response.{ApiResponse, FieldErrorDetail, PageResponse}` | Response envelope types                                                             |
 
 Full detail: `10-error-handling.md`.
 

@@ -13,6 +13,7 @@ public enum DocumentType {
     INCOME_PROOF,
     RESIDENCE_PROOF
 }
+
 ```
 
 The web upload page (`ApplicationWebController#uploadPage`) computes
@@ -45,16 +46,17 @@ sequenceDiagram
     SVC->>REPO: save(application)
     SVC-->>API: DocumentUploadResponse{documentType, fileName, uploadedAt}
     API-->>A: 200 OK
+
 ```
 
 ## 4. Validation Rules (`LocalDocumentStorageService.validate`)
 
-| Rule | Enforcement |
-| --- | --- |
-| File must not be null/empty | `BusinessException(DOCUMENT_UPLOAD_FAILED, "File must not be empty")` |
-| Extension must be one of `jpg`, `jpeg`, `png`, `pdf` | Case-insensitive check against `ALLOWED_EXTENSIONS`; otherwise `DOCUMENT_UPLOAD_FAILED` |
-| File size must not exceed the configured maximum | `systemParameterService.getIntValue("UPLOAD", "max.size.mb", 10)` × 1MB, compared to `file.getSize()`; otherwise `DOCUMENT_UPLOAD_FAILED` |
-| Filename must contain an extension at all | Defensive check before extension extraction; `DOCUMENT_UPLOAD_FAILED` if absent |
+| Rule                                                 | Enforcement                                                                                                                               |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| File must not be null/empty                          | `BusinessException(DOCUMENT_UPLOAD_FAILED, "File must not be empty")`                                                                     |
+| Extension must be one of `jpg`, `jpeg`, `png`, `pdf` | Case-insensitive check against `ALLOWED_EXTENSIONS`; otherwise `DOCUMENT_UPLOAD_FAILED`                                                   |
+| File size must not exceed the configured maximum     | `systemParameterService.getIntValue("UPLOAD", "max.size.mb", 10)` × 1MB, compared to `file.getSize()`; otherwise `DOCUMENT_UPLOAD_FAILED` |
+| Filename must contain an extension at all            | Defensive check before extension extraction; `DOCUMENT_UPLOAD_FAILED` if absent                                                           |
 
 In addition, Spring's own multipart limits act as a first line of defense before this code even runs:
 `spring.servlet.multipart.max-file-size: 10MB`, `max-request-size: 15MB` (`application.yml`).
@@ -67,15 +69,19 @@ In addition, Spring's own multipart limits act as a first line of defense before
     ├── NATIONAL_ID_20260628101501.pdf
     ├── INCOME_PROOF_20260628101522.jpg
     └── RESIDENCE_PROOF_20260628101545.png
+
 ```
 
 - Base path resolved per profile: `./uploads` (default), `${user.dir}/uploads/dev` (dev),
   `${APP_UPLOAD_PATH:/app/uploads}` (staging/prod, a Docker named volume — see `17-deployment-design.md`).
+
 - Created eagerly on startup (`@PostConstruct initUploadDirectory`), failing fast with an
   `IllegalStateException` if the directory cannot be created.
+
 - Filenames are server-generated (`{documentType}_{yyyyMMddHHmmss}.{ext}`), **never** the raw client-supplied
   filename — this avoids path traversal and filename-collision concerns entirely, while the *original*
   client filename is still preserved separately in `application_documents.file_name` for display purposes.
+
 - A relative path (`{applicationId}/{generatedFileName}`) is what gets persisted in
   `application_documents.file_path` and returned internally — never an absolute filesystem path — keeping
   storage location fully decoupled from any consumer of that metadata.
@@ -94,6 +100,7 @@ public interface DocumentStorageService {
     String store(String applicationId, DocumentType documentType, MultipartFile file);
     void validate(MultipartFile file);
 }
+
 ```
 
 `LocalDocumentStorageService` is the only adapter today. Swapping to S3/MinIO/Azure Blob in the future
@@ -104,6 +111,7 @@ no change to `ApplicationAppService` or any controller.
 
 - Extension whitelist + size limit mitigate the most common upload-abuse vectors (arbitrary executable
   upload, disk exhaustion).
+
 - Server-generated filenames eliminate path traversal via crafted filenames.
 - Document upload endpoints are intentionally `permitAll()` (no login required) because applicants have no
   account — the *only* binding context that authorizes an upload is knowledge of the `applicationId`, which

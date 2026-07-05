@@ -30,8 +30,10 @@ every later sprint adds *behavior* rather than *infrastructure*.
 - Spring Boot 3.4.x / Java 17 Maven project with the dependency set in `00-sdd-overview.md` §4.
 - Package skeleton: `domain`, `application`, `infrastructure`, `presentation`, `security`, `common`, each
   with a `package-info.java`.
+
 - Cross-cutting primitives: `ApiResponse`, `PageResponse`, `FieldErrorDetail`, `ErrorCode`,
   `BusinessException`, `BaseEntity`.
+
 - Dual Flyway migration sets (H2 + SQL Server) for the seven foundational tables.
 - Profile-specific `application*.yml` files.
 
@@ -51,6 +53,7 @@ src/main/resources/application-staging.yml
 src/main/resources/application-prod.yml
 src/main/resources/db/migration/V1..V7__*.sql   (H2 syntax)
 src/main/resources/db/migration-sqlserver/V1..V7__*.sql   (T-SQL syntax)
+
 ```
 
 **Packages to modify:** N/A (initial creation).
@@ -60,6 +63,7 @@ src/main/resources/db/migration-sqlserver/V1..V7__*.sql   (T-SQL syntax)
 - `./mvnw clean compile` succeeds.
 - `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` starts cleanly; H2 console reachable at
   `/h2-console`; Swagger UI reachable at `/swagger-ui.html`.
+
 - Flyway reports `V1`–`V7` applied successfully against H2 on startup.
 - `ApiResponse.success(...)`/`ApiResponse.error(...)` compile and serialize to the envelope shown in
   `06-api-specification.md` §1.
@@ -110,6 +114,7 @@ src/main/java/com/tlbank/lending/application/dto/response/LoginResponse.java
 src/main/java/com/tlbank/lending/presentation/web/AuthController.java
 src/main/resources/db/migration/V8__add_user_last_login.sql (+ -sqlserver equivalent)
 src/main/resources/db/dev-seed/V100__seed_test_data.sql (admin/reviewer1/applicant1 dev accounts)
+
 ```
 
 **Packages to modify:** `common.audit` (add `AuditLog`/`AuditLogRepository`/`AuditIpResolver` early, since
@@ -121,9 +126,11 @@ the login handlers write audit entries directly — see `11-audit-logging.md` §
 - `POST /api/v1/auth/login` with valid credentials returns `200` + `ApiResponse<LoginResponse>` (JSON
   client) or a `302` redirect to the role-appropriate landing page (browser client) — per
   `07-security-design.md` §3.
+
 - Invalid credentials → `401` + `ApiResponse.error(UNAUTHORIZED, ...)`.
 - Unauthenticated request to an `hasRole('ADMIN')` path → `401` (API) or redirect (browser); authenticated
   but wrong role → `403`.
+
 - A second login for the same user invalidates the first session (`maximumSessions(1)`).
 - `users.last_login_at` updates on every successful login.
 - `audit_logs` receives `USER_LOGIN`/`USER_LOGIN_FAILED`/`USER_LOGOUT` rows.
@@ -165,6 +172,7 @@ src/main/java/com/tlbank/lending/presentation/api/v1/UserManagementApiController
 src/main/java/com/tlbank/lending/presentation/web/AdminController.java   (initial: #users only)
 src/main/resources/templates/admin/users.html
 src/main/resources/db/migration/V9__add_user_business_id.sql (+ -sqlserver equivalent)
+
 ```
 
 **Packages to modify:** `security.service.UserDetailsServiceImpl` (no change expected, but verify it still
@@ -174,10 +182,13 @@ resolves correctly once `user_id` becomes the JPA `@Id`).
 
 - `POST /api/v1/admin/users` creates a user with a generated `USR-XXXXXXXX` business ID; duplicate username
   → `409 DUPLICATE_USERNAME`.
+
 - `GET /api/v1/admin/users` and `GET /api/v1/admin/users/{userId}` return data per
   `06-api-specification.md` §6.
+
 - `PUT /api/v1/admin/users/{userId}/status?enabled=false` disables the account; a subsequent login attempt
   for that user fails.
+
 - All three endpoints require `ROLE_ADMIN` (verify both via the global matcher and `@PreAuthorize`).
 
 **Cursor Prompt:**
@@ -214,6 +225,7 @@ src/main/java/com/tlbank/lending/application/parameter/service/{SystemParameterS
 src/main/java/com/tlbank/lending/presentation/api/v1/SystemParameterApiController.java
 src/main/resources/templates/admin/system-parameters.html
 src/main/resources/db/migration/V10__extend_system_parameters.sql (+ -sqlserver equivalent)
+
 ```
 
 **Packages to modify:** `presentation.web.AdminController` (add `#systemParameters`).
@@ -223,6 +235,7 @@ src/main/resources/db/migration/V10__extend_system_parameters.sql (+ -sqlserver 
 - `GET /api/v1/admin/system-parameters?group=OTP` returns only `OTP`-grouped parameters.
 - `PUT /api/v1/admin/system-parameters/{paramId}` updates a value; updating with a blank value is rejected
   by the domain aggregate (`IllegalArgumentException` → surfaced as a `400`).
+
 - Uniqueness is enforced on `(param_group, param_key)`, not `param_key` alone.
 
 **Cursor Prompt:**
@@ -268,6 +281,7 @@ src/main/java/com/tlbank/lending/presentation/api/v1/{ApplicationApiController,C
 src/main/java/com/tlbank/lending/presentation/web/ApplicationWebController.java
 src/main/resources/templates/{home,products/list,application/form}.html
 src/main/resources/db/migration/V11__extend_applications_for_sprint5.sql (+ -sqlserver equivalent)
+
 ```
 
 **Packages to modify:** `common.util.MaskingUtil` (introduce now if not already present, since
@@ -278,8 +292,10 @@ src/main/resources/db/migration/V11__extend_applications_for_sprint5.sql (+ -sql
 - `POST /api/v1/applications` creates an application in `INIT` status; repeating the same request with the
   same `Idempotency-Key` header returns the identical `applicationId` rather than creating a duplicate; the
   same key with a *different* body returns `409 IDEMPOTENCY_KEY_CONFLICT`.
+
 - `GET /api/v1/applications/{id}` never returns raw national ID, full mobile number, or full email — only
   masked forms.
+
 - `GET /api/v1/products` returns only `enabled=true` products.
 - Document upload and submit/cancel actions are reachable per `06-api-specification.md` §2 even though
   document storage itself (Sprint 14) and full workflow guarding (Sprint 7) land in later sprints — wire the
@@ -326,6 +342,7 @@ src/main/java/com/tlbank/lending/application/dto/request/{SendOtpRequest,VerifyO
 src/main/java/com/tlbank/lending/presentation/api/v1/OtpApiController.java
 src/main/resources/templates/application/otp.html
 src/main/resources/db/migration/V12__extend_otp_records_for_sprint6.sql (+ -sqlserver equivalent)
+
 ```
 
 **Packages to modify:** `application.application.service.ApplicationAppService` is not modified directly;
@@ -337,6 +354,7 @@ src/main/resources/db/migration/V12__extend_otp_records_for_sprint6.sql (+ -sqls
 - Verify enforces, in order: expiry → retry-limit → code-match, per `08-workflow-design.md` §4.
 - Successful verify transitions the linked `Application` `INIT → OTP_VERIFIED` and is idempotent if called
   again while already `OTP_VERIFIED`.
+
 - `OTP.expire_minutes`/`OTP.max_retry` are read from `SystemParameterService` (Sprint 4), not hardcoded.
 
 **Cursor Prompt:**
@@ -377,6 +395,7 @@ src/main/java/com/tlbank/lending/domain/service/WorkflowDomainService.java
 src/main/java/com/tlbank/lending/common/exception/WorkflowException.java
 src/test/java/com/tlbank/lending/domain/application/ApplicationStatusTest.java
 src/test/java/com/tlbank/lending/domain/service/WorkflowDomainServiceTest.java
+
 ```
 
 **Packages to modify:** `domain.application.ApplicationStatus` (add `ALLOWED_TRANSITIONS` map +
@@ -388,6 +407,7 @@ append `WorkflowHistory` in the same method, per `04-domain-model.md` §3.2), `d
 
 - Every entry in the transition table in `08-workflow-design.md` §1 is covered by a passing test, and every
   *disallowed* transition (e.g. `INIT → SUBMITTED` directly) throws `WorkflowException` mapped to HTTP `409`.
+
 - `ApplicationAppService`/`ReviewAppService` contain **no** manual `if (status == ...)` pre-checks before
   calling an aggregate transition method — the aggregate is the single source of truth.
 
@@ -431,6 +451,7 @@ src/main/java/com/tlbank/lending/presentation/api/v1/review/{AddRemarkRequest,Ap
 src/main/java/com/tlbank/lending/presentation/web/ReviewController.java
 src/main/resources/templates/review/{list,detail}.html
 src/main/resources/db/migration/V13__extend_review_cases_for_sprint8.sql (+ -sqlserver equivalent)
+
 ```
 
 **Packages to modify:** `application.application.service.ApplicationAppService.submitApplication` (publish
@@ -440,8 +461,10 @@ src/main/resources/db/migration/V13__extend_review_cases_for_sprint8.sql (+ -sql
 
 - Submitting an application automatically creates exactly one `PENDING` `ReviewCase` (via the event
   handler) — no controller or service explicitly constructs a `ReviewCase`.
+
 - Approving/rejecting a case also drives the linked `Application` to the matching terminal status in the
   same transaction, calling `startReview()` implicitly first if it's still `SUBMITTED`.
+
 - `GET /api/v1/review/cases` supports all filters in `06-api-specification.md` §5 and is paginated.
 - All review endpoints require `hasAnyRole('REVIEWER','ADMIN')`.
 
@@ -479,6 +502,7 @@ src/main/java/com/tlbank/lending/application/audit/service/{AuditLogService,Audi
 src/main/java/com/tlbank/lending/presentation/api/v1/{AuditLogApiController,NotificationLogApiController}.java
 src/main/resources/templates/admin/{audit-logs,notifications}.html
 src/main/resources/db/migration/V14__reshape_audit_logs_for_sprint9.sql (+ -sqlserver equivalent)
+
 ```
 
 **Packages to modify:** `common.config.AsyncConfig` (`@EnableAsync` for `AuditLogWriter.saveAsync`); every
@@ -491,11 +515,14 @@ application service method that should be audited gets `@Auditable(action = Audi
 - `audit_logs` is dropped and recreated to the final shape (`username`, `action`, `ip_address`, `result`,
   `detail`, `created_at`) — verify existing login-handler direct-write code (Sprint 2) still compiles
   against the new entity shape.
+
 - A failing `@Auditable` method still produces an audit row with `result=FAILURE` and the exception message
   as `detail` — verify via `AuditAspectTest` against a minimal fixture service.
+
 - `AuditDetailBuilder` never lets a raw password, OTP code, or national ID reach the `detail` column —
   verify with a unit test asserting masked output for each sensitive argument shape in
   `11-audit-logging.md` §3.
+
 - `GET /api/v1/admin/audit-logs` and `GET /api/v1/admin/notifications` work per
   `06-api-specification.md` §11–§12.
 
@@ -531,6 +558,7 @@ API.
 src/main/java/com/tlbank/lending/infrastructure/cache/{CacheStore,CacheEntry,CacheKeys,CacheTtlProvider,InMemoryCacheStore,CachedCardProductRepository}.java
 src/main/java/com/tlbank/lending/application/cache/service/{CacheManagementService,CacheRefreshResponse,CacheStatsResponse}.java
 src/main/java/com/tlbank/lending/presentation/api/v1/CacheManagementApiController.java
+
 ```
 
 **Packages to modify:** `application.parameter.service.SystemParameterService.getValue` (route through
@@ -541,9 +569,11 @@ src/main/java/com/tlbank/lending/presentation/api/v1/CacheManagementApiControlle
 - `CachedCardProductRepository` is the bean actually injected wherever `CardProductRepository` is requested
   (verify with `@Primary`/`@Qualifier` wiring); the plain JPA adapter remains reachable only via
   `@Qualifier("cardProductRepositoryImpl")`.
+
 - A product read after a TTL expiry is a cache miss that repopulates the cache.
 - `POST /api/v1/admin/cache/refresh*` and `GET /api/v1/admin/cache/stats` behave exactly per
   `06-api-specification.md` §8 and `12-cache-design.md` §7.
+
 - The background `@Scheduled` sweep in `InMemoryCacheStore` removes expired entries without needing a read
   to trigger eviction.
 
@@ -579,6 +609,7 @@ to actual delivery.
 src/main/java/com/tlbank/lending/infrastructure/notification/{SmsSender,EmailSender,SmsMessage,EmailMessage,MockSmsSender,MockEmailSender,NotificationTemplate}.java
 src/main/java/com/tlbank/lending/application/notification/service/{NotificationService,NotificationServiceImpl}.java
 src/main/java/com/tlbank/lending/infrastructure/event/NotificationEventHandler.java
+
 ```
 
 **Packages to modify:** `application.otp.service.OtpAppService.sendOtp` (replace the Sprint 6 stub with a
@@ -588,10 +619,13 @@ real call to `NotificationService.sendOtpNotification`).
 
 - `tlbank.notification.mode=mock` (default) activates `MockSmsSender`/`MockEmailSender`, which log instead
   of calling any real provider.
+
 - A failed notification (simulate by throwing inside a test double) is caught and logged, never propagated —
   verify the triggering business transaction still commits successfully.
+
 - OTP codes never appear in plaintext in any log line outside the OTP record's own persistence (verify
   `MockSmsSender` redacts the code in its log statement).
+
 - All four milestone notifications (OTP, submitted, approved, rejected) use the centralized
   `NotificationTemplate` strings, not inline string literals.
 
@@ -629,6 +663,7 @@ src/main/java/com/tlbank/lending/application/dto/request/GenerateReportRequest.j
 src/main/java/com/tlbank/lending/infrastructure/report/{ExcelReportGenerator,PdfReportGenerator}.java
 src/main/java/com/tlbank/lending/presentation/api/v1/ReportApiController.java
 src/main/resources/templates/admin/reports.html
+
 ```
 
 **Packages to modify:** `presentation.web.AdminController` (add `#reports`).
@@ -637,6 +672,7 @@ src/main/resources/templates/admin/reports.html
 
 - `POST /api/v1/reports/daily-statistics` with `format=EXCEL` returns a valid, openable `.xlsx` with
   "Summary" and "By Product" sheets; `format=PDF` returns a valid, openable PDF with matching content.
+
 - `statusCounts` always includes every `ApplicationStatus` value, even ones with zero applications that day.
 - The action is recorded via `@Auditable(action = AuditAction.REPORT_EXPORT)`.
 - An empty product map renders a `"No applications" / 0` row rather than an empty table in both formats.
@@ -672,6 +708,7 @@ API.
 src/main/java/com/tlbank/lending/infrastructure/scheduler/{OtpCleanupScheduler,CacheRefreshScheduler,DailyStatisticsScheduler}.java
 src/main/java/com/tlbank/lending/presentation/api/v1/SchedulerApiController.java
 src/main/java/com/tlbank/lending/common/config/SchedulingConfig.java
+
 ```
 
 **Packages to modify:** `domain.otp.repository.OtpRepository` (add `markExpiredBefore`, if not already
@@ -682,8 +719,10 @@ per `13-scheduler-design.md` §2).
 
 - Each scheduled job's manual-trigger endpoint (`/api/v1/admin/schedulers/*/run`) calls the **exact same**
   method the `@Scheduled` annotation invokes — no duplicated logic.
+
 - A thrown exception inside any scheduled job is caught, logged at `WARN`, and does not prevent the next
   scheduled execution.
+
 - `OtpCleanupScheduler` correctly transitions overdue `PENDING` OTPs to `EXPIRED` without affecting already
   `VERIFIED`/`CANCELLED` records.
 
@@ -715,6 +754,7 @@ system parameters, integration into `Application.uploadDocuments`.
 ```
 src/main/java/com/tlbank/lending/infrastructure/storage/{DocumentStorageService,LocalDocumentStorageService}.java
 src/main/resources/templates/application/upload.html
+
 ```
 
 **Packages to modify:** `application.application.service.ApplicationAppService.uploadDocuments` (replace the
@@ -726,9 +766,11 @@ DocumentUploadResponse` (introduce if not already present).
 - Uploading an empty file, a disallowed extension (anything other than `jpg`/`jpeg`/`png`/`pdf`), or an
   oversized file (above `UPLOAD.max.size.mb`, default 10) each return `400 DOCUMENT_UPLOAD_FAILED` with a
   clear message and **no file is written to disk**.
+
 - A successful upload writes the file under `{basePath}/{applicationId}/` with a server-generated filename
   (never the client-supplied filename) and records the original filename + relative path in
   `application_documents`.
+
 - The first successful upload while `OTP_VERIFIED` transitions the application to `DOCUMENT_UPLOADED`;
   subsequent uploads while already `DOCUMENT_UPLOADED` only append, without re-transitioning.
 
@@ -767,6 +809,7 @@ docker-compose.yml
 .env.example
 scripts/{prepare-dev.sh,start-dev.sh,verify.sh}
 src/main/resources/db/migration-sqlserver/V100__seed_staging_data.sql
+
 ```
 
 **Packages to modify:** none (infrastructure-only sprint); confirm `pom.xml`'s `staging` Maven profile (added
@@ -776,10 +819,13 @@ in Sprint 1) builds the JAR the Dockerfile expects.
 
 - `docker-compose up -d` (after `cp .env.example .env`) brings up `sqlserver` → `db-init` (runs once,
   completes successfully) → `app`, in that dependency order, verified via each service's health check.
+
 - `./scripts/verify.sh` against the running stack reports `200` for both `/actuator/health` and
   `/api/v1/products`.
+
 - The application container runs as a non-root user; the final image does not contain the Maven/JDK build
   toolchain (only the JRE).
+
 - Swagger UI is reachable on the `staging`-profile container, per `17-deployment-design.md` §5.
 
 **Cursor Prompt:**
@@ -817,6 +863,7 @@ src/test/java/com/tlbank/lending/application/ReviewFlowIntegrationTest.java
 src/test/java/com/tlbank/lending/application/ApplicationIdempotencyIntegrationTest.java
 src/test/java/com/tlbank/lending/security/SecurityIntegrationTest.java
 pom.xml   (confirm JaCoCo plugin + exclusions per 16-testing-strategy.md §6)
+
 ```
 
 **Packages to modify:** any package referenced by the open items in
@@ -828,13 +875,17 @@ mapping, `SystemParameterService.update`'s missing cache eviction, consolidating
 
 - `./mvnw clean verify` passes with zero failing tests and produces a JaCoCo report at
   `target/site/jacoco/index.html`.
+
 - Every module in `09-module-design.md` has at least one corresponding test class exercising its primary
   use case.
+
 - `ApplicationFlowIntegrationTest` exercises the full happy path: create → OTP send/verify → upload all
   three document types → submit → (as a reviewer) approve, asserting the application reaches `APPROVED` and
   exactly one `ReviewCase` was created.
+
 - `SecurityIntegrationTest` covers: successful login (JSON), failed login, role-gated 403, and
   unauthenticated 401, for at least one endpoint each from the public, `REVIEWER`, and `ADMIN` tiers.
+
 - All known-gap items explicitly listed in `20-maintenance-and-future-enhancement.md` §2 are either fixed or
   explicitly re-confirmed as deliberately deferred with a one-line justification added to that document.
 
@@ -874,6 +925,7 @@ src/main/java/com/tlbank/lending/presentation/api/advice/GlobalExceptionHandler.
 src/main/java/com/tlbank/lending/application/application/service/ApplicationAppService.java
 src/main/java/com/tlbank/lending/application/parameter/service/SystemParameterService.java
 (+ corresponding tests and SDD updates)
+
 ```
 
 **Acceptance criteria:**

@@ -21,6 +21,7 @@ stateDiagram-v2
     APPROVED --> [*]
     REJECTED --> [*]
     CANCELLED --> [*]
+
 ```
 
 Notes:
@@ -28,6 +29,7 @@ Notes:
 - `DOCUMENT_UPLOADED` is also a **valid self-loop target** in practice: `Application.uploadDocuments()`
   permits being called again while already in `DOCUMENT_UPLOADED` (to add more documents), without that
   being a *status transition* — it only appends to `documentInfos` once already in that status.
+
 - `CANCELLED`, `APPROVED`, and `REJECTED` are terminal; no further transition is defined from them.
 - `startReview()` is triggered automatically as part of the **review approve/reject flow**
   (`ReviewAppService.ensureApplicationUnderReview`) — a reviewer does not need to call a separate "start
@@ -49,22 +51,23 @@ stateDiagram-v2
     UNDER_REVIEW --> REJECTED : reject()
     APPROVED --> [*]
     REJECTED --> [*]
+
 ```
 
 `addRemark()` is allowed in any `ReviewStatus` and does not change status.
 
 ## 3. Combined Lifecycle (Application ↔ ReviewCase)
 
-| Application status | Typical ReviewCase status | Trigger |
-|---|---|---|
-| `INIT` | *(no review case yet)* | `createApplication` |
-| `OTP_VERIFIED` | *(no review case yet)* | `verifyOtp` |
-| `DOCUMENT_UPLOADED` | *(no review case yet)* | `uploadDocuments` |
-| `SUBMITTED` | `PENDING` | `submit` → publishes `ApplicationSubmittedEvent` → `ReviewEventHandler` creates the `ReviewCase` |
-| `UNDER_REVIEW` | `UNDER_REVIEW` | reviewer calls `startReview`, or implicitly via approve/reject |
-| `APPROVED` | `APPROVED` | reviewer calls `approveCase` |
-| `REJECTED` | `REJECTED` | reviewer calls `rejectCase` |
-| `CANCELLED` | *(unaffected — review case, if any, is left as-is)* | applicant calls `cancelApplication` |
+| Application status  | Typical ReviewCase status                           | Trigger                                                                                          |
+| ------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `INIT`              | *(no review case yet)*                              | `createApplication`                                                                              |
+| `OTP_VERIFIED`      | *(no review case yet)*                              | `verifyOtp`                                                                                      |
+| `DOCUMENT_UPLOADED` | *(no review case yet)*                              | `uploadDocuments`                                                                                |
+| `SUBMITTED`         | `PENDING`                                           | `submit` → publishes `ApplicationSubmittedEvent` → `ReviewEventHandler` creates the `ReviewCase` |
+| `UNDER_REVIEW`      | `UNDER_REVIEW`                                      | reviewer calls `startReview`, or implicitly via approve/reject                                   |
+| `APPROVED`          | `APPROVED`                                          | reviewer calls `approveCase`                                                                     |
+| `REJECTED`          | `REJECTED`                                          | reviewer calls `rejectCase`                                                                      |
+| `CANCELLED`         | *(unaffected — review case, if any, is left as-is)* | applicant calls `cancelApplication`                                                              |
 
 ## 4. End-to-End Sequence: OTP Verification
 
@@ -103,6 +106,7 @@ sequenceDiagram
         SVC-->>API: VerifyOtpResponse(verified=true)
     end
     API-->>A: 200 OK / 4xx error
+
 ```
 
 Precedence inside `OtpRecord.verify()` is significant and intentional: **expiry is checked first** (and
@@ -146,6 +150,7 @@ sequenceDiagram
     EVT->>NOTIFH: onApplicationApproved -> notify applicant
     REVSVC-->>REVAPI: void
     REVAPI-->>R: 200 OK
+
 ```
 
 ## 6. Failure Handling Within Workflows
@@ -154,9 +159,11 @@ sequenceDiagram
   (mapped to HTTP `409`) on violation — controllers and application services never pre-check status with
   `if` statements; they simply call the method and let the domain enforce the rule. This keeps the rule in
   exactly one place.
+
 - Notification failures (`NotificationEventHandler`) are caught and logged (`log.warn`) rather than
   propagated — a failed SMS/email must never roll back or fail the underlying workflow transition, since the
   transition is the business-critical fact and the notification is a best-effort side effect.
+
 - `ReviewEventHandler.onApplicationSubmitted` runs as a default (synchronous, same-transaction-boundary)
   Spring `@EventListener`. If review-case creation were to fail, it would currently roll back the triggering
   transaction along with the application submission — this coupling is called out as a improvement

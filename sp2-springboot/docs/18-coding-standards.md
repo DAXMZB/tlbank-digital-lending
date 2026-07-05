@@ -12,10 +12,13 @@ codebase. Any new code (written by a human or by an AI coding agent following
    only uses the annotation for wiring), `jakarta.persistence.*`, or any web/HTTP type. Lombok annotations
    (`@Getter`, `@Builder`, `@RequiredArgsConstructor`) are fine — they are compile-time-only and produce no
    runtime framework dependency.
+
 2. `infrastructure.persistence.*` classes implement `domain.*.repository.*` interfaces; they are the
    **only** place a JPA `@Entity` may exist.
+
 3. `presentation.*` controllers depend only on `application.*` services and `common.response.*`/`common.exception.*`
    types — never directly on an `infrastructure.persistence.*` class or a repository port.
+
 4. New cross-cutting behavior (logging, auditing, metrics) is implemented as a Spring AOP aspect in
    `common.*`, not by duplicating calls inside every application service.
 
@@ -26,11 +29,14 @@ See `03-package-structure.md` §3 for the full table. Highlights:
 - Business identifiers are `record`s named `<Aggregate>Id` with a compact constructor that validates format
   and a static `generate()` and/or `of(value)` factory — never a bare `String` or `Long` passed around as an
   identifier once it leaves persistence code.
+
 - JPA entities are always suffixed `Entity`; JPA `@Embeddable` types are always suffixed `Embeddable`.
 - A repository **port** (interface, in `domain`) has no suffix beyond `Repository`; its **adapter**
   (implementation, in `infrastructure`) is suffixed `RepositoryImpl`.
+
 - Application services are suffixed `AppService` (not `Service` alone, to avoid ambiguity with domain
   services and infrastructure `*Service` ports like `DocumentStorageService`/`NotificationService`).
+
 - Use-case input/output records are suffixed `Command`/`Response` in the application layer, and
   `Request`/`Response` at the presentation boundary (a presentation `*Request` is mapped into an application
   `*Command` inside the controller or directly passed if the shapes coincide — see `OtpApiController`).
@@ -39,11 +45,11 @@ See `03-package-structure.md` §3 for the full table. Highlights:
 
 Three distinct categories must not be collapsed into one:
 
-| Category | Lives in | Validated with | Purpose |
-| --- | --- | --- | --- |
-| Request DTO | `application.dto.request` or `presentation.api.v1.<feature>` | `jakarta.validation` annotations (`@NotBlank`, `@Valid`, `@Pattern`, etc.) | Shape of the HTTP request body |
-| Command | `application.<feature>.service` | Not separately validated (already validated upstream) | Input to a single use-case method, decoupled from HTTP concerns |
-| Response | `application.<feature>.service` or `application.dto.response` | n/a (output only) | Shape returned to the controller; the controller wraps it in `ApiResponse` |
+| Category    | Lives in                                                      | Validated with                                                             | Purpose                                                                    |
+| ----------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Request DTO | `application.dto.request` or `presentation.api.v1.<feature>`  | `jakarta.validation` annotations (`@NotBlank`, `@Valid`, `@Pattern`, etc.) | Shape of the HTTP request body                                             |
+| Command     | `application.<feature>.service`                               | Not separately validated (already validated upstream)                      | Input to a single use-case method, decoupled from HTTP concerns            |
+| Response    | `application.<feature>.service` or `application.dto.response` | n/a (output only)                                                          | Shape returned to the controller; the controller wraps it in `ApiResponse` |
 
 A `Request` and a `Command` are kept as **separate types** even when their fields are identical (e.g.
 `SendOtpRequest` vs. `SendOtpCommand`), because they answer different questions: "what can the wire send us"
@@ -51,15 +57,15 @@ A `Request` and a `Command` are kept as **separate types** even when their field
 
 ## 4. Lombok Usage Conventions
 
-| Annotation | Where used | Why |
-| --- | --- | --- |
-| `@Getter` | Aggregates, entities | Read-only field access without hand-written boilerplate |
-| `@Builder` (+ `@Builder.Default` for collections) | Aggregates, entities | Expressive, immutable-feeling construction even though the underlying class is mutable for JPA's sake |
-| `@RequiredArgsConstructor` | Spring-managed beans with `final` fields | Constructor injection without boilerplate; never field injection (`@Autowired` on a field) anywhere in the codebase |
-| `@Slf4j` | Any class that logs | Avoids manual `LoggerFactory.getLogger(...)` boilerplate |
-| `@NoArgsConstructor` / `@AllArgsConstructor` | JPA entities only | Required by Hibernate; domain aggregates do **not** need these since they're never reflectively instantiated by a framework |
-| `@Setter` | JPA entities only | Domain aggregates are intentionally **not** `@Setter` — all mutation happens through named behavior methods (`enable()`, `submit()`, `approve()`, etc.), never a generic setter, to keep business rules from being bypassed |
-| `@UtilityClass` | Stateless helpers (`MaskingUtil`, `NotificationTemplate`, `AuditContext`, `CacheKeys` via `private` constructor instead) | Enforces non-instantiability and static access cleanly |
+| Annotation                                        | Where used                                                                                                               | Why                                                                                                                                                                                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@Getter`                                         | Aggregates, entities                                                                                                     | Read-only field access without hand-written boilerplate                                                                                                                                                                     |
+| `@Builder` (+ `@Builder.Default` for collections) | Aggregates, entities                                                                                                     | Expressive, immutable-feeling construction even though the underlying class is mutable for JPA's sake                                                                                                                       |
+| `@RequiredArgsConstructor`                        | Spring-managed beans with `final` fields                                                                                 | Constructor injection without boilerplate; never field injection (`@Autowired` on a field) anywhere in the codebase                                                                                                         |
+| `@Slf4j`                                          | Any class that logs                                                                                                      | Avoids manual `LoggerFactory.getLogger(...)` boilerplate                                                                                                                                                                    |
+| `@NoArgsConstructor` / `@AllArgsConstructor`      | JPA entities only                                                                                                        | Required by Hibernate; domain aggregates do **not** need these since they're never reflectively instantiated by a framework                                                                                                 |
+| `@Setter`                                         | JPA entities only                                                                                                        | Domain aggregates are intentionally **not** `@Setter` — all mutation happens through named behavior methods (`enable()`, `submit()`, `approve()`, etc.), never a generic setter, to keep business rules from being bypassed |
+| `@UtilityClass`                                   | Stateless helpers (`MaskingUtil`, `NotificationTemplate`, `AuditContext`, `CacheKeys` via `private` constructor instead) | Enforces non-instantiability and static access cleanly                                                                                                                                                                      |
 
 ## 5. Records for Value Objects
 
@@ -76,6 +82,7 @@ public record MobileNumber(String value) {
     public String masked() { ... }
     public static MobileNumber of(String value) { return new MobileNumber(value); }
 }
+
 ```
 
 This guarantees **no invalid value object can ever exist in memory** — validation happens at construction,
@@ -87,6 +94,7 @@ not as a separate, skippable step.
   of which both validates the transition (via the enum's transition table or an explicit status check) and
   records any required audit/history value object (`WorkflowHistory`, `ReviewRemark`) **in the same method
   call** — never as two separate steps that could be called out of order.
+
 - An aggregate never directly references another aggregate's object — only its identifier (`String`/`*Id`
   value object). Cross-aggregate consistency is achieved at the application-service or event-handler level,
   never by holding a live reference between aggregates.
@@ -109,9 +117,11 @@ rather than ad-hoc masking logic at the call site.
 
 - Every package has a `package-info.java` with a one-paragraph Javadoc summary of its responsibility (see
   the existing files for tone/length — typically one sentence).
+
 - Every public class has a one-to-two-sentence class-level Javadoc stating its role, written in the same
   voice as existing classes (e.g. *"Aggregate root representing a credit card application and its workflow
   lifecycle."*).
+
 - Public methods that enforce a non-obvious business rule (e.g. `OtpRecord.verify`) document the specific
   exceptions/`ErrorCode`s they can throw and under what condition, using `@throws` Javadoc tags.
 
