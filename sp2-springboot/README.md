@@ -16,7 +16,7 @@ It focuses on:
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
+| ------- | ------------ |
 | Language | Java 17 |
 | Framework | Spring Boot 3.4 |
 | Security | Spring Security (session-based) |
@@ -43,7 +43,7 @@ flowchart LR
 ```
 
 | Stage | What it does |
-|-------|----------------|
+| ------- | ---------------- |
 | **Build and Test** | Compiles the backend and runs tests with **Maven** on **JDK 17** (GitHub-hosted `ubuntu-latest`). |
 | **Code Quality** | Runs **`mvn verify`** after a green build (same JDK/Maven setup). |
 | **Dependency Scan** | **Trivy** filesystem scan for **HIGH** / **CRITICAL** findings (report-only; does not fail the pipeline). |
@@ -124,7 +124,7 @@ flowchart TB
 > This project simulates a **credit card application platform**, but its domain patterns map directly to concepts used in **payment / transaction backends**. Use this section when explaining the portfolio in interviews or when extending the system toward payment-domain equivalents.
 
 | TLBank Concept | Payment System Equivalent | Purpose |
-|----------------|---------------------------|---------|
+| ---------------- | --------------------------- | --------- |
 | **Application Aggregate** | **Transaction Aggregate** | Root entity with lifecycle, invariants, and status-driven behavior |
 | **Workflow Engine** | **Payment State Machine** (`PENDING → AUTHORIZED → CAPTURED → SETTLED → REFUNDED`) | Enforces valid state transitions only; invalid moves raise domain exceptions |
 | **OTP Verification** | **3D Secure / Step-up Authentication** | Out-of-band customer verification before proceeding to the next state |
@@ -142,7 +142,7 @@ TLBank:    INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_R
 ```
 
 | TLBank Application State | Payment Transaction State | Meaning |
-|--------------------------|---------------------------|---------|
+| -------------------------- | --------------------------- | --------- |
 | `INIT` | `PENDING` | Record created, awaiting customer action |
 | `OTP_VERIFIED` | `AUTHORIZED` | Customer identity confirmed (step-up auth passed) |
 | `DOCUMENT_UPLOADED` | `CAPTURED` | Supporting evidence collected |
@@ -180,7 +180,7 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-Access the application at: **http://localhost:8080**
+Access the application at: **<http://localhost:8080>**
 
 Verify deployment:
 
@@ -192,7 +192,7 @@ chmod +x scripts/verify.sh
 ## Default Accounts
 
 | Username | Password | Role | Profile |
-|----------|----------|------|---------|
+| ---------- | ---------- | ------ | --------- |
 | admin | Password123! | ADMIN | dev (H2 seed) |
 | reviewer1 | Password123! | REVIEWER | dev (H2 seed) |
 | applicant1 | Password123! | USER | dev (H2 seed) |
@@ -203,16 +203,16 @@ chmod +x scripts/verify.sh
 
 ## API Documentation
 
-Swagger UI (enabled in dev/staging): **http://localhost:8080/swagger-ui.html**
+Swagger UI (enabled in dev/staging): **<http://localhost:8080/swagger-ui.html>**
 
-OpenAPI JSON: **http://localhost:8080/v3/api-docs**
+OpenAPI JSON: **<http://localhost:8080/v3/api-docs>**
 
 > Swagger is completely disabled in the `prod` profile.
 
 ## Modules
 
 | # | Module | Description |
-|---|--------|-------------|
+| --- | -------- | ------------- |
 | 1 | User & Security | Session login, role-based access control, password encryption |
 | 2 | Card Products | Product catalog with features and caching |
 | 3 | Applications | Credit card application lifecycle (create → submit → cancel) |
@@ -234,7 +234,7 @@ Requires **JDK 17**.
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-- H2 console: http://localhost:8080/h2-console
+- H2 console: <http://localhost:8080/h2-console>
 - Uses H2-compatible Flyway migrations (`db/migration/`) plus dev seed data
 
 ## Testing
@@ -260,7 +260,7 @@ JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main clas
 ### Test Categories
 
 | Category | Examples |
-|----------|----------|
+| ---------- | ---------- |
 | Domain unit tests | `ApplicationTest`, `OtpRecordTest`, `ReviewCaseTest`, `WorkflowDomainServiceTest` |
 | Application service tests | `ApplicationAppServiceTest`, `OtpAppServiceTest`, `ReviewAppServiceTest` |
 | Integration tests | `ApplicationFlowIntegrationTest`, `ReviewFlowIntegrationTest`, `SecurityIntegrationTest` |
@@ -271,7 +271,7 @@ JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main clas
 ## Deployment Profiles
 
 | Profile | Database | Flyway Location | Swagger |
-|---------|----------|-----------------|---------|
+| --------- | ---------- | ----------------- | --------- |
 | `dev` | H2 in-memory | `db/migration/` + `db/dev-seed/` | Enabled |
 | `staging` | SQL Server | `db/migration-sqlserver/` | Enabled |
 | `prod` | SQL Server | `db/migration-sqlserver/` | Disabled |

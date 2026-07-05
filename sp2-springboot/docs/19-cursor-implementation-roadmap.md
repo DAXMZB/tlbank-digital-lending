@@ -26,6 +26,7 @@ context already exist).
 every later sprint adds *behavior* rather than *infrastructure*.
 
 **Technical objective:**
+
 - Spring Boot 3.4.x / Java 17 Maven project with the dependency set in `00-sdd-overview.md` §4.
 - Package skeleton: `domain`, `application`, `infrastructure`, `presentation`, `security`, `common`, each
   with a `package-info.java`.
@@ -35,6 +36,7 @@ every later sprint adds *behavior* rather than *infrastructure*.
 - Profile-specific `application*.yml` files.
 
 **Files to create:**
+
 ```
 pom.xml
 src/main/java/com/tlbank/lending/TlbankLendingApplication.java
@@ -54,6 +56,7 @@ src/main/resources/db/migration-sqlserver/V1..V7__*.sql   (T-SQL syntax)
 **Packages to modify:** N/A (initial creation).
 
 **Acceptance criteria:**
+
 - `./mvnw clean compile` succeeds.
 - `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` starts cleanly; H2 console reachable at
   `/h2-console`; Swagger UI reachable at `/swagger-ui.html`.
@@ -92,6 +95,7 @@ day one.
 `users`/`user_roles` from Sprint 1, plus migration `V8` (last login tracking).
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/domain/user/{User,UserId,Role}.java
 src/main/java/com/tlbank/lending/domain/user/repository/UserRepository.java
@@ -113,6 +117,7 @@ the login handlers write audit entries directly — see `11-audit-logging.md` §
 `AuditAspect` mechanism can wait for Sprint 9, but the entity and repository must exist now).
 
 **Acceptance criteria:**
+
 - `POST /api/v1/auth/login` with valid credentials returns `200` + `ApiResponse<LoginResponse>` (JSON
   client) or a `302` redirect to the role-appropriate landing page (browser client) — per
   `07-security-design.md` §3.
@@ -152,6 +157,7 @@ accounts without direct database access.
 plus migration `V9` introducing the externally-stable business identifier.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/application/user/service/{UserAppService,CreateUserCommand,UpdateUserStatusCommand,UserResponse}.java
 src/main/java/com/tlbank/lending/application/dto/request/CreateUserRequest.java
@@ -165,6 +171,7 @@ src/main/resources/db/migration/V9__add_user_business_id.sql (+ -sqlserver equiv
 resolves correctly once `user_id` becomes the JPA `@Id`).
 
 **Acceptance criteria:**
+
 - `POST /api/v1/admin/users` creates a user with a generated `USR-XXXXXXXX` business ID; duplicate username
   → `409 DUPLICATE_USERNAME`.
 - `GET /api/v1/admin/users` and `GET /api/v1/admin/users/{userId}` return data per
@@ -199,6 +206,7 @@ redeployment.
 surface, and migration `V10` adding grouping support on top of the `system_parameters` table from Sprint 1.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/domain/parameter/{SystemParameter,SystemParameterRepository}.java
 src/main/java/com/tlbank/lending/infrastructure/persistence/parameter/{SystemParameterEntity,SystemParameterJpaRepository,SystemParameterRepositoryImpl}.java
@@ -211,6 +219,7 @@ src/main/resources/db/migration/V10__extend_system_parameters.sql (+ -sqlserver 
 **Packages to modify:** `presentation.web.AdminController` (add `#systemParameters`).
 
 **Acceptance criteria:**
+
 - `GET /api/v1/admin/system-parameters?group=OTP` returns only `OTP`-grouped parameters.
 - `PUT /api/v1/admin/system-parameters/{paramId}` updates a value; updating with a blank value is rejected
   by the domain aggregate (`IllegalArgumentException` → surfaced as a `400`).
@@ -243,6 +252,7 @@ application.
 `V11` (the migration literally named for this sprint).
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/domain/application/{Application,Applicant,Address,MobileNumber,Email,ApplicationId,ApplicationStatus,CardProductId,DocumentInfo,DocumentType,WorkflowHistory}.java
 src/main/java/com/tlbank/lending/domain/application/repository/ApplicationRepository.java
@@ -264,6 +274,7 @@ src/main/resources/db/migration/V11__extend_applications_for_sprint5.sql (+ -sql
 `ApplicationAppService` needs it immediately for `toMaskedApplicant`).
 
 **Acceptance criteria:**
+
 - `POST /api/v1/applications` creates an application in `INIT` status; repeating the same request with the
   same `Idempotency-Key` header returns the identical `applicationId` rather than creating a duplicate; the
   same key with a *different* body returns `409 IDEMPOTENCY_KEY_CONFLICT`.
@@ -305,6 +316,7 @@ creation.
 literally named for this sprint).
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/domain/otp/{OtpRecord,OtpPurpose,OtpStatus,VerifyResult}.java
 src/main/java/com/tlbank/lending/domain/otp/repository/OtpRepository.java
@@ -320,6 +332,7 @@ src/main/resources/db/migration/V12__extend_otp_records_for_sprint6.sql (+ -sqls
 `presentation.web.ApplicationWebController` gains the `/apply/otp` page wiring.
 
 **Acceptance criteria:**
+
 - Sending a second OTP for the same mobile cancels the first `PENDING` record.
 - Verify enforces, in order: expiry → retry-limit → code-match, per `08-workflow-design.md` §4.
 - Successful verify transitions the linked `Application` `INIT → OTP_VERIFIED` and is idempotent if called
@@ -358,6 +371,7 @@ review case into a business-invalid state, which is a compliance-relevant guaran
 introduce `WorkflowException`, and backfill exhaustive transition tests.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/domain/service/WorkflowDomainService.java
 src/main/java/com/tlbank/lending/common/exception/WorkflowException.java
@@ -371,6 +385,7 @@ append `WorkflowHistory` in the same method, per `04-domain-model.md` §3.2), `d
 (apply the equivalent, simpler inline transition table from `04-domain-model.md` §4).
 
 **Acceptance criteria:**
+
 - Every entry in the transition table in `08-workflow-design.md` §1 is covered by a passing test, and every
   *disallowed* transition (e.g. `INIT → SUBMITTED` directly) throws `WorkflowException` mapped to HTTP `409`.
 - `ApplicationAppService`/`ReviewAppService` contain **no** manual `if (status == ...)` pre-checks before
@@ -403,6 +418,7 @@ proposition beyond simple intake.
 connecting submission to review-case creation, and migration `V13` (named for this sprint).
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/domain/review/{ReviewCase,ReviewCaseId,ReviewStatus,ReviewRemark,ReviewCaseSearchCriteria}.java
 src/main/java/com/tlbank/lending/domain/review/repository/ReviewCaseRepository.java
@@ -421,6 +437,7 @@ src/main/resources/db/migration/V13__extend_review_cases_for_sprint8.sql (+ -sql
 `ApplicationSubmittedEvent` via `ApplicationEventPublisher`, if not already wired in Sprint 5).
 
 **Acceptance criteria:**
+
 - Submitting an application automatically creates exactly one `PENDING` `ReviewCase` (via the event
   handler) — no controller or service explicitly constructs a `ReviewCase`.
 - Approving/rejecting a case also drives the linked `Application` to the matching terminal status in the
@@ -455,6 +472,7 @@ sensitive action — who did what, when, from where, with what outcome.
 (named for this sprint), which **replaces** the `audit_logs` shape introduced in Sprint 1.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/common/audit/{Auditable,AuditAspect,AuditAction,AuditContext,AuditDetailBuilder,AuditLog,AuditLogRepository,AuditLogWriter,AuditIpResolver}.java
 src/main/java/com/tlbank/lending/application/audit/service/{AuditLogService,AuditLogResponse,NotificationLogResponse}.java
@@ -469,6 +487,7 @@ application service method that should be audited gets `@Auditable(action = Audi
 `@Auditable` annotations, point them at the real annotation now.
 
 **Acceptance criteria:**
+
 - `audit_logs` is dropped and recreated to the final shape (`username`, `action`, `ip_address`, `result`,
   `detail`, `created_at`) — verify existing login-handler direct-write code (Sprint 2) still compiles
   against the new entity shape.
@@ -507,6 +526,7 @@ fast without introducing an external cache dependency for a single-instance depl
 API.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/infrastructure/cache/{CacheStore,CacheEntry,CacheKeys,CacheTtlProvider,InMemoryCacheStore,CachedCardProductRepository}.java
 src/main/java/com/tlbank/lending/application/cache/service/{CacheManagementService,CacheRefreshResponse,CacheStatsResponse}.java
@@ -517,6 +537,7 @@ src/main/java/com/tlbank/lending/presentation/api/v1/CacheManagementApiControlle
 `CacheStore`, per `12-cache-design.md` §6); seed data — add a `CACHE.ttl_seconds` row to `system_parameters`.
 
 **Acceptance criteria:**
+
 - `CachedCardProductRepository` is the bean actually injected wherever `CardProductRepository` is requested
   (verify with `@Primary`/`@Qualifier` wiring); the plain JPA adapter remains reachable only via
   `@Qualifier("cardProductRepositoryImpl")`.
@@ -553,6 +574,7 @@ real third-party credentials or dependencies (important for an open portfolio pr
 to actual delivery.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/infrastructure/notification/{SmsSender,EmailSender,SmsMessage,EmailMessage,MockSmsSender,MockEmailSender,NotificationTemplate}.java
 src/main/java/com/tlbank/lending/application/notification/service/{NotificationService,NotificationServiceImpl}.java
@@ -563,6 +585,7 @@ src/main/java/com/tlbank/lending/infrastructure/event/NotificationEventHandler.j
 real call to `NotificationService.sendOtpNotification`).
 
 **Acceptance criteria:**
+
 - `tlbank.notification.mode=mock` (default) activates `MockSmsSender`/`MockEmailSender`, which log instead
   of calling any real provider.
 - A failed notification (simulate by throwing inside a test double) is caught and logged, never propagated —
@@ -599,6 +622,7 @@ building a full BI/dashboard product.
 `PdfReportGenerator` (iText 7), `ReportAppService`, REST + web trigger page.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/application/report/service/{ReportDataService,ReportAppService,DailyStatisticsData,ReportFormat}.java
 src/main/java/com/tlbank/lending/application/dto/request/GenerateReportRequest.java
@@ -610,6 +634,7 @@ src/main/resources/templates/admin/reports.html
 **Packages to modify:** `presentation.web.AdminController` (add `#reports`).
 
 **Acceptance criteria:**
+
 - `POST /api/v1/reports/daily-statistics` with `format=EXCEL` returns a valid, openable `.xlsx` with
   "Summary" and "By Product" sheets; `format=PDF` returns a valid, openable PDF with matching content.
 - `statusCounts` always includes every `ApplicationStatus` value, even ones with zero applications that day.
@@ -642,6 +667,7 @@ without manual operator intervention, while still giving operators an on-demand 
 API.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/infrastructure/scheduler/{OtpCleanupScheduler,CacheRefreshScheduler,DailyStatisticsScheduler}.java
 src/main/java/com/tlbank/lending/presentation/api/v1/SchedulerApiController.java
@@ -653,6 +679,7 @@ present from Sprint 6), `application.yml`/`application-dev.yml` (add `tlbank.sch
 per `13-scheduler-design.md` §2).
 
 **Acceptance criteria:**
+
 - Each scheduled job's manual-trigger endpoint (`/api/v1/admin/schedulers/*/run`) calls the **exact same**
   method the `@Scheduled` annotation invokes — no duplicated logic.
 - A thrown exception inside any scheduled job is caught, logged at `WARN`, and does not prevent the next
@@ -684,6 +711,7 @@ needs, safely and durably.
 system parameters, integration into `Application.uploadDocuments`.
 
 **Files to create:**
+
 ```
 src/main/java/com/tlbank/lending/infrastructure/storage/{DocumentStorageService,LocalDocumentStorageService}.java
 src/main/resources/templates/application/upload.html
@@ -694,6 +722,7 @@ Sprint 5 stub with real `DocumentStorageService.validate`/`store` calls), `appli
 DocumentUploadResponse` (introduce if not already present).
 
 **Acceptance criteria:**
+
 - Uploading an empty file, a disallowed extension (anything other than `jpg`/`jpeg`/`png`/`pdf`), or an
   oversized file (above `UPLOAD.max.size.mb`, default 10) each return `400 DOCUMENT_UPLOAD_FAILED` with a
   clear message and **no file is written to disk**.
@@ -730,6 +759,7 @@ runs in one developer's IDE.
 scripts, environment variable contract, and convenience scripts.
 
 **Files to create:**
+
 ```
 docker/app/Dockerfile
 docker/sqlserver/init/{01-init-database.sql,02-create-app-user.sql}
@@ -743,6 +773,7 @@ src/main/resources/db/migration-sqlserver/V100__seed_staging_data.sql
 in Sprint 1) builds the JAR the Dockerfile expects.
 
 **Acceptance criteria:**
+
 - `docker-compose up -d` (after `cp .env.example .env`) brings up `sqlserver` → `db-init` (runs once,
   completes successfully) → `app`, in that dependency order, verified via each service's health check.
 - `./scripts/verify.sh` against the running stack reports `200` for both `/actuator/health` and
@@ -778,6 +809,7 @@ scrutiny of both correctness and craftsmanship.
 refactors/fixes catalogued in `20-maintenance-and-future-enhancement.md`.
 
 **Files to create/modify (representative, not exhaustive):**
+
 ```
 src/test/java/com/tlbank/lending/**/*Test.java   (fill remaining gaps per 16-testing-strategy.md §2)
 src/test/java/com/tlbank/lending/application/ApplicationFlowIntegrationTest.java
@@ -793,6 +825,7 @@ mapping, `SystemParameterService.update`'s missing cache eviction, consolidating
 `SchedulingConfig`/`SchedulerConfig`, removing the legacy root `Dockerfile`).
 
 **Acceptance criteria:**
+
 - `./mvnw clean verify` passes with zero failing tests and produces a JaCoCo report at
   `target/site/jacoco/index.html`.
 - Every module in `09-module-design.md` has at least one corresponding test class exercising its primary
@@ -833,6 +866,7 @@ operational tuning (OTP expiry, upload limits) and evidence collection are trust
 modules, no architecture change.
 
 **Files modified:**
+
 ```
 src/main/java/com/tlbank/lending/domain/application/Application.java
 src/main/java/com/tlbank/lending/common/exception/ErrorCode.java
@@ -843,6 +877,7 @@ src/main/java/com/tlbank/lending/application/parameter/service/SystemParameterSe
 ```
 
 **Acceptance criteria:**
+
 - `Application.submit()` rejects when any `DocumentType` is missing → `INCOMPLETE_DOCUMENTS` (HTTP 400).
 - `SystemParameterService.update()` evicts the matching cache key immediately.
 - `ApplicationAppService.uploadDocuments` is `@Auditable(DOCUMENT_UPLOAD)`.

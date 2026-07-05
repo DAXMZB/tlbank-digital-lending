@@ -9,7 +9,7 @@ hypothesized — each is cross-referenced to the document where it is explained 
 ## 2. Known Issues / Technical Debt
 
 | # | Issue | Where documented | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | ~~`REVIEW_CASE_NOT_FOUND` resolves to HTTP `400` instead of `404`~~ | `10-error-handling.md` §3 | **Resolved (Sprint 17)** |
 | 2 | ~~`SystemParameterService.update()` does not evict the corresponding cache entry~~ | `12-cache-design.md` §8 | **Resolved (Sprint 17)** |
 | 3 | `SchedulingConfig` and `SchedulerConfig` both declare `@EnableScheduling` redundantly | `13-scheduler-design.md` §1 | Open — delete one of the two classes |
