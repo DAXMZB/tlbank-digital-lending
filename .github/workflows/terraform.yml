@@ -1,0 +1,57 @@
+# GitHub Actions 顯示的工作流名稱
+name: Terraform Check
+
+# 🎯 觸發條件設定：什麼時候要啟動這個自動化流程？
+on:
+  # 條件一：執行 git push 推送程式碼時
+  push:
+    branches: [ "main", "develop" ] # 只有推送到 main 或 develop 分支才會觸發
+    paths:
+      - "infra/**"                  # 只有當 infra 資料夾底下的任何檔案有變動時才觸發
+      - ".github/workflows/terraform.yml" # 或者這份自動化腳本本身被修改時觸發
+
+  # 條件二：送出 Pull Request（請求合併程式碼）時
+  pull_request:
+    branches: [ "main", "develop" ] # 目標分支是 main 或 develop 時觸發
+    paths:
+      - "infra/**"                  # 一樣限制只有 infra 資料夾變動時觸發
+      - ".github/workflows/terraform.yml"
+
+# 🛠️ 具體要做哪些事情（工作任務）
+jobs:
+  # 定義一個叫做 terraform-check 的任務
+  terraform-check:
+    name: Terraform Format Validate Plan # 在 GitHub 畫面上顯示的任務漂亮名稱
+    runs-on: ubuntu-latest               # 告訴 GitHub 開一台全新的 Linux (Ubuntu) 雲端虛擬機來跑下面指令
+
+    # 預設執行環境設定
+    defaults:
+      run:
+        working-directory: infra/local   # 🚀 讓後面的指令都在正確的資料夾下執行
+
+    # 任務裡面的具體步驟，會由上到下依序執行
+    steps:
+      # 步驟一：把 GitHub 上的原始碼下載（Checkout）到這台雲端虛擬機中
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      # 步驟二：在這台雲端虛擬機上安裝並設定官方的 Terraform 工具環境
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 步驟三：執行初始化（下載 required_providers 中宣告的 local 外掛插件）
+      - name: Terraform Init
+        run: terraform init
+
+      # 步驟四：自動排版檢查
+      # 💡 -check 代表如果排版不工整，會直接噴錯並中斷 CI/CD，要在本地先跑 terraform fmt
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      # 步驟五：進行語法與邏輯防呆檢查，確保括號沒漏掉、變數沒拼錯
+      - name: Terraform Validate
+        run: terraform validate
+
+      # 步驟六：執行計畫預覽，在 GitHub Actions 的 Log 
+      - name: Terraform Plan
+        run: terraform plan
