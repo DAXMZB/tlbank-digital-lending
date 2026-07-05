@@ -1,0 +1,42 @@
+# ==========================================
+# Markdown Check
+# 用途：檢查 README.md 與 docs 內 Markdown 格式
+# ==========================================
+
+name: Markdown Check
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+    paths:
+      # 只有 Markdown 文件變更才觸發
+      - "**/*.md"
+      # workflow 變更也觸發
+      - ".github/workflows/markdown.yml"
+      # markdownlint 設定檔變更也觸發
+      - ".markdownlint-cli2.jsonc"
+
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - "**/*.md"
+      - ".github/workflows/markdown.yml"
+      - ".markdownlint-cli2.jsonc"
+
+jobs:
+  markdown-check:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      # 下載 GitHub Repository 原始碼
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      # 執行 markdownlint-cli2
+      # 檢查 README.md / docs/*.md 的格式是否符合規範
+      - name: Run markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v24
+        with:
+          # 掃描所有 Markdown 檔案
+          globs: "**/*.md"

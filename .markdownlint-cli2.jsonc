@@ -1,0 +1,27 @@
+{
+    // ==========================================
+    // markdownlint-cli2 設定檔
+    // 用途：調整 Markdown 檢查規則
+    // ==========================================
+  
+    "config": {
+      // 允許同一份文件出現多個 H1
+      // 因為 README 有時候會包含專案標題與章節範例
+      "MD025": false,
+  
+      // 不強制單行長度
+      // 因為 README 常有 URL、指令、技術說明，太嚴格會造成不必要失敗
+      "MD013": false,
+  
+      // 不強制 fenced code block 一定要指定語言
+      // 建議未來寫 ```bash / ```yaml / ```java
+      "MD040": false
+    },
+  
+    // 忽略不需要檢查的資料夾
+    "ignores": [
+      "sp2-springboot/target/**",
+      "sp2-springboot/.mvn/**",
+      "**/node_modules/**"
+    ]
+  }
