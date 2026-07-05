@@ -1,5 +1,7 @@
 # TLBank Digital Lending Platform
 
+![CI/CD](https://github.com/DAXMZB/Project/actions/workflows/ci.yml/badge.svg)
+
 TLBank is a fictional enterprise backend project built to simulate a real-world digital lending system.
 
 It focuses on:
@@ -26,6 +28,35 @@ It focuses on:
 | Reports | Apache POI, iText7 |
 | Build | Maven |
 | Container | Docker, Docker Compose |
+
+## CI/CD Pipeline
+
+Workflow definition: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (monorepo root).
+
+```mermaid
+flowchart LR
+    A[Build and Test<br/>Maven · JDK 17] --> B[Code Quality<br/>mvn verify]
+    A --> C[Dependency Scan<br/>Trivy HIGH/CRITICAL]
+    B --> D[Build and Push Image<br/>GHCR · latest + sha]
+    C --> D
+    D --> E[Deploy to Staging<br/>self-hosted macOS<br/>workflow_dispatch]
+```
+
+| Stage | What it does |
+|-------|----------------|
+| **Build and Test** | Compiles the backend and runs tests with **Maven** on **JDK 17** (GitHub-hosted `ubuntu-latest`). |
+| **Code Quality** | Runs **`mvn verify`** after a green build (same JDK/Maven setup). |
+| **Dependency Scan** | **Trivy** filesystem scan for **HIGH** / **CRITICAL** findings (report-only; does not fail the pipeline). |
+| **Build and Push Docker Image** | Builds the app image and pushes to **GHCR** with two tags: **`latest`** and the **commit SHA**. |
+| **Deploy to Staging Server** | Pulls the image and starts containers on the local Mac via a **self-hosted macOS runner**. Triggered only by **`workflow_dispatch`** (manual **Run workflow** in the Actions UI). |
+
+### Why manual deploy on a self-hosted runner?
+
+Staging runs on an existing on-prem Mac (Docker Desktop + SQL Server containers). Deploy is **not** done by a GitHub-hosted runner SSHing into that machine, because:
+
+- Opening **SSH to the public internet** would expose an attack surface on a home/office network.
+- Many consumer networks sit behind **NAT / CGNAT**, **ISP firewalls**, or a **dynamic public IP**, so inbound SSH from GitHub’s runners is unreliable or impossible without extra paid infrastructure.
+- A **self-hosted runner** polls GitHub outbound, so the Mac never needs an inbound SSH port. **`workflow_dispatch`** keeps deploys intentional: everyday pushes still run CI and can publish images, but staging is updated only when you choose to run the workflow.
 
 ## Architecture
 

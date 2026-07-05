@@ -1,5 +1,39 @@
-/.metadata/
-/target/
-/.settings/
-/.classpath
-/.project
+# ===== IDE / Eclipse・STS =====
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
+.sts4-cache
+.metadata/
+
+# ===== 其他 IDE（如果之後有人用）=====
+.idea/
+.vscode/
+*.iml
+
+# ===== 編譯產物 =====
+target/
+build/
+bin/
+
+# ===== 機密與本機資料 =====
+.env
+sp2-springboot/uploads/
+
+# ===== Log / 自動產生文件 =====
+*.log
+HELP.md
+
+# ===== Terraform =====
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+infra/local/generated-staging-env.md
+
+# ===== 系統雜物 =====
+.DS_Store
+
+# ===== 壓縮檔 =====
+*.zip
