@@ -40,7 +40,7 @@ See `03-package-structure.md` §3 for the full table. Highlights:
 Three distinct categories must not be collapsed into one:
 
 | Category | Lives in | Validated with | Purpose |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Request DTO | `application.dto.request` or `presentation.api.v1.<feature>` | `jakarta.validation` annotations (`@NotBlank`, `@Valid`, `@Pattern`, etc.) | Shape of the HTTP request body |
 | Command | `application.<feature>.service` | Not separately validated (already validated upstream) | Input to a single use-case method, decoupled from HTTP concerns |
 | Response | `application.<feature>.service` or `application.dto.response` | n/a (output only) | Shape returned to the controller; the controller wraps it in `ApiResponse` |
@@ -52,7 +52,7 @@ A `Request` and a `Command` are kept as **separate types** even when their field
 ## 4. Lombok Usage Conventions
 
 | Annotation | Where used | Why |
-|---|---|---|
+| --- | --- | --- |
 | `@Getter` | Aggregates, entities | Read-only field access without hand-written boilerplate |
 | `@Builder` (+ `@Builder.Default` for collections) | Aggregates, entities | Expressive, immutable-feeling construction even though the underlying class is mutable for JPA's sake |
 | `@RequiredArgsConstructor` | Spring-managed beans with `final` fields | Constructor injection without boilerplate; never field injection (`@Autowired` on a field) anywhere in the codebase |

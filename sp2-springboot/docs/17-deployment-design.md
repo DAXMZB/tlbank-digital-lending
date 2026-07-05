@@ -20,7 +20,7 @@ flowchart LR
 ## 2. Build Artifact
 
 | Item | Value |
-|---|---|
+| --- | --- |
 | Build tool | Maven (`./mvnw clean package -DskipTests -Pstaging`) |
 | Packaging | Executable fat JAR (`spring-boot-maven-plugin`), Lombok excluded from the repackaged JAR |
 | Image base (build stage) | `eclipse-temurin:17-jdk` (multi-arch: amd64 + arm64) |
@@ -56,7 +56,7 @@ only the JRE and the built JAR — keeping the production image small and reduci
 ## 3. `docker-compose.yml` Services
 
 | Service | Image | Purpose | Health check |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `sqlserver` | `mcr.microsoft.com/mssql/server:2022-latest` | The relational database | `sqlcmd ... SELECT 1` every 15s, 10 retries, 40s start period |
 | `db-init` | Same SQL Server image, used as a one-shot client | Runs `01-init-database.sql` (creates `TLBankLending` DB + `tlbank_app` login) then `02-create-app-user.sql` (grants `db_owner` to `tlbank_app` inside that DB), then exits (`restart: "no"`) | n/a — gated on `sqlserver` being healthy |
 | `app` | Built from `docker/app/Dockerfile` | The Spring Boot application | `wget -qO- http://localhost:8080/actuator/health`, 30s interval, 5 retries, 90s start period |
@@ -75,20 +75,20 @@ Sourced from a `.env` file (copy `.env.example` → `.env`, **never commit `.env
 `.gitignore`):
 
 | Variable | Used by | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `DB_NAME` | `docker/sqlserver/init/01-init-database.sql` (conceptually; actual DB name is hardcoded `TLBankLending` in that script today) | Documents the intended DB name |
 | `DB_USERNAME` / `DB_PASSWORD` | App + `db-init` | Application's SQL login credentials |
 | `DB_SA_PASSWORD` | `sqlserver`, `db-init` | SQL Server `sa` bootstrap password (`MSSQL_SA_PASSWORD`) |
 | `SPRING_PROFILES_ACTIVE` | `app` | Defaults to `staging` if unset |
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | `app` | JDBC connection to the `sqlserver` service |
 | `APP_SESSION_TIMEOUT` | `app` | Overrides `server.servlet.session.timeout`, default `30m` |
-| `APP_OTP_EXPIRE_MINUTES` / `APP_OTP_MAX_RETRY` | *(documented in `.env.example` as intended overrides; current OTP config is sourced from the `system_parameters` table, not these env vars — see note in §7)* |
+| `APP_OTP_EXPIRE_MINUTES` / `APP_OTP_MAX_RETRY` | — | Documented in `.env.example` as intended overrides; current OTP config is sourced from the `system_parameters` table, not these env vars (see note in §7). |
 | `APP_UPLOAD_PATH` | `app` | Overrides `tlbank.upload.base-path`, default `/app/uploads` |
 
 ## 5. Configuration Per Profile
 
 | Profile | Datasource | Flyway location | Swagger | Log level | Notable overrides |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | `dev` | H2 in-memory (`MODE=MSSQLServer`) | `classpath:db/migration,classpath:db/dev-seed` | Enabled | `com.tlbank.lending=DEBUG`, `org.hibernate.SQL=DEBUG` | H2 console enabled at `/h2-console`; `X-Frame-Options` disabled so the H2 console can render in an iframe; OTP cleanup every 1 minute; idempotency store overridden to Redis (test slice overrides to `memory` — see `16-testing-strategy.md`) |
 | `staging` | SQL Server (env-provided) | `classpath:db/migration-sqlserver` | Enabled | `INFO` | Mirrors `prod` infra with more visibility for QA |
 | `prod` | SQL Server (env-provided) | `classpath:db/migration-sqlserver` | **Disabled** (`springdoc.api-docs.enabled=false`, `swagger-ui.enabled=false`) | `WARN` | `jpa.show-sql=false` |
@@ -99,7 +99,7 @@ auto-generates or alters schema in any environment; Flyway is the only source of
 ## 6. Default Seed Accounts (Non-Production Only)
 
 | Username | Password | Role | Where seeded |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `admin` | `Password123!` | `ADMIN` | `db/dev-seed` (H2, local `dev` profile) |
 | `reviewer1` | `Password123!` | `REVIEWER` | `db/dev-seed` |
 | `applicant1` | `Password123!` | `USER` | `db/dev-seed` |

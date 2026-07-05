@@ -20,6 +20,7 @@ flowchart LR
     H --> J[byte[]]
     I --> J[byte[]]
     J --> K[HTTP response: binary + Content-Disposition]
+
 ```
 
 ## 3. Data Aggregation (`ReportDataService`)
@@ -28,7 +29,7 @@ flowchart LR
 `[date 00:00, date+1 00:00)`:
 
 | Query | Result |
-|---|---|
+| --- | --- |
 | `countByCreatedAtBetween` | Total applications created that day |
 | `countByStatusAndCreatedAtBetween` (`GROUP BY status`) | Count per `ApplicationStatus`, with **every** enum value pre-seeded to `0` so the report always shows a complete status breakdown even for statuses with no applications that day |
 | `countByCardProductIdAndCreatedAtBetween` (`GROUP BY product_id`) | Count per product, with the product ID resolved to a human-readable `productName` via `CardProductJpaRepository`, falling back to `"Product-<id>"` if the product was since deleted |
@@ -40,7 +41,7 @@ Result type: `DailyStatisticsData(reportDate, totalApplications, statusCounts, p
 Produces an `.xlsx` workbook with two sheets:
 
 | Sheet | Content |
-|---|---|
+| --- | --- |
 | `Summary` | Title row, report date, total applications, then a bold header row (`Status`, `Count`, `Percentage`) followed by one row per `ApplicationStatus` with a computed percentage of the daily total |
 | `By Product` | Bold header row (`Product`, `Count`) followed by one row per product; shows a `"No applications"` / `0` row if the product map is empty rather than an empty sheet |
 
@@ -64,8 +65,10 @@ which is flagged as a minor DRY opportunity in `20-maintenance-and-future-enhanc
 `POST /api/v1/reports/daily-statistics` (role: `ADMIN`)
 
 Request:
+
 ```json
 { "reportDate": "2026-06-27", "format": "EXCEL" }
+
 ```
 
 Response: raw binary body, **not** wrapped in `ApiResponse` (the only endpoint in the platform that returns a
@@ -74,6 +77,7 @@ non-JSON success body), with:
 ```
 Content-Type: application/octet-stream   (EXCEL)  |  application/pdf   (PDF)
 Content-Disposition: attachment; filename="daily-statistics-20260627.xlsx"
+
 ```
 
 The filename is built by `ReportAppService.getFileName(date, format)` using `DateTimeFormatter.BASIC_ISO_DATE`

@@ -17,7 +17,7 @@ exercise real HTTP + security + persistence end-to-end against H2.
 ## 2. Test Categories and Examples (Actual Test Classes)
 
 | Category | Example test classes | Tooling |
-|---|---|---|
+| --- | --- | --- |
 | Domain aggregate / value object | `ApplicationTest`, `ApplicationStatusTest`, `ApplicationIdTest`, `AddressTest`, `EmailTest`, `MobileNumberTest`, `OtpRecordTest`, `ReviewCaseTest`, `WorkflowDomainServiceTest` | JUnit 5 only — no `@SpringBootTest`, no mocks needed since aggregates have no collaborators |
 | Application service unit | `ApplicationAppServiceTest`, `OtpAppServiceTest`, `ReviewAppServiceTest`, `UserAppServiceTest`, `SystemParameterServiceTest`, `SystemParameterServiceCacheTest`, `ReportAppServiceTest`, `AuditLogServiceTest`, `IdempotencyServiceTest`, `NotificationServiceImplTest` | JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, `@Mock` repository ports) |
 | Common / cross-cutting | `AuditAspectTest` (+ `AuditableTestService` fixture) | JUnit 5 + Mockito, verifies AOP behavior against a minimal annotated test service |
@@ -49,7 +49,7 @@ exercise real HTTP + security + persistence end-to-end against H2.
 ## 4. What Each Layer Is Responsible For Proving
 
 | Layer | Proves |
-|---|---|
+| --- | --- |
 | Domain unit tests | State machine correctness (`ApplicationStatus.canTransitionTo` exhaustively), value object validation (rejects malformed `MobileNumber`/`Email`/`ApplicationId`), aggregate invariants (`OtpRecord.verify` precedence of expiry/retry/mismatch) |
 | Application service unit tests | Correct orchestration: right repository calls made, right exception thrown for not-found/duplicate cases, right event published, masking applied before returning a response DTO — all without touching a real database |
 | Infrastructure unit tests | Adapter correctness in isolation: cache TTL/expiry math, file validation rules, report byte-output non-emptiness/structure, scheduler error-swallowing behavior |

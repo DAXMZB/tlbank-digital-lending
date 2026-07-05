@@ -50,7 +50,7 @@ sequenceDiagram
 ## 4. Validation Rules (`LocalDocumentStorageService.validate`)
 
 | Rule | Enforcement |
-|---|---|
+| --- | --- |
 | File must not be null/empty | `BusinessException(DOCUMENT_UPLOAD_FAILED, "File must not be empty")` |
 | Extension must be one of `jpg`, `jpeg`, `png`, `pdf` | Case-insensitive check against `ALLOWED_EXTENSIONS`; otherwise `DOCUMENT_UPLOAD_FAILED` |
 | File size must not exceed the configured maximum | `systemParameterService.getIntValue("UPLOAD", "max.size.mb", 10)` × 1MB, compared to `file.getSize()`; otherwise `DOCUMENT_UPLOAD_FAILED` |
