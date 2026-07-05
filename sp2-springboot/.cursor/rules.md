@@ -1,3 +1,5 @@
+# Rules
+
 Always read every document under /docs before generating code.
 
 Never skip the Software Design Document.
