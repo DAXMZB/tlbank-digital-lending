@@ -28,10 +28,10 @@ flowchart LR
 `buildDailyStatistics(date)` runs three repository-level aggregations scoped to
 `[date 00:00, date+1 00:00)`:
 
-| Query                                                             | Result                                                                                                                                                                              |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `countByCreatedAtBetween`                                         | Total applications created that day                                                                                                                                                 |
-| `countByStatusAndCreatedAtBetween` (`GROUP BY status`)            | Count per `ApplicationStatus`, with **every** enum value pre-seeded to `0` so the report always shows a complete status breakdown even for statuses with no applications that day   |
+| Query | Result |
+| --- | --- |
+| `countByCreatedAtBetween` | Total applications created that day |
+| `countByStatusAndCreatedAtBetween` (`GROUP BY status`) | Count per `ApplicationStatus`, with **every** enum value pre-seeded to `0` so the report always shows a complete status breakdown even for statuses with no applications that day |
 | `countByCardProductIdAndCreatedAtBetween` (`GROUP BY product_id`) | Count per product, with the product ID resolved to a human-readable `productName` via `CardProductJpaRepository`, falling back to `"Product-<id>"` if the product was since deleted |
 
 Result type: `DailyStatisticsData(reportDate, totalApplications, statusCounts, productCounts)`.
@@ -40,10 +40,10 @@ Result type: `DailyStatisticsData(reportDate, totalApplications, statusCounts, p
 
 Produces an `.xlsx` workbook with two sheets:
 
-| Sheet        | Content                                                                                                                                                                                        |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Summary`    | Title row, report date, total applications, then a bold header row (`Status`, `Count`, `Percentage`) followed by one row per `ApplicationStatus` with a computed percentage of the daily total |
-| `By Product` | Bold header row (`Product`, `Count`) followed by one row per product; shows a `"No applications"` / `0` row if the product map is empty rather than an empty sheet                             |
+| Sheet | Content |
+| --- | --- |
+| `Summary` | Title row, report date, total applications, then a bold header row (`Status`, `Count`, `Percentage`) followed by one row per `ApplicationStatus` with a computed percentage of the daily total |
+| `By Product` | Bold header row (`Product`, `Count`) followed by one row per product; shows a `"No applications"` / `0` row if the product map is empty rather than an empty sheet |
 
 Columns are auto-sized (`sheet.autoSizeColumn`) after population. The workbook is written to a
 `ByteArrayOutputStream` and returned as `byte[]` — no temp file ever touches disk.

@@ -99,29 +99,29 @@ security/
 
 ## 3. Naming Conventions Observed
 
-| Suffix / Pattern                       | Meaning                                                        | Example                                            |
-| -------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
-| `*Id` (record)                         | Self-validating business identifier value object               | `ApplicationId`, `UserId`, `ReviewCaseId`          |
-| `*Entity`                              | JPA-mapped persistence model (infrastructure only)             | `ApplicationEntity`, `UserEntity`                  |
-| `*Embeddable`                          | JPA `@Embeddable` mapped inside an entity                      | `ApplicantEmbeddable`, `AddressEmbeddable`         |
-| `*JpaRepository`                       | Spring Data JPA interface (infrastructure only)                | `ApplicationJpaRepository`                         |
-| `*RepositoryImpl`                      | Adapter implementing a domain repository port                  | `ApplicationRepositoryImpl`                        |
-| `*Repository` (no suffix, in `domain`) | Repository **port** (interface)                                | `ApplicationRepository`, `OtpRepository`           |
-| `*AppService`                          | Application-layer use-case orchestrator                        | `ApplicationAppService`, `OtpAppService`           |
-| `*Command`                             | Application-layer input parameter object for a single use case | `SendOtpCommand`, `ApproveCaseCommand`             |
-| `*Response`                            | Application-layer output DTO                                   | `ApplicationSummaryResponse`, `UserResponse`       |
-| `*Request`                             | Presentation-layer inbound request body                        | `CreateApplicationRequest`, `ApproveReviewRequest` |
-| `package-info.java`                    | One-paragraph Javadoc describing the package's responsibility  | present in every package                           |
+| Suffix / Pattern | Meaning | Example |
+| --- | --- | --- |
+| `*Id` (record) | Self-validating business identifier value object | `ApplicationId`, `UserId`, `ReviewCaseId` |
+| `*Entity` | JPA-mapped persistence model (infrastructure only) | `ApplicationEntity`, `UserEntity` |
+| `*Embeddable` | JPA `@Embeddable` mapped inside an entity | `ApplicantEmbeddable`, `AddressEmbeddable` |
+| `*JpaRepository` | Spring Data JPA interface (infrastructure only) | `ApplicationJpaRepository` |
+| `*RepositoryImpl` | Adapter implementing a domain repository port | `ApplicationRepositoryImpl` |
+| `*Repository` (no suffix, in `domain`) | Repository **port** (interface) | `ApplicationRepository`, `OtpRepository` |
+| `*AppService` | Application-layer use-case orchestrator | `ApplicationAppService`, `OtpAppService` |
+| `*Command` | Application-layer input parameter object for a single use case | `SendOtpCommand`, `ApproveCaseCommand` |
+| `*Response` | Application-layer output DTO | `ApplicationSummaryResponse`, `UserResponse` |
+| `*Request` | Presentation-layer inbound request body | `CreateApplicationRequest`, `ApproveReviewRequest` |
+| `package-info.java` | One-paragraph Javadoc describing the package's responsibility | present in every package |
 
 ## 4. Where to Add New Code
 
-| If you are adding...                                | Put it in...                                                                                                                                                 |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A new business rule on an existing aggregate        | The aggregate class itself in `domain.<feature>`                                                                                                             |
-| A new aggregate-spanning rule                       | A new domain service in `domain.service`                                                                                                                     |
-| A new use case (e.g. "resend OTP")                  | A new method on the relevant `*AppService` in `application.<feature>.service`, plus a `*Command`/`*Response` if needed                                       |
-| A new REST endpoint                                 | `presentation.api.v1`, calling exactly one application service method                                                                                        |
-| A new web page                                      | `presentation.web`, calling the same application services as the REST layer                                                                                  |
-| A new persistence need                              | A new JPA entity + `*JpaRepository` + `*RepositoryImpl` in `infrastructure.persistence.<feature>`, implementing the existing or a new domain repository port |
-| A new external integration (e.g. real SMS provider) | A new adapter in `infrastructure.notification` implementing `SmsSender`/`EmailSender`, selected via a Spring profile or `@ConditionalOnProperty`             |
-| A new error condition                               | A new `ErrorCode` constant + mapping in `GlobalExceptionHandler` (see `10-error-handling.md`)                                                                |
+| If you are adding... | Put it in... |
+| --- | --- |
+| A new business rule on an existing aggregate | The aggregate class itself in `domain.<feature>` |
+| A new aggregate-spanning rule | A new domain service in `domain.service` |
+| A new use case (e.g. "resend OTP") | A new method on the relevant `*AppService` in `application.<feature>.service`, plus a `*Command`/`*Response` if needed |
+| A new REST endpoint | `presentation.api.v1`, calling exactly one application service method |
+| A new web page | `presentation.web`, calling the same application services as the REST layer |
+| A new persistence need | A new JPA entity + `*JpaRepository` + `*RepositoryImpl` in `infrastructure.persistence.<feature>`, implementing the existing or a new domain repository port |
+| A new external integration (e.g. real SMS provider) | A new adapter in `infrastructure.notification` implementing `SmsSender`/`EmailSender`, selected via a Spring profile or `@ConditionalOnProperty` |
+| A new error condition | A new `ErrorCode` constant + mapping in `GlobalExceptionHandler` (see `10-error-handling.md`) |

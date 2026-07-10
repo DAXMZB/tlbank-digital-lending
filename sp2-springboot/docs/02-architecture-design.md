@@ -23,14 +23,14 @@ This is documented directly in the codebase's root `package-info.java`:
 
 The single rule that governs every package decision: **dependencies always point inward, toward `domain`.**
 
-| Layer            | May depend on                                                                   | Must NOT depend on                                                                    |
-| ---------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `domain`         | Nothing but the JDK (+ Lombok at compile time for boilerplate)                  | Spring, JPA, Servlet API, web/HTTP types                                              |
-| `application`    | `domain`                                                                        | `infrastructure`, `presentation` internals (only ports)                               |
-| `infrastructure` | `domain` (implements its repository ports), Spring/JPA/Redis/POI/iText          | `presentation`                                                                        |
-| `presentation`   | `application`, `common` (DTOs/response envelope)                                | `infrastructure` implementation classes directly (it talks to `application` services) |
-| `security`       | `domain` (e.g. `Role`), `infrastructure.persistence.user` (to load credentials) | `presentation` web internals beyond what handlers need                                |
-| `common`         | Nothing (utility/cross-cutting only)                                            | Any other layer                                                                       |
+| Layer | May depend on | Must NOT depend on |
+| --- | --- | --- |
+| `domain` | Nothing but the JDK (+ Lombok at compile time for boilerplate) | Spring, JPA, Servlet API, web/HTTP types |
+| `application` | `domain` | `infrastructure`, `presentation` internals (only ports) |
+| `infrastructure` | `domain` (implements its repository ports), Spring/JPA/Redis/POI/iText | `presentation` |
+| `presentation` | `application`, `common` (DTOs/response envelope) | `infrastructure` implementation classes directly (it talks to `application` services) |
+| `security` | `domain` (e.g. `Role`), `infrastructure.persistence.user` (to load credentials) | `presentation` web internals beyond what handlers need |
+| `common` | Nothing (utility/cross-cutting only) | Any other layer |
 
 This is why, for example, `Application` (domain aggregate) is a plain Lombok `@Builder` class with **no**
 `@Entity` annotation, while `ApplicationEntity` (infrastructure) is the JPA-mapped class that the

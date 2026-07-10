@@ -42,11 +42,11 @@ unbounded with stale data between reads.
 
 ## 3. Cache Keys
 
-| Key pattern                | Example                        | Used for                           |
-| -------------------------- | ------------------------------ | ---------------------------------- |
-| `sys_param:<group>:<key>`  | `sys_param:OTP:expire_minutes` | Individual system parameter values |
-| `card_products:all`        | —                              | The full enabled product list      |
-| `card_product:<productId>` | `card_product:CARD-001`        | A single product lookup            |
+| Key pattern | Example | Used for |
+| --- | --- | --- |
+| `sys_param:<group>:<key>` | `sys_param:OTP:expire_minutes` | Individual system parameter values |
+| `card_products:all` | — | The full enabled product list |
+| `card_product:<productId>` | `card_product:CARD-001` | A single product lookup |
 
 `CacheKeys` centralizes these patterns so no call site builds a cache key by hand.
 
@@ -122,19 +122,19 @@ system parameters" action and `CacheRefreshScheduler`.
 
 ## 7. Admin Cache API
 
-| Endpoint                                             | Effect                                                                                                                                                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/admin/cache/refresh`                   | `refreshSystemParameters() + refreshProducts()`, returns total refreshed count                                                                                                              |
-| `POST /api/v1/admin/cache/refresh/system-parameters` | Parameters only                                                                                                                                                                             |
-| `POST /api/v1/admin/cache/refresh/products`          | Products only                                                                                                                                                                               |
-| `GET /api/v1/admin/cache/stats`                      | `{ keyCount, estimatedMemoryBytes }` — a rough estimate (`key.length()*2 + value.toString().length()*2` per entry), intended as an operational sanity signal, not a precise memory profiler |
+| Endpoint | Effect |
+| --- | --- |
+| `POST /api/v1/admin/cache/refresh` | `refreshSystemParameters() + refreshProducts()`, returns total refreshed count |
+| `POST /api/v1/admin/cache/refresh/system-parameters` | Parameters only |
+| `POST /api/v1/admin/cache/refresh/products` | Products only |
+| `GET /api/v1/admin/cache/stats` | `{ keyCount, estimatedMemoryBytes }` — a rough estimate (`key.length()*2 + value.toString().length()*2` per entry), intended as an operational sanity signal, not a precise memory profiler |
 
 ## 8. Cache Invalidation Strategy
 
-| Trigger                      | Effect                                                                                                                                                                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TTL expiry                   | Lazy — entry simply returns empty on next `get()`, removed in that call (`InMemoryCacheStore.get`)                                                                                                                                                            |
-| Background sweep             | Active — `@Scheduled` cleanup every 60s removes already-expired entries proactively                                                                                                                                                                           |
-| Scheduled refresh            | `CacheRefreshScheduler` runs on `tlbank.scheduler.cache-refresh.cron` (default every 6 hours in `staging`/`prod`-style config)                                                                                                                                |
-| Manual admin action          | Immediate, via the Admin Cache API or web UI                                                                                                                                                                                                                  |
+| Trigger | Effect |
+| --- | --- |
+| TTL expiry | Lazy — entry simply returns empty on next `get()`, removed in that call (`InMemoryCacheStore.get`) |
+| Background sweep | Active — `@Scheduled` cleanup every 60s removes already-expired entries proactively |
+| Scheduled refresh | `CacheRefreshScheduler` runs on `tlbank.scheduler.cache-refresh.cron` (default every 6 hours in `staging`/`prod`-style config) |
+| Manual admin action | Immediate, via the Admin Cache API or web UI |
 | **Write-through on update?** | **Yes (Sprint 17)** — `SystemParameterService.update()` evicts the corresponding `sys_param:<group>:<key>` cache entry immediately after persisting, so the next `getValue()` read reflects the new value without waiting for TTL expiry or a manual refresh. |

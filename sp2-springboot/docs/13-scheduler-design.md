@@ -13,11 +13,11 @@ single-instance modular monolith where in-process `@Scheduled` is simplest and s
 
 ## 2. Jobs
 
-| Job              | Class                      | Cron property                         | Default (base `application.yml`)  | Dev override (`application-dev.yml`)                                 |
-| ---------------- | -------------------------- | ------------------------------------- | --------------------------------- | -------------------------------------------------------------------- |
-| OTP cleanup      | `OtpCleanupScheduler`      | `tlbank.scheduler.otp-cleanup.cron`   | `0 */5 * * * *` (every 5 minutes) | `0 */1 * * * *` (every 1 minute, for fast feedback while developing) |
-| Cache refresh    | `CacheRefreshScheduler`    | `tlbank.scheduler.cache-refresh.cron` | `0 0 */6 * * *` (every 6 hours)   | inherited                                                            |
-| Daily statistics | `DailyStatisticsScheduler` | `tlbank.scheduler.daily-stats.cron`   | `0 0 1 * * *` (01:00 daily)       | inherited                                                            |
+| Job | Class | Cron property | Default (base `application.yml`) | Dev override (`application-dev.yml`) |
+| --- | --- | --- | --- | --- |
+| OTP cleanup | `OtpCleanupScheduler` | `tlbank.scheduler.otp-cleanup.cron` | `0 */5 * * * *` (every 5 minutes) | `0 */1 * * * *` (every 1 minute, for fast feedback while developing) |
+| Cache refresh | `CacheRefreshScheduler` | `tlbank.scheduler.cache-refresh.cron` | `0 0 */6 * * *` (every 6 hours) | inherited |
+| Daily statistics | `DailyStatisticsScheduler` | `tlbank.scheduler.daily-stats.cron` | `0 0 1 * * *` (01:00 daily) | inherited |
 
 ## 3. Job Detail
 
@@ -73,10 +73,10 @@ that tail application logs.
 Every job can also be invoked on demand by an administrator, reusing the exact same method the cron trigger
 calls — there is no duplicated logic between "scheduled" and "manual" execution paths:
 
-| Endpoint                                                        | Calls                                                    |
-| --------------------------------------------------------------- | -------------------------------------------------------- |
-| `POST /api/v1/admin/schedulers/otp-cleanup/run`                 | `OtpCleanupScheduler.cleanupExpiredOtps()`               |
-| `POST /api/v1/admin/schedulers/cache-refresh/run`               | `CacheRefreshScheduler.refreshCaches()`                  |
+| Endpoint | Calls |
+| --- | --- |
+| `POST /api/v1/admin/schedulers/otp-cleanup/run` | `OtpCleanupScheduler.cleanupExpiredOtps()` |
+| `POST /api/v1/admin/schedulers/cache-refresh/run` | `CacheRefreshScheduler.refreshCaches()` |
 | `POST /api/v1/admin/schedulers/daily-stats/run?date=YYYY-MM-DD` | `DailyStatisticsScheduler.generateDailyStatistics(date)` |
 
 ## 5. Error Handling Pattern

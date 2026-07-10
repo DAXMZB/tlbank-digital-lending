@@ -7,14 +7,14 @@ Review)**. Within it, six aggregates collaborate, each with its own repository p
 
 ## 2. Aggregate Overview
 
-| Aggregate       | Aggregate Root    | Identity                                              | Key Collaborators                                                           |
-| --------------- | ----------------- | ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| Application     | `Application`     | `ApplicationId` (`APP-yyyyMMddHHmmss-NNNN`)           | `CardProduct` (by reference id), `ReviewCase` (created on submit via event) |
-| User            | `User`            | `UserId` (`USR-XXXXXXXX`)                             | Spring Security (`UserDetailsServiceImpl`)                                  |
-| ReviewCase      | `ReviewCase`      | `ReviewCaseId` (`RC-yyyyMMdd-NNNN`)                   | `Application` (by reference id)                                             |
-| CardProduct     | `CardProduct`     | `CardProductId`                                       | Referenced by `Application`                                                 |
-| OtpRecord       | `OtpRecord`       | internal `otpId`, keyed by mobile number              | Referenced indirectly during `Application` OTP verification                 |
-| SystemParameter | `SystemParameter` | internal `paramId`, keyed by `(paramGroup, paramKey)` | Read by OTP, Cache TTL, Upload validation                                   |
+| Aggregate | Aggregate Root | Identity | Key Collaborators |
+| --- | --- | --- | --- |
+| Application | `Application` | `ApplicationId` (`APP-yyyyMMddHHmmss-NNNN`) | `CardProduct` (by reference id), `ReviewCase` (created on submit via event) |
+| User | `User` | `UserId` (`USR-XXXXXXXX`) | Spring Security (`UserDetailsServiceImpl`) |
+| ReviewCase | `ReviewCase` | `ReviewCaseId` (`RC-yyyyMMdd-NNNN`) | `Application` (by reference id) |
+| CardProduct | `CardProduct` | `CardProductId` | Referenced by `Application` |
+| OtpRecord | `OtpRecord` | internal `otpId`, keyed by mobile number | Referenced indirectly during `Application` OTP verification |
+| SystemParameter | `SystemParameter` | internal `paramId`, keyed by `(paramGroup, paramKey)` | Read by OTP, Cache TTL, Upload validation |
 
 Aggregates reference each other **by identifier only** (e.g. `Application.cardProductId`,
 `ReviewCase.applicationId` is a plain `String`), never by direct object reference — a standard DDD practice
@@ -45,15 +45,15 @@ Application (aggregate root)
 
 ### 3.2 Behavior (Aggregate Methods)
 
-| Method                            | Effect                                                                         | Guarded by                                                                                       |
-| --------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `verifyOtp(operator)`             | `INIT → OTP_VERIFIED`                                                          | `ApplicationStatus.canTransitionTo`                                                              |
-| `uploadDocuments(docs, operator)` | `OTP_VERIFIED → DOCUMENT_UPLOADED` (or appends if already `DOCUMENT_UPLOADED`) | Status check inside the method, throws `WorkflowException` otherwise                             |
-| `submit(operator)`                | `DOCUMENT_UPLOADED → SUBMITTED`, stamps `submittedAt`                          | `ApplicationStatus.canTransitionTo` **and** all `DocumentType` values present in `documentInfos` |
-| `startReview(operator)`           | `SUBMITTED → UNDER_REVIEW`                                                     | `ApplicationStatus.canTransitionTo`                                                              |
-| `approve(operator, remark)`       | `UNDER_REVIEW → APPROVED`                                                      | `ApplicationStatus.canTransitionTo`                                                              |
-| `reject(operator, remark)`        | `UNDER_REVIEW → REJECTED`                                                      | `ApplicationStatus.canTransitionTo`                                                              |
-| `cancel(operator, reason)`        | `{INIT, OTP_VERIFIED, DOCUMENT_UPLOADED} → CANCELLED`                          | Explicit `CANCELLABLE_STATUSES` `EnumSet`                                                        |
+| Method | Effect | Guarded by |
+| --- | --- | --- |
+| `verifyOtp(operator)` | `INIT → OTP_VERIFIED` | `ApplicationStatus.canTransitionTo` |
+| `uploadDocuments(docs, operator)` | `OTP_VERIFIED → DOCUMENT_UPLOADED` (or appends if already `DOCUMENT_UPLOADED`) | Status check inside the method, throws `WorkflowException` otherwise |
+| `submit(operator)` | `DOCUMENT_UPLOADED → SUBMITTED`, stamps `submittedAt` | `ApplicationStatus.canTransitionTo` **and** all `DocumentType` values present in `documentInfos` |
+| `startReview(operator)` | `SUBMITTED → UNDER_REVIEW` | `ApplicationStatus.canTransitionTo` |
+| `approve(operator, remark)` | `UNDER_REVIEW → APPROVED` | `ApplicationStatus.canTransitionTo` |
+| `reject(operator, remark)` | `UNDER_REVIEW → REJECTED` | `ApplicationStatus.canTransitionTo` |
+| `cancel(operator, reason)` | `{INIT, OTP_VERIFIED, DOCUMENT_UPLOADED} → CANCELLED` | Explicit `CANCELLABLE_STATUSES` `EnumSet` |
 
 Every transition appends a `WorkflowHistory` entry (`fromStatus`, `toStatus`, `operator`, `remark`,
 `operatedAt`) **inside the same aggregate method**, so workflow history and status are always consistent —
@@ -166,36 +166,36 @@ it is read through `SystemParameterService` with a sane fallback default in code
 
 ## 9. Value Objects Summary
 
-| Value Object      | Validation Rule           | Notable Behavior                                                            |
-| ----------------- | ------------------------- | --------------------------------------------------------------------------- |
-| `ApplicationId`   | `^APP-\d{14}-\d{4}$`      | `generate()` factory using timestamp + random suffix                        |
-| `ReviewCaseId`    | `^RC-\d{8}-\d{4}$`        | `generate()` factory using date + random suffix                             |
-| `UserId`          | non-blank                 | `generate()` factory using `USR-` + UUID fragment                           |
-| `CardProductId`   | non-blank                 | —                                                                           |
-| `MobileNumber`    | `^09\d{8}$`               | `masked()` → `0912****78`                                                   |
-| `Email`           | must contain `@`          | —                                                                           |
-| `Address`         | all four fields non-blank | —                                                                           |
-| `Applicant`       | `fullName` non-blank      | Composes `MobileNumber`, `Email`, `Address`                                 |
-| `DocumentInfo`    | —                         | Carries `documentType`, `fileName`, `storagePath`, `fileSize`, `uploadedAt` |
-| `WorkflowHistory` | —                         | Immutable audit trail entry on `Application`                                |
-| `ReviewRemark`    | —                         | Immutable audit trail entry on `ReviewCase`                                 |
-| `ProductFeature`  | —                         | `(featureKey, featureValue)` pair                                           |
+| Value Object | Validation Rule | Notable Behavior |
+| --- | --- | --- |
+| `ApplicationId` | `^APP-\d{14}-\d{4}$` | `generate()` factory using timestamp + random suffix |
+| `ReviewCaseId` | `^RC-\d{8}-\d{4}$` | `generate()` factory using date + random suffix |
+| `UserId` | non-blank | `generate()` factory using `USR-` + UUID fragment |
+| `CardProductId` | non-blank | — |
+| `MobileNumber` | `^09\d{8}$` | `masked()` → `0912****78` |
+| `Email` | must contain `@` | — |
+| `Address` | all four fields non-blank | — |
+| `Applicant` | `fullName` non-blank | Composes `MobileNumber`, `Email`, `Address` |
+| `DocumentInfo` | — | Carries `documentType`, `fileName`, `storagePath`, `fileSize`, `uploadedAt` |
+| `WorkflowHistory` | — | Immutable audit trail entry on `Application` |
+| `ReviewRemark` | — | Immutable audit trail entry on `ReviewCase` |
+| `ProductFeature` | — | `(featureKey, featureValue)` pair |
 
 ## 10. Domain Services
 
-| Domain Service          | Responsibility                                                                                                                                                                                                                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Domain Service | Responsibility |
+| --- | --- |
 | `WorkflowDomainService` | Validates an `ApplicationStatus` transition, throwing `WorkflowException` if disallowed. Exists separately from `Application.transitionTo` so the same rule can be reused/tested outside the aggregate (e.g. by future orchestration code that needs to pre-validate before loading the full aggregate). |
 
 ## 11. Domain Events
 
-| Event                       | Published By                              | Consumed By                                                                                                                                     |
-| --------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ApplicationSubmittedEvent` | `ApplicationAppService.submitApplication` | `ReviewEventHandler` (creates `ReviewCase`), `NotificationEventHandler` (sends "received" notification)                                         |
-| `ApplicationApprovedEvent`  | `ReviewAppService.approveCase`            | `NotificationEventHandler` (sends "approved" notification)                                                                                      |
-| `ApplicationRejectedEvent`  | `ReviewAppService.rejectCase`             | `NotificationEventHandler` (sends "rejected" notification)                                                                                      |
-| `ApplicationCancelledEvent` | Reserved for `cancelApplication` flow     | *(currently defined, not yet wired to a publisher — see `20-maintenance-and-future-enhancement.md`)*                                            |
-| `OtpGeneratedEvent`         | Reserved                                  | *(currently defined, not yet wired — OTP notifications are sent synchronously today by `OtpAppService` calling `NotificationService` directly)* |
+| Event | Published By | Consumed By |
+| --- | --- | --- |
+| `ApplicationSubmittedEvent` | `ApplicationAppService.submitApplication` | `ReviewEventHandler` (creates `ReviewCase`), `NotificationEventHandler` (sends "received" notification) |
+| `ApplicationApprovedEvent` | `ReviewAppService.approveCase` | `NotificationEventHandler` (sends "approved" notification) |
+| `ApplicationRejectedEvent` | `ReviewAppService.rejectCase` | `NotificationEventHandler` (sends "rejected" notification) |
+| `ApplicationCancelledEvent` | Reserved for `cancelApplication` flow | *(currently defined, not yet wired to a publisher — see `20-maintenance-and-future-enhancement.md`)* |
+| `OtpGeneratedEvent` | Reserved | *(currently defined, not yet wired — OTP notifications are sent synchronously today by `OtpAppService` calling `NotificationService` directly)* |
 
 ## 12. Aggregate Relationship Diagram
 

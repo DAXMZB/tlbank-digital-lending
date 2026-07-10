@@ -6,39 +6,39 @@ TLBank Digital Lending Platform uses **classic session-based authentication** vi
 — not JWT/OAuth2 — which is appropriate for its primary surface (a server-rendered Thymeleaf back office for
 reviewers/admins) while still exposing a JSON-friendly login for API clients and tests.
 
-| Aspect                     | Implementation                                                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Authentication mechanism   | `HttpSecurity.formLogin()`, login page `/login`, processing URL `/api/v1/auth/login`                                           |
-| Credential storage         | `users.password` column, BCrypt-hashed (`BCryptPasswordEncoder(12)`)                                                           |
-| Principal loading          | `UserDetailsServiceImpl` → `UserJpaRepository.findByUsername` → `AuthenticatedUser` (extends Spring's `User`, adds `fullName`) |
-| Authentication manager     | `ProviderManager` wrapping a single `DaoAuthenticationProvider`                                                                |
-| Session store              | Servlet container HTTP session (default in-memory; `server.servlet.session.timeout` configurable per profile, default `30m`)   |
-| Concurrent session control | `maximumSessions(1)` via `SessionRegistry` — a second login invalidates the first session                                      |
-| Logout                     | `/api/v1/auth/logout`, invalidates session + deletes `JSESSIONID` cookie                                                       |
+| Aspect | Implementation |
+| --- | --- |
+| Authentication mechanism | `HttpSecurity.formLogin()`, login page `/login`, processing URL `/api/v1/auth/login` |
+| Credential storage | `users.password` column, BCrypt-hashed (`BCryptPasswordEncoder(12)`) |
+| Principal loading | `UserDetailsServiceImpl` → `UserJpaRepository.findByUsername` → `AuthenticatedUser` (extends Spring's `User`, adds `fullName`) |
+| Authentication manager | `ProviderManager` wrapping a single `DaoAuthenticationProvider` |
+| Session store | Servlet container HTTP session (default in-memory; `server.servlet.session.timeout` configurable per profile, default `30m`) |
+| Concurrent session control | `maximumSessions(1)` via `SessionRegistry` — a second login invalidates the first session |
+| Logout | `/api/v1/auth/logout`, invalidates session + deletes `JSESSIONID` cookie |
 
 ## 2. Authorization Model
 
 ### 2.1 Roles
 
-| Domain `Role` enum | Spring authority | Internal `user_roles.role` value                              |
-| ------------------ | ---------------- | ------------------------------------------------------------- |
-| `ROLE_ADMIN`       | `ROLE_ADMIN`     | `ADMIN`                                                       |
-| `ROLE_REVIEWER`    | `ROLE_REVIEWER`  | `REVIEWER`                                                    |
-| `ROLE_USER`        | `ROLE_USER`      | `APPLICANT` (mapped in `UserDetailsServiceImpl.toSpringRole`) |
+| Domain `Role` enum | Spring authority | Internal `user_roles.role` value |
+| --- | --- | --- |
+| `ROLE_ADMIN` | `ROLE_ADMIN` | `ADMIN` |
+| `ROLE_REVIEWER` | `ROLE_REVIEWER` | `REVIEWER` |
+| `ROLE_USER` | `ROLE_USER` | `APPLICANT` (mapped in `UserDetailsServiceImpl.toSpringRole`) |
 
 ### 2.2 URL Authorization Matrix (`SecurityConfig.securityFilterChain`)
 
-| Path pattern                                                                                    | Rule                                                                                                                               |
-| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `/`, `/login`, `/products`, `/apply/**`, `/application/**`, `/api/v1/auth/**`, `/api/v1/otp/**` | `permitAll()` — public applicant flow                                                                                              |
-| `GET /api/v1/products`, `GET /api/v1/products/**`                                               | `permitAll()`                                                                                                                      |
-| `GET /api/v1/applications/**`                                                                   | `permitAll()`                                                                                                                      |
-| `POST /api/v1/applications`, `POST /api/v1/applications/**`                                     | `permitAll()` (application creation, document upload, submit, cancel are all anonymous; identity is established by OTP, not login) |
-| `/h2-console/**`                                                                                | `permitAll()` (dev convenience only — see `17-deployment-design.md` for why this must never reach `prod`)                          |
-| `/swagger-ui/**`, `/swagger-ui.html`, `/v3/api-docs/**`                                         | `permitAll()` (disabled entirely at the springdoc level in `prod`)                                                                 |
-| `/api/v1/review/**`, `/review/**`                                                               | `hasAnyRole("REVIEWER", "ADMIN")`                                                                                                  |
-| `/api/v1/admin/**`, `/api/v1/reports/**`, `/admin/**`                                           | `hasRole("ADMIN")`                                                                                                                 |
-| anything else                                                                                   | `authenticated()`                                                                                                                  |
+| Path pattern | Rule |
+| --- | --- |
+| `/`, `/login`, `/products`, `/apply/**`, `/application/**`, `/api/v1/auth/**`, `/api/v1/otp/**` | `permitAll()` — public applicant flow |
+| `GET /api/v1/products`, `GET /api/v1/products/**` | `permitAll()` |
+| `GET /api/v1/applications/**` | `permitAll()` |
+| `POST /api/v1/applications`, `POST /api/v1/applications/**` | `permitAll()` (application creation, document upload, submit, cancel are all anonymous; identity is established by OTP, not login) |
+| `/h2-console/**` | `permitAll()` (dev convenience only — see `17-deployment-design.md` for why this must never reach `prod`) |
+| `/swagger-ui/**`, `/swagger-ui.html`, `/v3/api-docs/**` | `permitAll()` (disabled entirely at the springdoc level in `prod`) |
+| `/api/v1/review/**`, `/review/**` | `hasAnyRole("REVIEWER", "ADMIN")` |
+| `/api/v1/admin/**`, `/api/v1/reports/**`, `/admin/**` | `hasRole("ADMIN")` |
+| anything else | `authenticated()` |
 
 Method-level security is additionally enabled (`@EnableMethodSecurity`) and used on controllers via
 `@PreAuthorize("hasRole('ADMIN')")` / `@PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")` as a defense-in-depth
@@ -60,14 +60,14 @@ The platform deliberately serves **either JSON or a browser redirect** depending
 determined by `LoginResponseMode.prefersJson(request)` (inspects the `Accept` header; defaults to JSON when
 absent or `*/*`, defers to HTML only when `Accept` explicitly contains `text/html`):
 
-| Scenario                                       | Handler                          | JSON client                                                                                | Browser client                                                                         |
-| ---------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| Successful login                               | `LoginSuccessHandler`            | `200` + `ApiResponse<LoginResponse>` (`username`, `fullName`, `roles`, `sessionExpiredAt`) | `302` redirect to role-specific landing page (`/admin/users`, `/review/cases`, or `/`) |
-| Failed login                                   | `LoginFailureHandler`            | `401` + `ApiResponse.error(UNAUTHORIZED, "Invalid username or password")`                  | `302` redirect to `/login?error`                                                       |
-| Logout                                         | `LogoutSuccessHandlerImpl`       | `200` + success message                                                                    | `302` redirect to `/login`                                                             |
-| Unauthenticated access to a protected resource | `CustomAuthenticationEntryPoint` | `401` JSON if URI starts with `/api/`                                                      | `302` redirect to `/?loginRequired=true`                                               |
-| Authenticated but insufficient role            | `CustomAccessDeniedHandler`      | `403` + `ApiResponse.error(FORBIDDEN)`                                                     | — (always JSON; no browser-specific branch)                                            |
-| Session invalidated by concurrent login        | `SessionExpiredStrategy`         | `401` + `ApiResponse.error(UNAUTHORIZED, "Session expired due to concurrent login")`       | — (same JSON response)                                                                 |
+| Scenario | Handler | JSON client | Browser client |
+| --- | --- | --- | --- |
+| Successful login | `LoginSuccessHandler` | `200` + `ApiResponse<LoginResponse>` (`username`, `fullName`, `roles`, `sessionExpiredAt`) | `302` redirect to role-specific landing page (`/admin/users`, `/review/cases`, or `/`) |
+| Failed login | `LoginFailureHandler` | `401` + `ApiResponse.error(UNAUTHORIZED, "Invalid username or password")` | `302` redirect to `/login?error` |
+| Logout | `LogoutSuccessHandlerImpl` | `200` + success message | `302` redirect to `/login` |
+| Unauthenticated access to a protected resource | `CustomAuthenticationEntryPoint` | `401` JSON if URI starts with `/api/` | `302` redirect to `/?loginRequired=true` |
+| Authenticated but insufficient role | `CustomAccessDeniedHandler` | `403` + `ApiResponse.error(FORBIDDEN)` | — (always JSON; no browser-specific branch) |
+| Session invalidated by concurrent login | `SessionExpiredStrategy` | `401` + `ApiResponse.error(UNAUTHORIZED, "Session expired due to concurrent login")` | — (same JSON response) |
 
 All of the above funnel through `JsonResponseWriter`, a tiny helper that consistently sets
 `Content-Type: application/json; charset=UTF-8` and serializes the standard `ApiResponse` envelope — ensuring
@@ -80,11 +80,11 @@ Login success, login failure, and logout are **all** written directly to `audit_
 since these events happen before/outside the normal controller-method invocation that `AuditAspect` wraps.
 See `11-audit-logging.md` for how this differs from `@Auditable`-driven audit entries.
 
-| Action              | Recorded fields                                                                               |
-| ------------------- | --------------------------------------------------------------------------------------------- |
-| `USER_LOGIN`        | `username`, `ipAddress` (via `AuditIpResolver`), `result=SUCCESS`, `detail="roles=ADMIN,..."` |
-| `USER_LOGIN_FAILED` | `username` (from form parameter, or `ANONYMOUS` if blank), `ipAddress`, `result=FAILURE`      |
-| `USER_LOGOUT`       | `username`, `ipAddress`, `result=SUCCESS`                                                     |
+| Action | Recorded fields |
+| --- | --- |
+| `USER_LOGIN` | `username`, `ipAddress` (via `AuditIpResolver`), `result=SUCCESS`, `detail="roles=ADMIN,..."` |
+| `USER_LOGIN_FAILED` | `username` (from form parameter, or `ANONYMOUS` if blank), `ipAddress`, `result=FAILURE` |
+| `USER_LOGOUT` | `username`, `ipAddress`, `result=SUCCESS` |
 
 `LoginSuccessHandler` also stamps `users.last_login_at` inside the same `@Transactional` method that writes
 the audit entry, keeping both writes atomic with the authentication event.

@@ -19,16 +19,16 @@ This document set is the single source of truth for:
 
 ## 2. Project Summary
 
-| Item               | Description                                                                      |
-| ------------------ | -------------------------------------------------------------------------------- |
-| Project name       | TLBank Digital Lending Platform                                                  |
-| Domain             | Digital credit card application intake, identity verification, and credit review |
-| Project type       | Fictional portfolio / learning project (GitHub + resume + interview discussion)  |
-| Primary users      | Applicants (public), Credit Reviewers (internal), Administrators (internal)      |
-| Architecture style | Clean Architecture / Hexagonal Architecture + Domain-Driven Design (DDD)         |
-| Delivery model     | Single deployable Spring Boot application (modular monolith)                     |
-| Base package       | `com.tlbank.lending`                                                             |
-| Artifact name      | `tlbank-lending`                                                                 |
+| Item | Description |
+| --- | --- |
+| Project name | TLBank Digital Lending Platform |
+| Domain | Digital credit card application intake, identity verification, and credit review |
+| Project type | Fictional portfolio / learning project (GitHub + resume + interview discussion) |
+| Primary users | Applicants (public), Credit Reviewers (internal), Administrators (internal) |
+| Architecture style | Clean Architecture / Hexagonal Architecture + Domain-Driven Design (DDD) |
+| Delivery model | Single deployable Spring Boot application (modular monolith) |
+| Base package | `com.tlbank.lending` |
+| Artifact name | `tlbank-lending` |
 
 ## 3. Business Goal (Fictional Narrative)
 
@@ -47,25 +47,25 @@ audit logs, notification logs, and exports operational reports.
 
 ## 4. Technology Stack
 
-| Layer                         | Technology                                                       |
-| ----------------------------- | ---------------------------------------------------------------- |
-| Language / Runtime            | Java 17                                                          |
-| Application framework         | Spring Boot 3.4.x                                                |
-| Build tool                    | Maven (`mvnw` wrapper included)                                  |
-| Persistence                   | Spring Data JPA / Hibernate                                      |
-| Database (production/staging) | Microsoft SQL Server 2022                                        |
-| Database (dev/test)           | H2 (in-memory, `MODE=MSSQLServer` compatibility)                 |
-| Schema migration              | Flyway (separate migration sets for H2 and SQL Server)           |
-| Security                      | Spring Security 6 (session-based form login)                     |
-| View layer                    | Thymeleaf + Bootstrap 5                                          |
-| API documentation             | springdoc-openapi (Swagger UI / OpenAPI 3)                       |
-| Object mapping                | MapStruct, Lombok                                                |
-| Caching                       | Custom in-process cache abstraction (`CacheStore`)               |
-| Idempotency store             | Redis (`spring-boot-starter-data-redis`) with in-memory fallback |
-| Report generation             | Apache POI (Excel), iText 7 (PDF)                                |
-| Testing                       | JUnit 5, Mockito, Spring Boot Test, Spring Security Test         |
-| Containerization              | Docker (multi-stage build), Docker Compose                       |
-| Observability                 | Spring Boot Actuator, SLF4J + Logback with MDC correlation IDs   |
+| Layer | Technology |
+| --- | --- |
+| Language / Runtime | Java 17 |
+| Application framework | Spring Boot 3.4.x |
+| Build tool | Maven (`mvnw` wrapper included) |
+| Persistence | Spring Data JPA / Hibernate |
+| Database (production/staging) | Microsoft SQL Server 2022 |
+| Database (dev/test) | H2 (in-memory, `MODE=MSSQLServer` compatibility) |
+| Schema migration | Flyway (separate migration sets for H2 and SQL Server) |
+| Security | Spring Security 6 (session-based form login) |
+| View layer | Thymeleaf + Bootstrap 5 |
+| API documentation | springdoc-openapi (Swagger UI / OpenAPI 3) |
+| Object mapping | MapStruct, Lombok |
+| Caching | Custom in-process cache abstraction (`CacheStore`) |
+| Idempotency store | Redis (`spring-boot-starter-data-redis`) with in-memory fallback |
+| Report generation | Apache POI (Excel), iText 7 (PDF) |
+| Testing | JUnit 5, Mockito, Spring Boot Test, Spring Security Test |
+| Containerization | Docker (multi-stage build), Docker Compose |
+| Observability | Spring Boot Actuator, SLF4J + Logback with MDC correlation IDs |
 
 ## 5. Architectural Principles
 
@@ -92,29 +92,29 @@ The codebase is intentionally engineered to demonstrate enterprise backend pract
 
 ## 6. Document Map
 
-| #   | Document                           | Covers                                                 |
-| --- | ---------------------------------- | ------------------------------------------------------ |
-| 00  | sdd-overview                       | This document                                          |
-| 01  | system-context                     | Actors, external systems, context diagram              |
-| 02  | architecture-design                | Clean Architecture layering, dependency rules          |
-| 03  | package-structure                  | Full package tree and conventions                      |
-| 04  | domain-model                       | Aggregates, value objects, domain events               |
-| 05  | database-design                    | ER model, tables, migrations, indexes                  |
-| 06  | api-specification                  | REST API contract per controller                       |
-| 07  | security-design                    | AuthN/AuthZ, session management, handlers              |
-| 08  | workflow-design                    | Application & review state machines, sequence diagrams |
-| 09  | module-design                      | Per-module design for all 16 functional modules        |
-| 10  | error-handling                     | Error codes, exception hierarchy, response envelope    |
-| 11  | audit-logging                      | Audit aspect, async writer, masking                    |
-| 12  | cache-design                       | Cache abstraction, TTL, refresh, admin API             |
-| 13  | scheduler-design                   | Scheduled jobs, cron config, manual triggers           |
-| 14  | report-design                      | Excel/PDF report generation pipeline                   |
-| 15  | file-upload-design                 | Document storage, validation rules                     |
-| 16  | testing-strategy                   | Test pyramid, tooling, coverage policy                 |
-| 17  | deployment-design                  | Docker, Compose, profiles, environment variables       |
-| 18  | coding-standards                   | Naming, layering rules, Lombok/DTO conventions         |
-| 19  | cursor-implementation-roadmap      | Sprint-by-sprint build plan with Cursor prompts        |
-| 20  | maintenance-and-future-enhancement | Known debt, roadmap, versioning policy                 |
+| # | Document | Covers |
+| --- | --- | --- |
+| 00 | sdd-overview | This document |
+| 01 | system-context | Actors, external systems, context diagram |
+| 02 | architecture-design | Clean Architecture layering, dependency rules |
+| 03 | package-structure | Full package tree and conventions |
+| 04 | domain-model | Aggregates, value objects, domain events |
+| 05 | database-design | ER model, tables, migrations, indexes |
+| 06 | api-specification | REST API contract per controller |
+| 07 | security-design | AuthN/AuthZ, session management, handlers |
+| 08 | workflow-design | Application & review state machines, sequence diagrams |
+| 09 | module-design | Per-module design for all 16 functional modules |
+| 10 | error-handling | Error codes, exception hierarchy, response envelope |
+| 11 | audit-logging | Audit aspect, async writer, masking |
+| 12 | cache-design | Cache abstraction, TTL, refresh, admin API |
+| 13 | scheduler-design | Scheduled jobs, cron config, manual triggers |
+| 14 | report-design | Excel/PDF report generation pipeline |
+| 15 | file-upload-design | Document storage, validation rules |
+| 16 | testing-strategy | Test pyramid, tooling, coverage policy |
+| 17 | deployment-design | Docker, Compose, profiles, environment variables |
+| 18 | coding-standards | Naming, layering rules, Lombok/DTO conventions |
+| 19 | cursor-implementation-roadmap | Sprint-by-sprint build plan with Cursor prompts |
+| 20 | maintenance-and-future-enhancement | Known debt, roadmap, versioning policy |
 
 ## 7. How to Use This Document Set
 

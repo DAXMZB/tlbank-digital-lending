@@ -30,7 +30,7 @@ Verified capabilities in the current codebase:
 TLBank simulates a credit card application backend: applicants submit applications, verify OTP, upload documents, and reviewers approve or reject cases. The system demonstrates how lending-style workflows map to familiar backend engineering problems—state machines, idempotency, audit trails, and side-effect isolation—without claiming enterprise production maturity.
 
 | Audience | What to look at |
-| -------- | --------------- |
+| --- | --- |
 | Recruiters / managers | Highlights, [CI/CD](#cicd-pipeline), [Testing](#testing-strategy) |
 | Senior engineers | [Architecture](#architecture), [Design Decisions](#design-decisions), [docs/](docs/00-sdd-overview.md) |
 | Interviewers | [Business workflow](#core-business-workflow), [Interview topics](#interview-discussion-topics) |
@@ -134,7 +134,7 @@ INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_REVIEW → A
 ```
 
 | Step | Where it happens | Behavior |
-| ---- | ---------------- | -------- |
+| --- | --- | --- |
 | Transition rules | `ApplicationStatus.canTransitionTo()` | Defines allowed edges |
 | Enforcement | `Application.transitionTo()` / `WorkflowDomainService.validateTransition()` | Invalid transitions throw `WorkflowException` |
 | OTP verify | `Application.verifyOtp()` | `INIT → OTP_VERIFIED` |
@@ -150,7 +150,7 @@ Workflow detail: [docs/08-workflow-design.md](docs/08-workflow-design.md)
 ## Implemented Features
 
 | Area | Implementation |
-| ---- | -------------- |
+| --- | --- |
 | Authentication & RBAC | Session login, `ADMIN` / `REVIEWER` / `USER` roles, `maximumSessions(1)` |
 | Card products | Catalog with features; `CachedCardProductRepository` + in-memory TTL cache |
 | Applications | Full lifecycle API and Thymeleaf UI |
@@ -168,7 +168,7 @@ Workflow detail: [docs/08-workflow-design.md](docs/08-workflow-design.md)
 ## Tech Stack
 
 | Layer | Technology |
-| ----- | ---------- |
+| --- | --- |
 | Language | Java 17 |
 | Framework | Spring Boot 3.4.2 |
 | Security | Spring Security (server-side sessions) |
@@ -204,7 +204,7 @@ flowchart LR
 ### CI (automated)
 
 | Job | Runner | Trigger | Command / tool |
-| --- | ------ | ------- | -------------- |
+| --- | --- | --- | --- |
 | Build and Test | `ubuntu-latest` | Push/PR to `main` or `develop` when `sp2-springboot/**` changes | `mvn clean verify` (JDK 17 Temurin) |
 | Code Quality | `ubuntu-latest` | After build-test passes | `mvn verify` |
 | Dependency Scan | `ubuntu-latest` | After build-test passes | Trivy filesystem scan; **report-only** (`exit-code: 0`) |
@@ -213,7 +213,7 @@ flowchart LR
 ### CD (manual)
 
 | Job | Runner | Trigger | What it does |
-| --- | ------ | ------- | ------------ |
+| --- | --- | --- | --- |
 | Deploy to Staging | `self-hosted, macos` | **`workflow_dispatch` only** | Writes `~/tlbank/docker-compose.yml`, pulls GHCR image, restarts SQL Server + app on **local Mac** |
 
 Deploy is **not automatic on push**. Everyday pushes run CI and may publish images from `main`; staging is updated only when you manually run the workflow.
@@ -342,7 +342,7 @@ JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main clas
 ### Test categories
 
 | Category | Examples |
-| -------- | -------- |
+| --- | --- |
 | Domain unit tests | `ApplicationTest`, `OtpRecordTest`, `ReviewCaseTest`, `WorkflowDomainServiceTest` |
 | Application service tests | `ApplicationAppServiceTest`, `OtpAppServiceTest`, `ReviewAppServiceTest` |
 | Integration tests | `ApplicationFlowIntegrationTest`, `ReviewFlowIntegrationTest`, `SecurityIntegrationTest`, `ApplicationIdempotencyIntegrationTest` |
@@ -381,7 +381,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ## Environment Profiles
 
 | Profile | Database | Flyway locations | Swagger | Notes |
-| ------- | -------- | ---------------- | ------- | ----- |
+| --- | --- | --- | --- | --- |
 | `dev` | H2 in-memory | `db/migration/`, `db/dev-seed/` | Enabled | H2 console; debug logging |
 | `staging` | SQL Server | `db/migration-sqlserver/` | Enabled | Docker Compose / CI deploy |
 | `prod` | SQL Server (env vars) | `db/migration-sqlserver/` | **Disabled** | Config only — no prod deployment in repo |
@@ -453,7 +453,7 @@ This is intentional honesty for portfolio reviewers:
 ## Interview Discussion Topics
 
 | Topic | Where to look |
-| ----- | ------------- |
+| --- | --- |
 | Why one evolving repository? | This README overview; [docs/00-sdd-overview.md](docs/00-sdd-overview.md) |
 | Why framework-independent domain? | `domain/application/Application.java`, `ApplicationStatus.java` |
 | Why sessions over JWT? | [security/config/SecurityConfig.java](src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) |
@@ -474,7 +474,7 @@ These passwords exist only in **seed data** for local demos. **Do not reuse them
 <summary>Dev profile (H2 seed — password <code>Password123!</code> for all)</summary>
 
 | Username | Role |
-| -------- | ---- |
+| --- | --- |
 | `admin` | ADMIN |
 | `reviewer1` | REVIEWER |
 | `applicant1` | USER (APPLICANT) |
@@ -486,7 +486,7 @@ These passwords exist only in **seed data** for local demos. **Do not reuse them
 <summary>Staging / Docker seed — password <code>Password@123</code> for all</summary>
 
 | Username | Role |
-| -------- | ---- |
+| --- | --- |
 | `admin` | ADMIN |
 | `reviewer` | REVIEWER |
 | `user01` | USER |

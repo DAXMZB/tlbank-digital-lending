@@ -58,16 +58,16 @@ stateDiagram-v2
 
 ## 3. Combined Lifecycle (Application ↔ ReviewCase)
 
-| Application status  | Typical ReviewCase status                           | Trigger                                                                                          |
-| ------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `INIT`              | *(no review case yet)*                              | `createApplication`                                                                              |
-| `OTP_VERIFIED`      | *(no review case yet)*                              | `verifyOtp`                                                                                      |
-| `DOCUMENT_UPLOADED` | *(no review case yet)*                              | `uploadDocuments`                                                                                |
-| `SUBMITTED`         | `PENDING`                                           | `submit` → publishes `ApplicationSubmittedEvent` → `ReviewEventHandler` creates the `ReviewCase` |
-| `UNDER_REVIEW`      | `UNDER_REVIEW`                                      | reviewer calls `startReview`, or implicitly via approve/reject                                   |
-| `APPROVED`          | `APPROVED`                                          | reviewer calls `approveCase`                                                                     |
-| `REJECTED`          | `REJECTED`                                          | reviewer calls `rejectCase`                                                                      |
-| `CANCELLED`         | *(unaffected — review case, if any, is left as-is)* | applicant calls `cancelApplication`                                                              |
+| Application status | Typical ReviewCase status | Trigger |
+| --- | --- | --- |
+| `INIT` | *(no review case yet)* | `createApplication` |
+| `OTP_VERIFIED` | *(no review case yet)* | `verifyOtp` |
+| `DOCUMENT_UPLOADED` | *(no review case yet)* | `uploadDocuments` |
+| `SUBMITTED` | `PENDING` | `submit` → publishes `ApplicationSubmittedEvent` → `ReviewEventHandler` creates the `ReviewCase` |
+| `UNDER_REVIEW` | `UNDER_REVIEW` | reviewer calls `startReview`, or implicitly via approve/reject |
+| `APPROVED` | `APPROVED` | reviewer calls `approveCase` |
+| `REJECTED` | `REJECTED` | reviewer calls `rejectCase` |
+| `CANCELLED` | *(unaffected — review case, if any, is left as-is)* | applicant calls `cancelApplication` |
 
 ## 4. End-to-End Sequence: OTP Verification
 

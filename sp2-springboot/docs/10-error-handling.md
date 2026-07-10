@@ -36,27 +36,27 @@ classDiagram
 
 ## 3. `ErrorCode` Catalogue
 
-| `ErrorCode`                     | HTTP Status            | Typical Trigger                                                                   |
-| ------------------------------- | ---------------------- | --------------------------------------------------------------------------------- |
-| `VALIDATION_FAILED`             | 400                    | `@Valid` constraint violation (`MethodArgumentNotValidException`)                 |
-| `INVALID_WORKFLOW_TRANSITION`   | 409                    | `Application`/`ReviewCase` transition guard                                       |
-| `APPLICATION_ALREADY_SUBMITTED` | 400 *(default branch)* | Reserved for explicit double-submit detection                                     |
-| `OTP_EXPIRED`                   | 400 *(default branch)* | `OtpRecord.verify` — code expired                                                 |
-| `OTP_MISMATCH`                  | 400 *(default branch)* | `OtpRecord.verify` — wrong code                                                   |
-| `OTP_RETRY_EXCEEDED`            | 400 *(default branch)* | `OtpRecord.verify` — too many attempts                                            |
-| `APPLICATION_NOT_FOUND`         | 404                    | Unknown `applicationId`                                                           |
-| `REVIEW_CASE_NOT_FOUND`         | 404                    | Unknown `reviewCaseId`                                                            |
-| `PRODUCT_NOT_FOUND`             | 404                    | Unknown/disabled `cardProductId`                                                  |
-| `PARAMETER_NOT_FOUND`           | 404                    | Unknown system parameter group/key or ID                                          |
-| `NOT_FOUND`                     | 404                    | Generic not-found (e.g. unknown `userId`)                                         |
-| `DUPLICATE_USERNAME`            | 409                    | `UserAppService.createUser` with an existing username                             |
-| `IDEMPOTENCY_KEY_CONFLICT`      | 409                    | Same `Idempotency-Key` reused with a different request body                       |
-| `IDEMPOTENCY_KEY_IN_PROGRESS`   | 409                    | Same `Idempotency-Key` already being processed concurrently                       |
-| `DOCUMENT_UPLOAD_FAILED`        | 400 *(default branch)* | Empty file, disallowed extension, oversized file, I/O failure                     |
-| `INCOMPLETE_DOCUMENTS`          | 400 *(default branch)* | `Application.submit()` called without all required `DocumentType` values uploaded |
-| `UNAUTHORIZED`                  | 401                    | No/invalid authentication                                                         |
-| `FORBIDDEN`                     | 403                    | Authenticated but insufficient role                                               |
-| `SYSTEM_ERROR`                  | 500                    | Any unhandled exception                                                           |
+| `ErrorCode` | HTTP Status | Typical Trigger |
+| --- | --- | --- |
+| `VALIDATION_FAILED` | 400 | `@Valid` constraint violation (`MethodArgumentNotValidException`) |
+| `INVALID_WORKFLOW_TRANSITION` | 409 | `Application`/`ReviewCase` transition guard |
+| `APPLICATION_ALREADY_SUBMITTED` | 400 *(default branch)* | Reserved for explicit double-submit detection |
+| `OTP_EXPIRED` | 400 *(default branch)* | `OtpRecord.verify` — code expired |
+| `OTP_MISMATCH` | 400 *(default branch)* | `OtpRecord.verify` — wrong code |
+| `OTP_RETRY_EXCEEDED` | 400 *(default branch)* | `OtpRecord.verify` — too many attempts |
+| `APPLICATION_NOT_FOUND` | 404 | Unknown `applicationId` |
+| `REVIEW_CASE_NOT_FOUND` | 404 | Unknown `reviewCaseId` |
+| `PRODUCT_NOT_FOUND` | 404 | Unknown/disabled `cardProductId` |
+| `PARAMETER_NOT_FOUND` | 404 | Unknown system parameter group/key or ID |
+| `NOT_FOUND` | 404 | Generic not-found (e.g. unknown `userId`) |
+| `DUPLICATE_USERNAME` | 409 | `UserAppService.createUser` with an existing username |
+| `IDEMPOTENCY_KEY_CONFLICT` | 409 | Same `Idempotency-Key` reused with a different request body |
+| `IDEMPOTENCY_KEY_IN_PROGRESS` | 409 | Same `Idempotency-Key` already being processed concurrently |
+| `DOCUMENT_UPLOAD_FAILED` | 400 *(default branch)* | Empty file, disallowed extension, oversized file, I/O failure |
+| `INCOMPLETE_DOCUMENTS` | 400 *(default branch)* | `Application.submit()` called without all required `DocumentType` values uploaded |
+| `UNAUTHORIZED` | 401 | No/invalid authentication |
+| `FORBIDDEN` | 403 | Authenticated but insufficient role |
+| `SYSTEM_ERROR` | 500 | Any unhandled exception |
 
 > **Implementation note:** `GlobalExceptionHandler.handleBusinessException` uses a Java `switch` expression
 > with three explicit groups (`CONFLICT` for the three 409-style codes, `NOT_FOUND` for the five
@@ -64,14 +64,14 @@ classDiagram
 
 ## 4. Exception → Response Mapping
 
-| Exception                                   | Handler method                  | HTTP Status                    | Notes                                                                                     |
-| ------------------------------------------- | ------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------- |
-| `BusinessException`                         | `handleBusinessException`       | switch on `ErrorCode` (see §3) | `ApiResponse.error(code, message, null)`                                                  |
-| `WorkflowException`                         | `handleWorkflowException`       | 409                            | Always `INVALID_WORKFLOW_TRANSITION`, even if a subclass somehow carried a different code |
-| `MethodArgumentNotValidException`           | `handleValidationException`     | 400                            | Populates `fieldErrors: [{field, message}]` from `BindingResult`                          |
-| `AccessDeniedException` (Spring Security)   | `handleAccessDeniedException`   | 403                            | `ApiResponse.error(FORBIDDEN)`                                                            |
-| `AuthenticationException` (Spring Security) | `handleAuthenticationException` | 401                            | `ApiResponse.error(UNAUTHORIZED)`                                                         |
-| `Exception` (catch-all)                     | `handleException`               | 500                            | Logged via `log.error("Unhandled exception", ex)`; client sees only `SYSTEM_ERROR`        |
+| Exception | Handler method | HTTP Status | Notes |
+| --- | --- | --- | --- |
+| `BusinessException` | `handleBusinessException` | switch on `ErrorCode` (see §3) | `ApiResponse.error(code, message, null)` |
+| `WorkflowException` | `handleWorkflowException` | 409 | Always `INVALID_WORKFLOW_TRANSITION`, even if a subclass somehow carried a different code |
+| `MethodArgumentNotValidException` | `handleValidationException` | 400 | Populates `fieldErrors: [{field, message}]` from `BindingResult` |
+| `AccessDeniedException` (Spring Security) | `handleAccessDeniedException` | 403 | `ApiResponse.error(FORBIDDEN)` |
+| `AuthenticationException` (Spring Security) | `handleAuthenticationException` | 401 | `ApiResponse.error(UNAUTHORIZED)` |
+| `Exception` (catch-all) | `handleException` | 500 | Logged via `log.error("Unhandled exception", ex)`; client sees only `SYSTEM_ERROR` |
 
 ## 5. Response Envelope
 

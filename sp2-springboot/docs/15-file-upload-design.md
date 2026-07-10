@@ -51,12 +51,12 @@ sequenceDiagram
 
 ## 4. Validation Rules (`LocalDocumentStorageService.validate`)
 
-| Rule                                                 | Enforcement                                                                                                                               |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| File must not be null/empty                          | `BusinessException(DOCUMENT_UPLOAD_FAILED, "File must not be empty")`                                                                     |
-| Extension must be one of `jpg`, `jpeg`, `png`, `pdf` | Case-insensitive check against `ALLOWED_EXTENSIONS`; otherwise `DOCUMENT_UPLOAD_FAILED`                                                   |
-| File size must not exceed the configured maximum     | `systemParameterService.getIntValue("UPLOAD", "max.size.mb", 10)` × 1MB, compared to `file.getSize()`; otherwise `DOCUMENT_UPLOAD_FAILED` |
-| Filename must contain an extension at all            | Defensive check before extension extraction; `DOCUMENT_UPLOAD_FAILED` if absent                                                           |
+| Rule | Enforcement |
+| --- | --- |
+| File must not be null/empty | `BusinessException(DOCUMENT_UPLOAD_FAILED, "File must not be empty")` |
+| Extension must be one of `jpg`, `jpeg`, `png`, `pdf` | Case-insensitive check against `ALLOWED_EXTENSIONS`; otherwise `DOCUMENT_UPLOAD_FAILED` |
+| File size must not exceed the configured maximum | `systemParameterService.getIntValue("UPLOAD", "max.size.mb", 10)` × 1MB, compared to `file.getSize()`; otherwise `DOCUMENT_UPLOAD_FAILED` |
+| Filename must contain an extension at all | Defensive check before extension extraction; `DOCUMENT_UPLOAD_FAILED` if absent |
 
 In addition, Spring's own multipart limits act as a first line of defense before this code even runs:
 `spring.servlet.multipart.max-file-size: 10MB`, `max-request-size: 15MB` (`application.yml`).
