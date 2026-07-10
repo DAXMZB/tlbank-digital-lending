@@ -469,6 +469,7 @@ This is intentional honesty for portfolio reviewers:
 
 These passwords exist only in **seed data** for local demos. **Do not reuse them anywhere else.**
 
+<!-- markdownlint-disable MD033 -->
 <details>
 <summary>Dev profile (H2 seed — password <code>Password123!</code> for all)</summary>
 
@@ -491,6 +492,7 @@ These passwords exist only in **seed data** for local demos. **Do not reuse them
 | `user01` | USER |
 
 </details>
+<!-- markdownlint-enable MD033 -->
 
 ## API Documentation
 
