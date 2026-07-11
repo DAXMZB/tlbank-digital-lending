@@ -1,1 +1,20 @@
+# Editor / local agent rules — not product documentation
 **/.cursor/**
+
+# Drafts
+sp2-springboot/docs/drafts/**
+
+# Generated interview catalogs
+sp2-springboot/docs/handbook/09-interview-source-map-300.md
+sp2-springboot/docs/handbook/10-core-interview-questions-30.md
+sp2-springboot/docs/handbook/11-primary-interview-questions-100.md
+
+# Generated / scaffold
+infra/local/generated-staging-env.md
+sp2-springboot/HELP.md
+sp2-springboot-test/HELP.md
+
+# Build artifacts / dependencies
+**/target/**
+**/.mvn/**
+**/node_modules/**

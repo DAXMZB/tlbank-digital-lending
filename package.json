@@ -1,0 +1,11 @@
+{
+  "name": "project2",
+  "private": true,
+  "description": "Root tooling for TLBank monorepo docs lint (scoped markdownlint).",
+  "scripts": {
+    "lint:md": "markdownlint-cli2 \"sp2-springboot/README.md\" \"sp2-springboot/docs/README.md\" \"sp2-springboot/docs/design/**/*.md\" \"sp2-springboot/docs/decisions/**/*.md\" \"sp2-springboot/docs/onboarding/**/*.md\" \"sp2-springboot/docs/diagrams/**/*.md\" \"sp2-springboot/docs/handbook/00-*.md\" \"sp2-springboot/docs/handbook/01-*.md\" \"sp2-springboot/docs/handbook/02-*.md\" \"sp2-springboot/docs/handbook/03-*.md\" \"sp2-springboot/docs/handbook/04-*.md\" \"sp2-springboot/docs/handbook/05-*.md\" \"sp2-springboot/docs/handbook/06-*.md\" \"sp2-springboot/docs/handbook/07-*.md\" \"sp2-springboot/docs/handbook/08-*.md\" \"sp2-springboot/docs/handbook/12-*.md\" \"sp2-springboot/docs/open-book/**/*.md\" \"infra/local/README.md\""
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.18.1"
+  }
+}

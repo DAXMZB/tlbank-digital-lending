@@ -1,27 +1,41 @@
 {
-    // ==========================================
-    // markdownlint-cli2 設定檔
-    // 用途：調整 Markdown 檢查規則
-    // ==========================================
-  
-    "config": {
-      // 允許同一份文件出現多個 H1
-      // 因為 README 有時候會包含專案標題與章節範例
-      "MD025": false,
-  
-      // 不強制單行長度
-      // 因為 README 常有 URL、指令、技術說明，太嚴格會造成不必要失敗
-      "MD013": false,
-  
-      // 不強制 fenced code block 一定要指定語言
-      // 建議未來寫 ```bash / ```yaml / ```java
-      "MD040": false
-    },
-  
-    // 忽略不需要檢查的資料夾
-    "ignores": [
-      "sp2-springboot/target/**",
-      "sp2-springboot/.mvn/**",
-      "**/node_modules/**"
-    ]
-  }
+  // ==========================================
+  // markdownlint-cli2 — production docs only
+  // Scope must match package.json "lint:md" and
+  // .github/workflows/markdown.yml globs.
+  // ==========================================
+
+  "config": {
+    // Allow multiple H1s (READMEs / section demos)
+    "MD025": false,
+
+    // Do not enforce line length (URLs, commands, Chinese prose)
+    "MD013": false,
+
+    // Do not require language tags on fences (encourage ```bash etc. later)
+    "MD040": false
+  },
+
+  // Defense-in-depth: exclude drafts / generated / scaffold / build
+  // even if a broad glob is used by mistake.
+  "ignores": [
+    // Build / tooling / dependencies
+    "**/node_modules/**",
+    "**/target/**",
+    "**/.mvn/**",
+    "**/.cursor/**",
+
+    // Drafts & scratch
+    "sp2-springboot/docs/drafts/**",
+
+    // Generated / bulk interview catalogs (not hand-maintained prose)
+    "sp2-springboot/docs/handbook/09-interview-source-map-300.md",
+    "sp2-springboot/docs/handbook/10-core-interview-questions-30.md",
+    "sp2-springboot/docs/handbook/11-primary-interview-questions-100.md",
+
+    // Generated / scaffold noise
+    "infra/local/generated-staging-env.md",
+    "sp2-springboot/HELP.md",
+    "sp2-springboot-test/HELP.md"
+  ]
+}

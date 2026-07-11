@@ -1,6 +1,6 @@
 # ==========================================
 # Markdown Check
-# 用途：檢查 README.md 與 docs 內 Markdown 格式
+# 用途：檢查 production Markdown（與 npm run lint:md 同範圍）
 # ==========================================
 
 name: Markdown Check
@@ -15,6 +15,9 @@ on:
       - ".github/workflows/markdown.yml"
       # markdownlint 設定檔變更也觸發
       - ".markdownlint-cli2.jsonc"
+      - ".markdownlintignore"
+      - "package.json"
+      - "package-lock.json"
 
   pull_request:
     branches: [ "main", "develop" ]
@@ -22,6 +25,9 @@ on:
       - "**/*.md"
       - ".github/workflows/markdown.yml"
       - ".markdownlint-cli2.jsonc"
+      - ".markdownlintignore"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   markdown-check:
@@ -34,9 +40,26 @@ jobs:
         uses: actions/checkout@v5
 
       # 執行 markdownlint-cli2
-      # 檢查 README.md / docs/*.md 的格式是否符合規範
+      # 範圍與 package.json "lint:md" / .markdownlintignore 一致
       - name: Run markdownlint
         uses: DavidAnson/markdownlint-cli2-action@v24
         with:
-          # 掃描所有 Markdown 檔案
-          globs: "**/*.md"
+          globs: |
+            sp2-springboot/README.md
+            sp2-springboot/docs/README.md
+            sp2-springboot/docs/design/**/*.md
+            sp2-springboot/docs/decisions/**/*.md
+            sp2-springboot/docs/onboarding/**/*.md
+            sp2-springboot/docs/diagrams/**/*.md
+            sp2-springboot/docs/handbook/00-*.md
+            sp2-springboot/docs/handbook/01-*.md
+            sp2-springboot/docs/handbook/02-*.md
+            sp2-springboot/docs/handbook/03-*.md
+            sp2-springboot/docs/handbook/04-*.md
+            sp2-springboot/docs/handbook/05-*.md
+            sp2-springboot/docs/handbook/06-*.md
+            sp2-springboot/docs/handbook/07-*.md
+            sp2-springboot/docs/handbook/08-*.md
+            sp2-springboot/docs/handbook/12-*.md
+            sp2-springboot/docs/open-book/**/*.md
+            infra/local/README.md

@@ -37,3 +37,6 @@ infra/local/generated-staging-env.md
 
 # ===== 壓縮檔 =====
 *.zip
+
+# ===== Node (root markdownlint tooling) =====
+node_modules/
