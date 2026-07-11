@@ -165,7 +165,7 @@ Labels used in handbook `09` and planned Open Book pages:
 | **Documentation Only** | Supported by docs/ADR/SDD; not fully exercised as runtime proof in the question page |
 | **Not Implemented**    | Absent in this repository — say so explicitly (no invented cloud/prod behavior)      |
 
-### 中文筆記
+### 中文筆記（驗證標籤）
 
 - Verified：已對原始碼（或測試）核對
 - Partially Verified：僅部分可核對，回答需保留彈性

@@ -57,7 +57,7 @@ Save path:
 
 - **Purpose:** Load aggregate by business id
 - **Input:** ApplicationId
-- **Output:** Optional<Application>
+- **Output:** `Optional<Application>`
 
 ### `Application save(Application application)`
 
