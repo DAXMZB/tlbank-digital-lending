@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [ReviewAppService](../application/ReviewAppService.md)
 - Next Critical Class: [AuditAspect](../common/AuditAspect.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Review aggregate: PENDING → UNDER_REVIEW → APPROVED/REJECTED with remarks.
@@ -55,18 +56,15 @@ Separate credit-review workflow from the application lifecycle while remaining l
 - **Input:** application id string
 - **Output:** new ReviewCase
 
-
 ### `void assign(String username)`
 
 - **Purpose:** Set assignedTo
 - **Input:** username
 
-
 ### `void startReview(String operator)`
 
 - **Purpose:** PENDING → UNDER_REVIEW + remark
 - **Input:** operator
-
 
 ### `void approve(String operator, String remark)`
 
@@ -74,18 +72,15 @@ Separate credit-review workflow from the application lifecycle while remaining l
 - **Input:** operator, remark
 - **Side effects:** reviewedAt now
 
-
 ### `void reject(String operator, String remark)`
 
 - **Purpose:** UNDER_REVIEW → REJECTED
 - **Input:** operator, remark
 - **Side effects:** reviewedAt now
 
-
 ### `void addRemark(String content, String operator)`
 
 - **Purpose:** Append remark without status change
-
 
 ## Design Decisions
 

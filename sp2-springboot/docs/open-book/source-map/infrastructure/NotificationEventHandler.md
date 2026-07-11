@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [LocalDocumentStorageService](LocalDocumentStorageService.md)
 - Next Critical Class: —
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Spring `@EventListener` that turns application lifecycle events into notification service calls (mock SMS/email underneath).
@@ -55,20 +56,17 @@ Decouple notification side effects from `ApplicationAppService` / `ReviewAppServ
 - **Input:** event
 - **Side effects:** Mock notify; errors logged
 
-
 ### `void onApplicationApproved(ApplicationApprovedEvent event)`
 
 - **Purpose:** Notify approval
 - **Input:** event
 - **Side effects:** Mock notify; errors logged
 
-
 ### `void onApplicationRejected(ApplicationRejectedEvent event)`
 
 - **Purpose:** Notify rejection
 - **Input:** event
 - **Side effects:** Mock notify; errors logged
-
 
 ## Design Decisions
 

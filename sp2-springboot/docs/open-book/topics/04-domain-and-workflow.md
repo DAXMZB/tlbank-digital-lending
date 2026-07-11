@@ -25,7 +25,7 @@ Explains business workflow without collapsing everything into controllers or ent
 - OTP via [`OtpAppService`](../source-map/application/OtpAppService.md) then documents → submit
 - Submit publishes event → `ReviewEventHandler` creates [`ReviewCase`](../source-map/domain/ReviewCase.md)
 - [`ReviewAppService`](../source-map/application/ReviewAppService.md) approve/reject both aggregates
-- High **Pending**: `OtpRecord`
+- [OtpRecord](../source-map/domain/OtpRecord.md)
 
 ## Runtime Flow
 

@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [Application](../domain/Application.md)
 - Next Critical Class: [ApplicationStatus](../domain/ApplicationStatus.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Application-layer orchestrator for create/get/upload/submit/cancel and product listing.
@@ -66,7 +67,6 @@ Typical submit path:
 - **Transaction behavior:** @Transactional
 - **Side effects:** Persists new aggregate
 
-
 ### `ApplicationDetailResponse getApplication(String applicationId)`
 
 - **Purpose:** Load detail with masking
@@ -74,7 +74,6 @@ Typical submit path:
 - **Output:** detail DTO
 - **Transaction behavior:** @Transactional(readOnly = true)
 - **Security behavior:** Masks national id / mobile / email in response
-
 
 ### `DocumentUploadResponse uploadDocuments(String applicationId, DocumentType documentType, MultipartFile file)`
 
@@ -85,7 +84,6 @@ Typical submit path:
 - **Security behavior:** @Auditable(DOCUMENT_UPLOAD)
 - **Side effects:** Filesystem write + DB save
 
-
 ### `ApplicationSummaryResponse submitApplication(String applicationId)`
 
 - **Purpose:** Submit for review
@@ -95,7 +93,6 @@ Typical submit path:
 - **Security behavior:** @Auditable(APPLICATION_SUBMIT)
 - **Side effects:** Save + ApplicationSubmittedEvent
 
-
 ### `ApplicationSummaryResponse cancelApplication(String applicationId, String reason, String operator)`
 
 - **Purpose:** Cancel early-stage application
@@ -104,13 +101,11 @@ Typical submit path:
 - **Transaction behavior:** @Transactional
 - **Security behavior:** @Auditable(APPLICATION_CANCEL)
 
-
 ### `List<CardProductResponse> findAllEnabledProducts()`
 
 - **Purpose:** List sellable products
 - **Output:** product DTOs
 - **Transaction behavior:** @Transactional(readOnly = true)
-
 
 ## Design Decisions
 

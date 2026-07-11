@@ -25,7 +25,7 @@ Interviewers ask where transactions begin and what rolls back together.
 - [`OtpAppService`](../source-map/application/OtpAppService.md), [`ReviewAppService`](../source-map/application/ReviewAppService.md): transactional use cases
 - Review approve/reject updates two aggregates in one service TX
 - Schedulers such as `OtpCleanupScheduler` also use `@Transactional` (High page **Pending**)
-- [`AuditAspect`](../source-map/common/AuditAspect.md) delegates persistence to `AuditLogWriter` (separate concerns; High **Pending**)
+- [`AuditAspect`](../source-map/common/AuditAspect.md) delegates persistence to [AuditLogWriter](../source-map/common/AuditLogWriter.md) (separate concerns)
 
 ## Runtime Flow
 
@@ -58,7 +58,7 @@ sequenceDiagram
 - [`ApplicationAppService`](../source-map/application/ApplicationAppService.md)
 - [`ReviewAppService`](../source-map/application/ReviewAppService.md)
 - [`OtpAppService`](../source-map/application/OtpAppService.md)
-- High **Pending**: `OtpCleanupScheduler`, `AuditLogWriter`
+- [OtpCleanupScheduler](../source-map/infrastructure/OtpCleanupScheduler.md), [AuditLogWriter](../source-map/common/AuditLogWriter.md)
 
 ## Important Configuration
 

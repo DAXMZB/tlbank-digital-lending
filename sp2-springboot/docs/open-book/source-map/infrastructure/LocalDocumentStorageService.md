@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [AuditAspect](../common/AuditAspect.md)
 - Next Critical Class: [NotificationEventHandler](NotificationEventHandler.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Local filesystem `DocumentStorageService`: validate extension/size, store under `tlbank.upload.base-path`.
@@ -58,14 +59,12 @@ Portfolio-friendly storage without cloud object storage.
 - **Input:** multipart file
 - **Side effects:** May throw BusinessException DOCUMENT_UPLOAD_FAILED
 
-
 ### `String store(String applicationId, DocumentType documentType, MultipartFile file)`
 
 - **Purpose:** Persist file and return relative path
 - **Input:** applicationId, type, file
 - **Output:** relative path
 - **Side effects:** Writes disk; re-validates
-
 
 ## Design Decisions
 

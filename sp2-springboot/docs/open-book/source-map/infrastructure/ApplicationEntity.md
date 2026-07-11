@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [ApplicationRepositoryImpl](ApplicationRepositoryImpl.md)
 - Next Critical Class: [SecurityConfig](../security/SecurityConfig.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 JPA `@Entity` for table `applications`, including embeds and cascaded children.

@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: —
 - Next Critical Class: [ApplicationAppService](../application/ApplicationAppService.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Domain aggregate root for a credit-card application: status transitions and workflow history live here.
@@ -49,6 +50,7 @@ stateDiagram-v2
   SUBMITTED --> UNDER_REVIEW
   UNDER_REVIEW --> APPROVED
   UNDER_REVIEW --> REJECTED
+
 ```
 
 ## Dependencies
@@ -78,7 +80,6 @@ stateDiagram-v2
 - **Business meaning:** OTP accepted
 - **Side effects:** Workflow history
 
-
 ### `void uploadDocuments(List<DocumentInfo> docs, String operator)`
 
 - **Purpose:** Add documents; may OTP_VERIFIED → DOCUMENT_UPLOADED
@@ -86,7 +87,6 @@ stateDiagram-v2
 - **Output:** void
 - **Business meaning:** Collect required docs
 - **Side effects:** Status transition only from OTP_VERIFIED; further uploads stay in DOCUMENT_UPLOADED
-
 
 ### `void submit(String operator)`
 
@@ -96,14 +96,12 @@ stateDiagram-v2
 - **Business meaning:** Ready for review
 - **Side effects:** Sets submittedAt; event publish happens in app service after save
 
-
 ### `void startReview(String operator)`
 
 - **Purpose:** SUBMITTED → UNDER_REVIEW
 - **Input:** operator
 - **Output:** void
 - **Business meaning:** Review started
-
 
 ### `void approve(String operator, String remark)`
 
@@ -112,7 +110,6 @@ stateDiagram-v2
 - **Output:** void
 - **Business meaning:** Approved
 
-
 ### `void reject(String operator, String remark)`
 
 - **Purpose:** UNDER_REVIEW → REJECTED
@@ -120,14 +117,12 @@ stateDiagram-v2
 - **Output:** void
 - **Business meaning:** Rejected
 
-
 ### `void cancel(String operator, String reason)`
 
 - **Purpose:** Cancel only from INIT / OTP_VERIFIED / DOCUMENT_UPLOADED
 - **Input:** operator, reason
 - **Output:** void
 - **Business meaning:** Early abandon
-
 
 ## Design Decisions
 

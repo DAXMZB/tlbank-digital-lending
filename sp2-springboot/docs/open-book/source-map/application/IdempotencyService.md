@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [SecurityConfig](../security/SecurityConfig.md)
 - Next Critical Class: [RedisIdempotencyStore](../infrastructure/RedisIdempotencyStore.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Coordinates idempotent API execution: same key+body replays; same key+different body conflicts; optional blank key bypasses.
@@ -61,7 +62,6 @@ Redis here is **idempotency storage**, not cache/session — [0003-use-redis-ide
 - **Output:** HTTP ApiResponse entity
 - **Business meaning:** Deduplicate creates
 - **Side effects:** May read/write idempotency store + lock keys
-
 
 ## Design Decisions
 

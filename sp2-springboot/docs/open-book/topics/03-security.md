@@ -53,7 +53,7 @@ flowchart LR
 
 - [`SecurityConfig`](../source-map/security/SecurityConfig.md)
 - `MdcLoggingFilter`, `LoginSuccessHandler`, `UserDetailsServiceImpl` (related-only)
-- High **Pending**: none required beyond SecurityConfig for Critical
+- High pages for API errors: [`GlobalExceptionHandler`](../source-map/presentation/GlobalExceptionHandler.md)
 
 ## Important Configuration
 

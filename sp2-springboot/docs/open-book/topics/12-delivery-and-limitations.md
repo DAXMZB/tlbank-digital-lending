@@ -54,7 +54,7 @@ flowchart TD
 ## Important Classes
 
 - `SchedulingConfig`, `SchedulerConfig` under `common/config` (both `@EnableScheduling`)
-- `OtpCleanupScheduler` (High **Pending**)
+- [OtpCleanupScheduler](../source-map/infrastructure/OtpCleanupScheduler.md)
 - Ops files above (not Java)
 
 ## Important Configuration

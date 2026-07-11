@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [ApplicationEntity](../infrastructure/ApplicationEntity.md)
 - Next Critical Class: [IdempotencyService](../application/IdempotencyService.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Session-based Spring Security filter chain: form login, roles, CSRF carve-outs, MDC filter, max one session.
@@ -58,25 +59,21 @@ See [0006-session-over-jwt.md](../../../decisions/0006-session-over-jwt.md).
 - **Purpose:** BCryptPasswordEncoder(12)
 - **Output:** PasswordEncoder bean
 
-
 ### `AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder)`
 
 - **Purpose:** DaoAuthenticationProvider + ProviderManager
 - **Output:** AuthenticationManager
-
 
 ### `SessionRegistry sessionRegistry()`
 
 - **Purpose:** In-memory session registry for max sessions
 - **Output:** SessionRegistry
 
-
 ### `SecurityFilterChain securityFilterChain(HttpSecurity http, SessionRegistry sessionRegistry)`
 
 - **Purpose:** Main HTTP security DSL
 - **Output:** SecurityFilterChain
 - **Security behavior:** Defines public vs REVIEWER/ADMIN routes; session policy; CSRF ignore /api/**
-
 
 ## Design Decisions
 

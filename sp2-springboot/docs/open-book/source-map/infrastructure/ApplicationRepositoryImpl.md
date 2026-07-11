@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [ApplicationStatus](../domain/ApplicationStatus.md)
 - Next Critical Class: [ApplicationEntity](ApplicationEntity.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 JPA adapter implementing the domain `ApplicationRepository` port with entity ↔ aggregate mapping.
@@ -58,7 +59,6 @@ Save path:
 - **Input:** ApplicationId
 - **Output:** Optional<Application>
 
-
 ### `Application save(Application application)`
 
 - **Purpose:** Insert or update mapped entity
@@ -66,13 +66,11 @@ Save path:
 - **Output:** reloaded aggregate
 - **Side effects:** Persists applications + cascaded children
 
-
 ### `List<Application> findByStatus(ApplicationStatus status)`
 
 - **Purpose:** Query by status
 - **Input:** status
 - **Output:** list of aggregates
-
 
 ## Design Decisions
 

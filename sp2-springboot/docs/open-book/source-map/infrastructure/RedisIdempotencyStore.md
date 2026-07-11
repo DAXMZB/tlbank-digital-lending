@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [IdempotencyService](../application/IdempotencyService.md)
 - Next Critical Class: [OtpAppService](../application/OtpAppService.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Redis `IdempotencyStore` using `StringRedisTemplate` SET/GET/SETNX/DELETE with JSON entries.
@@ -51,23 +52,19 @@ Used only through `IdempotencyService` when this bean is active.
 - **Purpose:** GET JSON and deserialize
 - **Output:** Optional entry
 
-
 ### `void save(String key, IdempotencyEntry entry, long ttlSeconds)`
 
 - **Purpose:** SET JSON with TTL
 - **Side effects:** Writes Redis key
-
 
 ### `boolean tryAcquireLock(String lockKey, long ttlSeconds)`
 
 - **Purpose:** SETNX-style lock
 - **Output:** true if acquired
 
-
 ### `void releaseLock(String lockKey)`
 
 - **Purpose:** DELETE lock key
-
 
 ## Design Decisions
 

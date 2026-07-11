@@ -55,7 +55,7 @@ sequenceDiagram
 ## Important Classes
 
 - [`AuditAspect`](../source-map/common/AuditAspect.md)
-- High **Pending**: `AuditLogWriter`
+- [AuditLogWriter](../source-map/common/AuditLogWriter.md)
 - Related: `AuditDetailBuilder`, `MdcLoggingFilter`
 
 ## Important Configuration

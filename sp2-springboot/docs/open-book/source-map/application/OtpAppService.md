@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [RedisIdempotencyStore](../infrastructure/RedisIdempotencyStore.md)
 - Next Critical Class: [ReviewAppService](ReviewAppService.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Transactional OTP send/verify use cases; updates application to OTP_VERIFIED on successful verify.
@@ -66,7 +67,6 @@ Verify:
 - **Security behavior:** @Auditable(OTP_SEND)
 - **Side effects:** DB writes + notification send + audit context otpCode
 
-
 ### `VerifyOtpResponse verifyOtp(VerifyOtpCommand command)`
 
 - **Purpose:** Verify OTP and maybe advance application
@@ -75,7 +75,6 @@ Verify:
 - **Transaction behavior:** @Transactional
 - **Security behavior:** @Auditable(OTP_VERIFY_SUCCESS) — failures remapped in AuditAspect
 - **Side effects:** May update application status
-
 
 ## Design Decisions
 
@@ -90,7 +89,7 @@ Verify:
 
 ## Related Classes
 
-- [Application](../domain/Application.md), `OtpRecord` (High source-map **Pending** Phase 4), [AuditAspect](../common/AuditAspect.md), `NotificationService` / mocks
+- [Application](../domain/Application.md), [OtpRecord](../domain/OtpRecord.md), [AuditAspect](../common/AuditAspect.md), `NotificationService` / mocks
 
 ## Related Configuration
 

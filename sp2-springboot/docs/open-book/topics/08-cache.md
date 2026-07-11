@@ -22,7 +22,7 @@ Prevents conflating idempotency Redis with application cache.
 ## Current Implementation
 
 - `InMemoryCacheStore` implements `CacheStore`
-- `CachedCardProductRepository` decorator (High source-map **Pending**)
+- [`CachedCardProductRepository`](../source-map/infrastructure/CachedCardProductRepository.md) decorator
 - `CacheManagementService` / refresh scheduler for eviction/refresh patterns
 - Documented impurity: cache layer may touch repositories directly (Q284)
 
@@ -45,7 +45,7 @@ flowchart LR
 
 ## Important Classes
 
-- `InMemoryCacheStore`, `CachedCardProductRepository`, `CacheManagementService` (High/related)
+- [`CachedCardProductRepository`](../source-map/infrastructure/CachedCardProductRepository.md); grouped: `InMemoryCacheStore`, `CacheManagementService`
 - Contrast: [`RedisIdempotencyStore`](../source-map/infrastructure/RedisIdempotencyStore.md)
 
 ## Important Configuration

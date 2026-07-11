@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [ApplicationAppService](../application/ApplicationAppService.md)
 - Next Critical Class: [ApplicationRepositoryImpl](../infrastructure/ApplicationRepositoryImpl.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Enum plus allowed-transition map for application lifecycle states.
@@ -55,7 +56,6 @@ Keep transition legality declarative and testable beside the aggregate verbs.
 - **Input:** next status (nullable)
 - **Output:** boolean
 - **Business meaning:** Guards illegal workflow moves
-
 
 Enum constants themselves are the public API surface.
 

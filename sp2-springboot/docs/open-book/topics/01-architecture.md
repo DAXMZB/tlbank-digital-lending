@@ -78,7 +78,7 @@ flowchart TB
 - [`ApplicationRepositoryImpl`](../source-map/infrastructure/ApplicationRepositoryImpl.md)
 - [`SecurityConfig`](../source-map/security/SecurityConfig.md)
 - [`Application`](../source-map/domain/Application.md)
-- High **Pending**: `ApplicationApiController`, `WorkflowDomainService`
+- [ApplicationApiController](../source-map/presentation/ApplicationApiController.md), [WorkflowDomainService](../source-map/domain/WorkflowDomainService.md)
 
 ## Important Configuration
 

@@ -51,7 +51,7 @@ Recommended order (handbook depth + Open Book topic pages):
 
 1. **Core 30** — [10-core-interview-questions-30.md](../handbook/10-core-interview-questions-30.md)
 2. **Primary 100** — [11-primary-interview-questions-100.md](../handbook/11-primary-interview-questions-100.md)
-3. **Critical source maps** — [source-map/](source-map/README.md) (14 Critical pages done; High **Pending** Phase 4)
+3. **Critical + High source maps** — [source-map/](source-map/README.md) (14 Critical + 8 High done)
 4. **Unified topic pages** — [topics/](topics/README.md) (**Done**; Phase 3)
 5. **Whiteboard flows** — [whiteboards/](whiteboards/README.md) (**Pending**; Phase 5)
 6. **System evolution** — [06-system-design-handbook.md](../handbook/06-system-design-handbook.md)
@@ -74,50 +74,50 @@ Folder indexes:
 
 Critical source-map pages are available (Phase 2). Index: [source-map/README.md](source-map/README.md).
 
-| Class | Source | Open Book page |
-| --- | --- | --- |
-| `Application` | [`Application.java`](../../src/main/java/com/tlbank/lending/domain/application/Application.java) | [domain/Application.md](source-map/domain/Application.md) |
-| `ApplicationAppService` | [`ApplicationAppService.java`](../../src/main/java/com/tlbank/lending/application/application/service/ApplicationAppService.java) | [application/ApplicationAppService.md](source-map/application/ApplicationAppService.md) |
-| `ApplicationStatus` | [`ApplicationStatus.java`](../../src/main/java/com/tlbank/lending/domain/application/ApplicationStatus.java) | [domain/ApplicationStatus.md](source-map/domain/ApplicationStatus.md) |
-| `ApplicationRepositoryImpl` | [`ApplicationRepositoryImpl.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationRepositoryImpl.java) | [infrastructure/ApplicationRepositoryImpl.md](source-map/infrastructure/ApplicationRepositoryImpl.md) |
-| `ApplicationEntity` | [`ApplicationEntity.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationEntity.java) | [infrastructure/ApplicationEntity.md](source-map/infrastructure/ApplicationEntity.md) |
-| `SecurityConfig` | [`SecurityConfig.java`](../../src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) | [security/SecurityConfig.md](source-map/security/SecurityConfig.md) |
-| `IdempotencyService` | [`IdempotencyService.java`](../../src/main/java/com/tlbank/lending/application/idempotency/IdempotencyService.java) | [application/IdempotencyService.md](source-map/application/IdempotencyService.md) |
-| `RedisIdempotencyStore` | [`RedisIdempotencyStore.java`](../../src/main/java/com/tlbank/lending/infrastructure/idempotency/RedisIdempotencyStore.java) | [infrastructure/RedisIdempotencyStore.md](source-map/infrastructure/RedisIdempotencyStore.md) |
-| `OtpAppService` | [`OtpAppService.java`](../../src/main/java/com/tlbank/lending/application/otp/service/OtpAppService.java) | [application/OtpAppService.md](source-map/application/OtpAppService.md) |
-| `ReviewAppService` | [`ReviewAppService.java`](../../src/main/java/com/tlbank/lending/application/review/service/ReviewAppService.java) | [application/ReviewAppService.md](source-map/application/ReviewAppService.md) |
-| `ReviewCase` | [`ReviewCase.java`](../../src/main/java/com/tlbank/lending/domain/review/ReviewCase.java) | [domain/ReviewCase.md](source-map/domain/ReviewCase.md) |
-| `AuditAspect` | [`AuditAspect.java`](../../src/main/java/com/tlbank/lending/common/audit/AuditAspect.java) | [common/AuditAspect.md](source-map/common/AuditAspect.md) |
-| `LocalDocumentStorageService` | [`LocalDocumentStorageService.java`](../../src/main/java/com/tlbank/lending/infrastructure/storage/LocalDocumentStorageService.java) | [infrastructure/LocalDocumentStorageService.md](source-map/infrastructure/LocalDocumentStorageService.md) |
-| `NotificationEventHandler` | [`NotificationEventHandler.java`](../../src/main/java/com/tlbank/lending/infrastructure/event/NotificationEventHandler.java) | [infrastructure/NotificationEventHandler.md](source-map/infrastructure/NotificationEventHandler.md) |
+| Class                         | Source                                                                                                                                           | Open Book page                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `Application`                 | [`Application.java`](../../src/main/java/com/tlbank/lending/domain/application/Application.java)                                                 | [domain/Application.md](source-map/domain/Application.md)                                                 |
+| `ApplicationAppService`       | [`ApplicationAppService.java`](../../src/main/java/com/tlbank/lending/application/application/service/ApplicationAppService.java)                | [application/ApplicationAppService.md](source-map/application/ApplicationAppService.md)                   |
+| `ApplicationStatus`           | [`ApplicationStatus.java`](../../src/main/java/com/tlbank/lending/domain/application/ApplicationStatus.java)                                     | [domain/ApplicationStatus.md](source-map/domain/ApplicationStatus.md)                                     |
+| `ApplicationRepositoryImpl`   | [`ApplicationRepositoryImpl.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationRepositoryImpl.java) | [infrastructure/ApplicationRepositoryImpl.md](source-map/infrastructure/ApplicationRepositoryImpl.md)     |
+| `ApplicationEntity`           | [`ApplicationEntity.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationEntity.java)                 | [infrastructure/ApplicationEntity.md](source-map/infrastructure/ApplicationEntity.md)                     |
+| `SecurityConfig`              | [`SecurityConfig.java`](../../src/main/java/com/tlbank/lending/security/config/SecurityConfig.java)                                              | [security/SecurityConfig.md](source-map/security/SecurityConfig.md)                                       |
+| `IdempotencyService`          | [`IdempotencyService.java`](../../src/main/java/com/tlbank/lending/application/idempotency/IdempotencyService.java)                              | [application/IdempotencyService.md](source-map/application/IdempotencyService.md)                         |
+| `RedisIdempotencyStore`       | [`RedisIdempotencyStore.java`](../../src/main/java/com/tlbank/lending/infrastructure/idempotency/RedisIdempotencyStore.java)                     | [infrastructure/RedisIdempotencyStore.md](source-map/infrastructure/RedisIdempotencyStore.md)             |
+| `OtpAppService`               | [`OtpAppService.java`](../../src/main/java/com/tlbank/lending/application/otp/service/OtpAppService.java)                                        | [application/OtpAppService.md](source-map/application/OtpAppService.md)                                   |
+| `ReviewAppService`            | [`ReviewAppService.java`](../../src/main/java/com/tlbank/lending/application/review/service/ReviewAppService.java)                               | [application/ReviewAppService.md](source-map/application/ReviewAppService.md)                             |
+| `ReviewCase`                  | [`ReviewCase.java`](../../src/main/java/com/tlbank/lending/domain/review/ReviewCase.java)                                                        | [domain/ReviewCase.md](source-map/domain/ReviewCase.md)                                                   |
+| `AuditAspect`                 | [`AuditAspect.java`](../../src/main/java/com/tlbank/lending/common/audit/AuditAspect.java)                                                       | [common/AuditAspect.md](source-map/common/AuditAspect.md)                                                 |
+| `LocalDocumentStorageService` | [`LocalDocumentStorageService.java`](../../src/main/java/com/tlbank/lending/infrastructure/storage/LocalDocumentStorageService.java)             | [infrastructure/LocalDocumentStorageService.md](source-map/infrastructure/LocalDocumentStorageService.md) |
+| `NotificationEventHandler`    | [`NotificationEventHandler.java`](../../src/main/java/com/tlbank/lending/infrastructure/event/NotificationEventHandler.java)                     | [infrastructure/NotificationEventHandler.md](source-map/infrastructure/NotificationEventHandler.md)       |
 
-High-priority list (Phase 4, **Pending**): `OtpRecord`, `AuditLogWriter`, `GlobalExceptionHandler`, `ApplicationApiController`, `WorkflowDomainService`, `CachedCardProductRepository`, `OtpCleanupScheduler`, `ReportAppService` — see [source-map/README.md](source-map/README.md).
+High-priority pages (**Done** Phase 4): [OtpRecord](source-map/domain/OtpRecord.md), [AuditLogWriter](source-map/common/AuditLogWriter.md), [GlobalExceptionHandler](source-map/presentation/GlobalExceptionHandler.md), [ApplicationApiController](source-map/presentation/ApplicationApiController.md), [WorkflowDomainService](source-map/domain/WorkflowDomainService.md), [CachedCardProductRepository](source-map/infrastructure/CachedCardProductRepository.md), [OtpCleanupScheduler](source-map/infrastructure/OtpCleanupScheduler.md), [ReportAppService](source-map/application/ReportAppService.md).
 
 ### By Topic
 
-| Topic page | Status | Existing depth now |
-| --- | --- | --- |
-| [topics/01-architecture.md](topics/01-architecture.md) | **Done** | [02-architecture-handbook.md](../handbook/02-architecture-handbook.md), [0001-use-clean-architecture.md](../decisions/0001-use-clean-architecture.md) |
-| [topics/02-request-lifecycle.md](topics/02-request-lifecycle.md) | **Done** | [06-api-specification.md](../design/06-api-specification.md) |
-| [topics/03-security.md](topics/03-security.md) | **Done** | [07-security-design.md](../design/07-security-design.md), [0006-session-over-jwt.md](../decisions/0006-session-over-jwt.md) |
-| [topics/04-domain-and-workflow.md](topics/04-domain-and-workflow.md) | **Done** | [04-domain-model.md](../design/04-domain-model.md), [08-workflow-design.md](../design/08-workflow-design.md), [0002-use-ddd.md](../decisions/0002-use-ddd.md) |
-| [topics/05-jpa-and-sql.md](topics/05-jpa-and-sql.md) | **Done** | [05-database-design.md](../design/05-database-design.md), [0007-h2-vs-sqlserver.md](../decisions/0007-h2-vs-sqlserver.md) |
-| [topics/06-transactions.md](topics/06-transactions.md) | **Done** | [04-technology-handbook.md](../handbook/04-technology-handbook.md) (transactions chapters) |
-| [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md) | **Done** | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) |
-| [topics/08-cache.md](topics/08-cache.md) | **Done** | [12-cache-design.md](../design/12-cache-design.md) |
-| [topics/09-events-and-notifications.md](topics/09-events-and-notifications.md) | **Done** | [08-workflow-design.md](../design/08-workflow-design.md), [09-module-design.md](../design/09-module-design.md) |
-| [topics/10-audit-logging.md](topics/10-audit-logging.md) | **Done** | [11-audit-logging.md](../design/11-audit-logging.md) |
-| [topics/11-testing.md](topics/11-testing.md) | **Done** | [16-testing-strategy.md](../design/16-testing-strategy.md) |
+| Topic page                                                                     | Status   | Existing depth now                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [topics/01-architecture.md](topics/01-architecture.md)                         | **Done** | [02-architecture-handbook.md](../handbook/02-architecture-handbook.md), [0001-use-clean-architecture.md](../decisions/0001-use-clean-architecture.md)                              |
+| [topics/02-request-lifecycle.md](topics/02-request-lifecycle.md)               | **Done** | [06-api-specification.md](../design/06-api-specification.md)                                                                                                                       |
+| [topics/03-security.md](topics/03-security.md)                                 | **Done** | [07-security-design.md](../design/07-security-design.md), [0006-session-over-jwt.md](../decisions/0006-session-over-jwt.md)                                                        |
+| [topics/04-domain-and-workflow.md](topics/04-domain-and-workflow.md)           | **Done** | [04-domain-model.md](../design/04-domain-model.md), [08-workflow-design.md](../design/08-workflow-design.md), [0002-use-ddd.md](../decisions/0002-use-ddd.md)                      |
+| [topics/05-jpa-and-sql.md](topics/05-jpa-and-sql.md)                           | **Done** | [05-database-design.md](../design/05-database-design.md), [0007-h2-vs-sqlserver.md](../decisions/0007-h2-vs-sqlserver.md)                                                          |
+| [topics/06-transactions.md](topics/06-transactions.md)                         | **Done** | [04-technology-handbook.md](../handbook/04-technology-handbook.md) (transactions chapters)                                                                                         |
+| [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md)               | **Done** | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md)                                                                                                        |
+| [topics/08-cache.md](topics/08-cache.md)                                       | **Done** | [12-cache-design.md](../design/12-cache-design.md)                                                                                                                                 |
+| [topics/09-events-and-notifications.md](topics/09-events-and-notifications.md) | **Done** | [08-workflow-design.md](../design/08-workflow-design.md), [09-module-design.md](../design/09-module-design.md)                                                                     |
+| [topics/10-audit-logging.md](topics/10-audit-logging.md)                       | **Done** | [11-audit-logging.md](../design/11-audit-logging.md)                                                                                                                               |
+| [topics/11-testing.md](topics/11-testing.md)                                   | **Done** | [16-testing-strategy.md](../design/16-testing-strategy.md)                                                                                                                         |
 | [topics/12-delivery-and-limitations.md](topics/12-delivery-and-limitations.md) | **Done** | [17-deployment-design.md](../design/17-deployment-design.md), [ci.yml](../../../.github/workflows/ci.yml), [0005-use-terraform-local.md](../decisions/0005-use-terraform-local.md) |
 
 ### By Business Flow
 
-| Flow | Existing docs | Open Book |
-| --- | --- | --- |
+| Flow                       | Existing docs                                                                                                                            | Open Book                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | OTP → application → review | [03-business-feature-handbook.md](../handbook/03-business-feature-handbook.md), [08-workflow-design.md](../design/08-workflow-design.md) | [topics/04-domain-and-workflow.md](topics/04-domain-and-workflow.md); Critical classes above |
-| Idempotent create | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) | [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md) |
-| Document upload | [15-file-upload-design.md](../design/15-file-upload-design.md) | [LocalDocumentStorageService](source-map/infrastructure/LocalDocumentStorageService.md) |
-| Reports | [14-report-design.md](../design/14-report-design.md) | `ReportAppService` source-map (**Pending** Phase 4) |
+| Idempotent create          | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md)                                                              | [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md)                             |
+| Document upload            | [15-file-upload-design.md](../design/15-file-upload-design.md)                                                                           | [LocalDocumentStorageService](source-map/infrastructure/LocalDocumentStorageService.md)      |
+| Reports                    | [14-report-design.md](../design/14-report-design.md)                                                                                     | [ReportAppService](source-map/application/ReportAppService.md)                               |
 
 ### By Question ID
 
@@ -144,11 +144,11 @@ Strategy: [16-testing-strategy.md](../design/16-testing-strategy.md) · [topics/
 
 ### By Review Time
 
-| Mode | Entry |
-| --- | --- |
+| Mode       | Entry                                 |
+| ---------- | ------------------------------------- |
 | 30 minutes | [30-Minute Review](#30-minute-review) |
-| 2 hours | [2-Hour Review](#2-hour-review) |
-| Full day | [Full-Day Review](#full-day-review) |
+| 2 hours    | [2-Hour Review](#2-hour-review)       |
+| Full day   | [Full-Day Review](#full-day-review)   |
 
 Planned: `indexes/study-paths.md` (**Pending**, Phase 6).
 
@@ -158,12 +158,12 @@ Planned: `indexes/study-paths.md` (**Pending**, Phase 6).
 
 Labels used in handbook `09` and planned Open Book pages:
 
-| Label | Meaning |
-| --- | --- |
-| **Verified** | Behavior confirmed against current source (and usually tests) |
-| **Partially Verified** | Partly confirmed; do not overstate certainty |
+| Label                  | Meaning                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| **Verified**           | Behavior confirmed against current source (and usually tests)                        |
+| **Partially Verified** | Partly confirmed; do not overstate certainty                                         |
 | **Documentation Only** | Supported by docs/ADR/SDD; not fully exercised as runtime proof in the question page |
-| **Not Implemented** | Absent in this repository — say so explicitly (no invented cloud/prod behavior) |
+| **Not Implemented**    | Absent in this repository — say so explicitly (no invented cloud/prod behavior)      |
 
 ### 中文筆記
 
@@ -184,13 +184,13 @@ Hard constraints already verified in code/docs:
 
 ## Phase Status
 
-| Phase | Scope | Status |
-| --- | --- | --- |
-| 1 Foundation and Navigation | This README + folder READMEs | **Done** |
-| 2 Critical source-map pages | 14 class pages | **Done** |
-| 3 Unified topic pages | 12 topic pages | **Done** |
-| 4 High-priority source-map pages | 8 class pages | Pending |
-| 5 Whiteboards | 6 sketches | Pending |
-| 6 Indexes and cross-links | 5 index files + docs index links | Pending |
-| 7 Selective JavaDoc | Optional | Pending |
-| 8 Quality audit | Lint / claim check | Pending |
+| Phase                            | Scope                            | Status   |
+| -------------------------------- | -------------------------------- | -------- |
+| 1 Foundation and Navigation      | This README + folder READMEs     | **Done** |
+| 2 Critical source-map pages      | 14 class pages                   | **Done** |
+| 3 Unified topic pages            | 12 topic pages                   | **Done** |
+| 4 High-priority source-map pages | 8 class pages                    | **Done** |
+| 5 Whiteboards                    | 6 sketches                       | Pending  |
+| 6 Indexes and cross-links        | 5 index files + docs index links | Pending  |
+| 7 Selective JavaDoc              | Optional                         | Pending  |
+| 8 Quality audit                  | Lint / claim check               | Pending  |

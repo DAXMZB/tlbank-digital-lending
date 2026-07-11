@@ -63,7 +63,7 @@ sequenceDiagram
 - [`ApplicationAppService`](../source-map/application/ApplicationAppService.md)
 - [`SecurityConfig`](../source-map/security/SecurityConfig.md)
 - [`IdempotencyService`](../source-map/application/IdempotencyService.md)
-- High **Pending**: `ApplicationApiController`, `GlobalExceptionHandler`
+- [ApplicationApiController](../source-map/presentation/ApplicationApiController.md), [GlobalExceptionHandler](../source-map/presentation/GlobalExceptionHandler.md)
 
 ## Important Configuration
 

@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [OtpAppService](OtpAppService.md)
 - Next Critical Class: [ReviewCase](../domain/ReviewCase.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 Review use cases: search/detail, start review, approve/reject with dual-aggregate updates and domain events.
@@ -58,19 +59,16 @@ Approve:
 - **Purpose:** Paged search
 - **Transaction behavior:** @Transactional(readOnly = true)
 
-
 ### `ReviewCaseDetailResponse getCaseDetail(String reviewCaseId)`
 
 - **Purpose:** Detail + application projection
 - **Transaction behavior:** @Transactional(readOnly = true)
 - **Security behavior:** Masks applicant fields in DTO
 
-
 ### `void startCaseReview(String reviewCaseId, String operator)`
 
 - **Purpose:** Start review on case/application when still pending/submitted
 - **Transaction behavior:** @Transactional
-
 
 ### `void approveCase(ApproveCaseCommand command)`
 
@@ -79,7 +77,6 @@ Approve:
 - **Security behavior:** @Auditable(APPLICATION_APPROVE)
 - **Side effects:** ApplicationApprovedEvent
 
-
 ### `void rejectCase(RejectCaseCommand command)`
 
 - **Purpose:** Reject both aggregates + event
@@ -87,12 +84,10 @@ Approve:
 - **Security behavior:** @Auditable(APPLICATION_REJECT)
 - **Side effects:** ApplicationRejectedEvent
 
-
 ### `ReviewRemarkResponse addRemark(AddRemarkCommand command)`
 
 - **Purpose:** Append remark
 - **Transaction behavior:** @Transactional
-
 
 ## Design Decisions
 

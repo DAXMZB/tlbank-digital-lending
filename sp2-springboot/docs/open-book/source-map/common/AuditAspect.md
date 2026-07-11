@@ -4,10 +4,11 @@
 - [Back to Source Map Index](../README.md)
 - Previous Critical Class: [ReviewCase](../domain/ReviewCase.md)
 - Next Critical Class: [LocalDocumentStorageService](../infrastructure/LocalDocumentStorageService.md)
-- Related Topics: [topics/README.md](../../topics/README.md) (bodies **Pending** — Phase 3)
+- Related Topics: [topics/](../../topics/README.md)
 - Related Questions: [09-interview-source-map-300.md](../../../handbook/09-interview-source-map-300.md)
 
 ---
+
 ## One-Sentence Summary
 
 AOP `@Around` advice that writes SUCCESS/FAILURE audit logs for `@Auditable` methods.
@@ -40,7 +41,7 @@ Cross-cutting audit without cluttering every use case.
 
 ### Depends On
 
-- `AuditLogWriter`, `HttpServletRequest`
+- [AuditLogWriter](AuditLogWriter.md), `HttpServletRequest`
 - `AuditDetailBuilder`, `AuditIpResolver`, `AuditContext`
 
 ### Called By
@@ -60,7 +61,6 @@ Cross-cutting audit without cluttering every use case.
 - **Output:** proceed result or throw
 - **Security behavior:** Reads SecurityContext username
 - **Side effects:** Persists audit rows asynchronously via writer
-
 
 ## Design Decisions
 
