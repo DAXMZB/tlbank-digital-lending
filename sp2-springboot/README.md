@@ -32,7 +32,7 @@ TLBank simulates a credit card application backend: applicants submit applicatio
 | Audience | What to look at |
 | --- | --- |
 | Recruiters / managers | Highlights, [CI/CD](#cicd-pipeline), [Testing](#testing-strategy) |
-| Senior engineers | [Architecture](#architecture), [Design Decisions](#design-decisions), [docs/](docs/00-sdd-overview.md) |
+| Senior engineers | [Architecture](#architecture), [Design Decisions](#design-decisions), [docs/](docs/design/00-sdd-overview.md) |
 | Interviewers | [Business workflow](#core-business-workflow), [Interview topics](#interview-discussion-topics) |
 
 ## Key Engineering Highlights
@@ -121,7 +121,7 @@ src/main/java/com/tlbank/lending/
 └── common/           # Audit, exceptions, shared config
 ```
 
-Deeper design notes: [docs/02-architecture-design.md](docs/02-architecture-design.md)
+Deeper design notes: [docs/02-architecture-design.md](docs/design/02-architecture-design.md)
 
 ## Core Business Workflow
 
@@ -145,7 +145,7 @@ INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_REVIEW → A
 | Audit | `@Auditable` + `AuditAspect` | Async persistence of operator, action, IP, success/failure |
 | Notifications | `NotificationEventHandler` | Listens for domain events; failures logged, not propagated |
 
-Workflow detail: [docs/08-workflow-design.md](docs/08-workflow-design.md)
+Workflow detail: [docs/08-workflow-design.md](docs/design/08-workflow-design.md)
 
 ## Implemented Features
 
@@ -350,7 +350,7 @@ JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main clas
 | Security tests | `SecurityIntegrationTest` |
 | Presentation tests | `AdminControllerTest`, `ReviewApiControllerTest` |
 
-Detail: [docs/16-testing-strategy.md](docs/16-testing-strategy.md)
+Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 ## Quick Start
 
@@ -454,7 +454,7 @@ This is intentional honesty for portfolio reviewers:
 
 | Topic | Where to look |
 | --- | --- |
-| Why one evolving repository? | This README overview; [docs/00-sdd-overview.md](docs/00-sdd-overview.md) |
+| Why one evolving repository? | This README overview; [docs/00-sdd-overview.md](docs/design/00-sdd-overview.md) |
 | Why framework-independent domain? | `domain/application/Application.java`, `ApplicationStatus.java` |
 | Why sessions over JWT? | [security/config/SecurityConfig.java](src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) |
 | How idempotency prevents duplicates | `IdempotencyService`, `ApplicationApiController`, `ApplicationIdempotencyIntegrationTest` |
@@ -463,7 +463,7 @@ This is intentional honesty for portfolio reviewers:
 | H2 vs SQL Server trade-offs | `application-dev.yml` vs `application-staging.yml`, dual Flyway folders |
 | How domain events isolate side effects | `NotificationEventHandler`, `ApplicationAppService` event publication |
 | Invalid workflow transitions | `ApplicationStatus.canTransitionTo()`, `WorkflowDomainService` |
-| Lending ↔ payment analogies | State machines, OTP as step-up auth, review queue as fraud hold — see [docs/08-workflow-design.md](docs/08-workflow-design.md) |
+| Lending ↔ payment analogies | State machines, OTP as step-up auth, review queue as fraud hold — see [docs/08-workflow-design.md](docs/design/08-workflow-design.md) |
 
 ## Demo Accounts (local development only)
 

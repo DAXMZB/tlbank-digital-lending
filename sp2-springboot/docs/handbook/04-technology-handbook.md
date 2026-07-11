@@ -4,7 +4,7 @@
 
 One chapter per technology verified in `sp2-springboot`. Every section references real project files — not generic tutorials.
 
-**Companion:** [architecture-handbook.md](architecture-handbook.md)
+**Companion:** [architecture-handbook.md](02-architecture-handbook.md)
 
 ---
 
@@ -62,7 +62,7 @@ Runtime language for the entire TLBank backend: domain logic, Spring services, J
 
 ## 3. Business Features Using It
 
-All 18 features in [architecture-handbook.md](architecture-handbook.md).
+All 18 features in [architecture-handbook.md](02-architecture-handbook.md).
 
 ## 4. Files Implementing It
 
@@ -2663,4 +2663,4 @@ sequenceDiagram
 
 ---
 
-*Generated from repository scan. Pair with [architecture-handbook.md](architecture-handbook.md) for feature-level navigation.*
+*Generated from repository scan. Pair with [architecture-handbook.md](02-architecture-handbook.md) for feature-level navigation.*

@@ -4,7 +4,7 @@
 
 One chapter per business capability in `sp2-springboot`. Each section maps purpose → flow → code → data → security.
 
-**Companions:** [architecture-handbook.md](architecture-handbook.md) · [technology-handbook.md](technology-handbook.md)
+**Companions:** [architecture-handbook.md](02-architecture-handbook.md) · [technology-handbook.md](04-technology-handbook.md)
 
 ---
 
@@ -1687,4 +1687,4 @@ sequenceDiagram
 
 ---
 
-*Generated from `sp2-springboot` source. Cross-reference [architecture-handbook.md](architecture-handbook.md) for layer index and [technology-handbook.md](technology-handbook.md) for stack depth.*
+*Generated from `sp2-springboot` source. Cross-reference [architecture-handbook.md](02-architecture-handbook.md) for layer index and [technology-handbook.md](04-technology-handbook.md) for stack depth.*

@@ -41,23 +41,23 @@ Internal engineering wiki for the `sp2-springboot` monorepo module. This documen
 
 | Handbook | Path | Scope |
 | --- | --- | --- |
-| Architecture | [architecture-handbook.md](architecture-handbook.md) | Layers, modules, flows, files per feature |
-| Technology | [technology-handbook.md](technology-handbook.md) | One chapter per technology (35) |
-| Business | [business-feature-handbook.md](business-feature-handbook.md) | One chapter per business capability (15) |
-| Public README | [../README.md](../README.md) | Recruiters, badges, quick start |
+| Architecture | [architecture-handbook.md](02-architecture-handbook.md) | Layers, modules, flows, files per feature |
+| Technology | [technology-handbook.md](04-technology-handbook.md) | One chapter per technology (35) |
+| Business | [business-feature-handbook.md](03-business-feature-handbook.md) | One chapter per business capability (15) |
+| Public README | [../README.md](../../README.md) | Recruiters, badges, quick start |
 
 **System Design Documents (SDD):**
 
 | Doc | Topic |
 | --- | --- |
-| [00-sdd-overview.md](00-sdd-overview.md) | SDD index |
-| [01-system-context.md](01-system-context.md) | Context diagram |
-| [02-architecture-design.md](02-architecture-design.md) | Layer rules |
-| [04-domain-model.md](04-domain-model.md) | Aggregates, VOs |
-| [07-security-design.md](07-security-design.md) | Auth matrix |
-| [08-workflow-design.md](08-workflow-design.md) | State machine |
-| [16-testing-strategy.md](16-testing-strategy.md) | Test pyramid |
-| [17-deployment-design.md](17-deployment-design.md) | Environments |
+| [00-sdd-overview.md](../design/00-sdd-overview.md) | SDD index |
+| [01-system-context.md](../design/01-system-context.md) | Context diagram |
+| [02-architecture-design.md](../design/02-architecture-design.md) | Layer rules |
+| [04-domain-model.md](../design/04-domain-model.md) | Aggregates, VOs |
+| [07-security-design.md](../design/07-security-design.md) | Auth matrix |
+| [08-workflow-design.md](../design/08-workflow-design.md) | State machine |
+| [16-testing-strategy.md](../design/16-testing-strategy.md) | Test pyramid |
+| [17-deployment-design.md](../design/17-deployment-design.md) | Environments |
 
 ---
 
@@ -67,17 +67,17 @@ Internal engineering wiki for the `sp2-springboot` monorepo module. This documen
 
 | Role | Start here | Then |
 | --- | --- | --- |
-| New engineer | [Repository Map](#2-repository-map) → [Architecture](#3-architecture) | [business-feature-handbook.md](business-feature-handbook.md) |
-| Interviewer | [Interview Navigation Guide](#19-interview-navigation-guide) | [architecture-handbook.md](architecture-handbook.md) |
-| DevOps / platform | [CI/CD](#12-cicd) → [Docker](#11-docker) → [Deployment](#10-deployment) | [17-deployment-design.md](17-deployment-design.md) |
-| Domain / backend | [DDD](#4-domain-driven-design-ddd) → [Business Features](#5-business-features) | [04-domain-model.md](04-domain-model.md) |
+| New engineer | [Repository Map](#2-repository-map) → [Architecture](#3-architecture) | [business-feature-handbook.md](03-business-feature-handbook.md) |
+| Interviewer | [Interview Navigation Guide](#19-interview-navigation-guide) | [architecture-handbook.md](02-architecture-handbook.md) |
+| DevOps / platform | [CI/CD](#12-cicd) → [Docker](#11-docker) → [Deployment](#10-deployment) | [17-deployment-design.md](../design/17-deployment-design.md) |
+| Domain / backend | [DDD](#4-domain-driven-design-ddd) → [Business Features](#5-business-features) | [04-domain-model.md](../design/04-domain-model.md) |
 
 ### By question type
 
 | Question | Section |
 | --- | --- |
-| "What happens when user submits?" | [Business Features](#5-business-features) → [business-feature-handbook.md § Card Application](business-feature-handbook.md) |
-| "Where is OTP validated?" | [architecture-handbook.md § OTP](architecture-handbook.md) |
+| "What happens when user submits?" | [Business Features](#5-business-features) → [business-feature-handbook.md § Card Application](03-business-feature-handbook.md) |
+| "Where is OTP validated?" | [architecture-handbook.md § OTP](02-architecture-handbook.md) |
 | "Why Redis?" | [Redis](#8-redis) |
 | "How do I run tests?" | [Testing](#9-testing) |
 | "How does deploy work?" | [CI/CD](#12-cicd) |
@@ -226,9 +226,9 @@ Cross-cutting: `@Auditable` → `AuditAspect` → async `audit_logs`.
 
 ### 3.5 Further reading
 
-- [architecture-handbook.md](architecture-handbook.md) — 18 modules, sequence diagrams, file lists
-- [02-architecture-design.md](02-architecture-design.md) — design rationale
-- [03-package-structure.md](03-package-structure.md) — package tree
+- [architecture-handbook.md](02-architecture-handbook.md) — 18 modules, sequence diagrams, file lists
+- [02-architecture-design.md](../design/02-architecture-design.md) — design rationale
+- [03-package-structure.md](../design/03-package-structure.md) — package tree
 
 ---
 
@@ -293,9 +293,9 @@ INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_REVIEW → A
 
 ### 4.7 Further reading
 
-- [04-domain-model.md](04-domain-model.md)
-- [08-workflow-design.md](08-workflow-design.md)
-- [business-feature-handbook.md](business-feature-handbook.md)
+- [04-domain-model.md](../design/04-domain-model.md)
+- [08-workflow-design.md](../design/08-workflow-design.md)
+- [business-feature-handbook.md](03-business-feature-handbook.md)
 
 ---
 
@@ -340,9 +340,9 @@ sequenceDiagram
 
 ### 5.3 Further reading
 
-- [business-feature-handbook.md](business-feature-handbook.md) — full chapters per feature
-- [09-module-design.md](09-module-design.md)
-- [06-api-specification.md](06-api-specification.md)
+- [business-feature-handbook.md](03-business-feature-handbook.md) — full chapters per feature
+- [09-module-design.md](../design/09-module-design.md)
+- [06-api-specification.md](../design/06-api-specification.md)
 
 ---
 
@@ -379,8 +379,8 @@ sequenceDiagram
 
 ### 6.3 Further reading
 
-- [technology-handbook.md](technology-handbook.md) — 35 technology chapters
-- [00-sdd-overview.md § Technology Stack](00-sdd-overview.md)
+- [technology-handbook.md](04-technology-handbook.md) — 35 technology chapters
+- [00-sdd-overview.md § Technology Stack](../design/00-sdd-overview.md)
 
 ---
 
@@ -429,9 +429,9 @@ src/test/.../SecurityIntegrationTest.java
 
 ### 7.5 Further reading
 
-- [07-security-design.md](07-security-design.md)
-- [business-feature-handbook.md § Login](business-feature-handbook.md)
-- [technology-handbook.md § Spring Security](technology-handbook.md)
+- [07-security-design.md](../design/07-security-design.md)
+- [business-feature-handbook.md § Login](03-business-feature-handbook.md)
+- [technology-handbook.md § Spring Security](04-technology-handbook.md)
 
 ---
 
@@ -486,9 +486,9 @@ tlbank.idempotency.store: memory   # no Redis in CI tests
 
 ### 8.6 Further reading
 
-- [12-cache-design.md](12-cache-design.md)
-- [business-feature-handbook.md § Idempotency](business-feature-handbook.md)
-- [technology-handbook.md § Redis](technology-handbook.md)
+- [12-cache-design.md](../design/12-cache-design.md)
+- [business-feature-handbook.md § Idempotency](03-business-feature-handbook.md)
+- [technology-handbook.md § Redis](04-technology-handbook.md)
 
 ---
 
@@ -544,8 +544,8 @@ flowchart TB
 
 ### 9.6 Further reading
 
-- [16-testing-strategy.md](16-testing-strategy.md)
-- [technology-handbook.md § JUnit / JaCoCo](technology-handbook.md)
+- [16-testing-strategy.md](../design/16-testing-strategy.md)
+- [technology-handbook.md § JUnit / JaCoCo](04-technology-handbook.md)
 
 ---
 
@@ -587,9 +587,9 @@ flowchart TB
 
 ### 10.5 Further reading
 
-- [17-deployment-design.md](17-deployment-design.md)
-- [../README.md § Quick Start](../README.md)
-- [technology-handbook.md § Deployment-related](technology-handbook.md)
+- [17-deployment-design.md](../design/17-deployment-design.md)
+- [../README.md § Quick Start](../../README.md)
+- [technology-handbook.md § Deployment-related](04-technology-handbook.md)
 
 ---
 
@@ -640,8 +640,8 @@ flowchart LR
 
 ### 11.5 Further reading
 
-- [technology-handbook.md § Docker / Compose](technology-handbook.md)
-- [17-deployment-design.md](17-deployment-design.md)
+- [technology-handbook.md § Docker / Compose](04-technology-handbook.md)
+- [17-deployment-design.md](../design/17-deployment-design.md)
 
 ---
 
@@ -692,8 +692,8 @@ ghcr.io/<lowercase-owner>/tlbank-backend:<git-sha>
 
 ### 12.5 Further reading
 
-- [../README.md § CI/CD](../README.md)
-- [technology-handbook.md § GitHub Actions / GHCR / Trivy](technology-handbook.md)
+- [../README.md § CI/CD](../../README.md)
+- [technology-handbook.md § GitHub Actions / GHCR / Trivy](04-technology-handbook.md)
 
 ---
 
@@ -734,8 +734,8 @@ Working directory: `infra/local`.
 
 ### 13.5 Further reading
 
-- [technology-handbook.md § Terraform](technology-handbook.md)
-- [../../infra/local/main.tf](../../infra/local/main.tf)
+- [technology-handbook.md § Terraform](04-technology-handbook.md)
+- [../../infra/local/main.tf](../../../infra/local/main.tf)
 
 ---
 
@@ -803,7 +803,7 @@ logback-spring.xml
 
 ### 15.4 Further reading
 
-- [05-database-design.md](05-database-design.md)
+- [05-database-design.md](../design/05-database-design.md)
 
 ---
 
@@ -842,44 +842,44 @@ logback-spring.xml
 
 | Document | Lines | Use when |
 | --- | --- | --- |
-| [repository-handbook.md](repository-handbook.md) | This file | Start here |
-| [architecture-handbook.md](architecture-handbook.md) | Layer/file index | "Where is X implemented?" |
-| [technology-handbook.md](technology-handbook.md) | Per-tech depth | "How does Redis work here?" |
-| [business-feature-handbook.md](business-feature-handbook.md) | Per-feature depth | "What is the submit flow?" |
+| [repository-handbook.md](01-repository-handbook.md) | This file | Start here |
+| [architecture-handbook.md](02-architecture-handbook.md) | Layer/file index | "Where is X implemented?" |
+| [technology-handbook.md](04-technology-handbook.md) | Per-tech depth | "How does Redis work here?" |
+| [business-feature-handbook.md](03-business-feature-handbook.md) | Per-feature depth | "What is the submit flow?" |
 
 ### 17.2 SDD series
 
 | # | File | Topic |
 | --- | --- | --- |
-| 00 | [00-sdd-overview.md](00-sdd-overview.md) | Overview |
-| 01 | [01-system-context.md](01-system-context.md) | Context |
-| 02 | [02-architecture-design.md](02-architecture-design.md) | Architecture |
-| 03 | [03-package-structure.md](03-package-structure.md) | Packages |
-| 04 | [04-domain-model.md](04-domain-model.md) | Domain |
-| 05 | [05-database-design.md](05-database-design.md) | Database |
-| 06 | [06-api-specification.md](06-api-specification.md) | API |
-| 07 | [07-security-design.md](07-security-design.md) | Security |
-| 08 | [08-workflow-design.md](08-workflow-design.md) | Workflow |
-| 09 | [09-module-design.md](09-module-design.md) | Modules |
-| 10 | [10-error-handling.md](10-error-handling.md) | Errors |
-| 11 | [11-audit-logging.md](11-audit-logging.md) | Audit |
-| 12 | [12-cache-design.md](12-cache-design.md) | Cache |
-| 13 | [13-scheduler-design.md](13-scheduler-design.md) | Schedulers |
-| 14 | [14-report-design.md](14-report-design.md) | Reports |
-| 15 | [15-file-upload-design.md](15-file-upload-design.md) | Uploads |
-| 16 | [16-testing-strategy.md](16-testing-strategy.md) | Testing |
-| 17 | [17-deployment-design.md](17-deployment-design.md) | Deployment |
-| 18 | [18-coding-standards.md](18-coding-standards.md) | Standards |
-| 19 | [19-cursor-implementation-roadmap.md](19-cursor-implementation-roadmap.md) | Roadmap |
+| 00 | [00-sdd-overview.md](../design/00-sdd-overview.md) | Overview |
+| 01 | [01-system-context.md](../design/01-system-context.md) | Context |
+| 02 | [02-architecture-design.md](../design/02-architecture-design.md) | Architecture |
+| 03 | [03-package-structure.md](../design/03-package-structure.md) | Packages |
+| 04 | [04-domain-model.md](../design/04-domain-model.md) | Domain |
+| 05 | [05-database-design.md](../design/05-database-design.md) | Database |
+| 06 | [06-api-specification.md](../design/06-api-specification.md) | API |
+| 07 | [07-security-design.md](../design/07-security-design.md) | Security |
+| 08 | [08-workflow-design.md](../design/08-workflow-design.md) | Workflow |
+| 09 | [09-module-design.md](../design/09-module-design.md) | Modules |
+| 10 | [10-error-handling.md](../design/10-error-handling.md) | Errors |
+| 11 | [11-audit-logging.md](../design/11-audit-logging.md) | Audit |
+| 12 | [12-cache-design.md](../design/12-cache-design.md) | Cache |
+| 13 | [13-scheduler-design.md](../design/13-scheduler-design.md) | Schedulers |
+| 14 | [14-report-design.md](../design/14-report-design.md) | Reports |
+| 15 | [15-file-upload-design.md](../design/15-file-upload-design.md) | Uploads |
+| 16 | [16-testing-strategy.md](../design/16-testing-strategy.md) | Testing |
+| 17 | [17-deployment-design.md](../design/17-deployment-design.md) | Deployment |
+| 18 | [18-coding-standards.md](../design/18-coding-standards.md) | Standards |
+| 19 | [19-cursor-implementation-roadmap.md](../design/19-cursor-implementation-roadmap.md) | Roadmap |
 | 20 | [20-maintenance-and-future-enhancement.md](20-maintenance-and-future-enhancement.md) | Maintenance |
 
 ### 17.3 External
 
 | Resource | URL |
 | --- | --- |
-| CI workflow | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
-| Terraform workflow | [`.github/workflows/terraform.yml`](../../.github/workflows/terraform.yml) |
-| Public README | [../README.md](../README.md) |
+| CI workflow | [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) |
+| Terraform workflow | [`.github/workflows/terraform.yml`](../../../.github/workflows/terraform.yml) |
+| Public README | [../README.md](../../README.md) |
 
 ---
 
@@ -937,10 +937,10 @@ See [20-maintenance-and-future-enhancement.md](20-maintenance-and-future-enhance
 
 | Interview topic | Read first |
 | --- | --- |
-| Why sessions not JWT? | `SecurityConfig.java`, [07-security-design.md](07-security-design.md) |
-| How idempotency works | `IdempotencyService.java`, [business-feature-handbook §15](business-feature-handbook.md) |
+| Why sessions not JWT? | `SecurityConfig.java`, [07-security-design.md](../design/07-security-design.md) |
+| How idempotency works | `IdempotencyService.java`, [business-feature-handbook §15](03-business-feature-handbook.md) |
 | Invalid workflow transition | `Application.java`, `ApplicationStatus.java` |
-| Why manual deploy? | [ci.yml `deploy-staging`](../../.github/workflows/ci.yml) |
+| Why manual deploy? | [ci.yml `deploy-staging`](../../../.github/workflows/ci.yml) |
 | Domain vs infrastructure | `ApplicationRepositoryImpl.java` |
 | Event-driven notifications | `NotificationEventHandler.java` |
 | Why two migration folders? | [Database §15](#15-database--migrations) |
@@ -957,7 +957,7 @@ See [20-maintenance-and-future-enhancement.md](20-maintenance-and-future-enhance
 | Audit log | Transaction ledger |
 | Idempotency key | Payment idempotency |
 
-See [08-workflow-design.md](08-workflow-design.md) and [../README.md § Domain Mapping](../README.md).
+See [08-workflow-design.md](../design/08-workflow-design.md) and [../README.md § Domain Mapping](../../README.md).
 
 ---
 
