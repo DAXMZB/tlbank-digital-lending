@@ -2,7 +2,7 @@
 
 Interview-oriented navigation for the TLBank Digital Lending codebase in `sp2-springboot`.
 
-Depth lives in existing handbooks, SDDs, and ADRs. This Open Book points to those files and will later hold short speaking scripts (source-map, topics, whiteboards). **Phase 1 = navigation only.**
+Depth lives in existing handbooks, SDDs, and ADRs. This Open Book points to those files and holds short speaking scripts (Critical source-map + unified topics). Whiteboards and indexes remain later phases.
 
 Roadmap: [00-open-book-roadmap.md](00-open-book-roadmap.md)
 
@@ -35,24 +35,24 @@ Optional locator: [08-file-reference-handbook.md](../handbook/08-file-reference-
 
 ### 2-Hour Review
 
-Recommended order (existing docs today; Open Book topic pages are **Pending**):
+Recommended order (handbook depth + Open Book topic pages):
 
 1. **Project overview** — [00-project-overview.md](../handbook/00-project-overview.md), [README.md](../../README.md)
-2. **Architecture** — [02-architecture-handbook.md](../handbook/02-architecture-handbook.md), [0001-use-clean-architecture.md](../decisions/0001-use-clean-architecture.md), [02-architecture-design.md](../design/02-architecture-design.md) · topic page `topics/01-architecture.md` (**Pending**)
-3. **Application workflow** — [03-business-feature-handbook.md](../handbook/03-business-feature-handbook.md), [08-workflow-design.md](../design/08-workflow-design.md), [04-domain-model.md](../design/04-domain-model.md) · `topics/04-domain-and-workflow.md` (**Pending**)
-4. **Security** — [07-security-design.md](../design/07-security-design.md), [0006-session-over-jwt.md](../decisions/0006-session-over-jwt.md) · `topics/03-security.md` (**Pending**)
-5. **JPA and transactions** — [05-database-design.md](../design/05-database-design.md), [0007-h2-vs-sqlserver.md](../decisions/0007-h2-vs-sqlserver.md) · `topics/05-jpa-and-sql.md`, `topics/06-transactions.md` (**Pending**)
-6. **Redis and idempotency** — [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) · `topics/07-redis-idempotency.md` (**Pending**)
-7. **Testing** — [16-testing-strategy.md](../design/16-testing-strategy.md) · `topics/11-testing.md` (**Pending**)
-8. **Docker and CI/CD** — [docker-compose.yml](../../docker-compose.yml), [docker/app/Dockerfile](../../docker/app/Dockerfile), [ci.yml](../../../.github/workflows/ci.yml), [0004-use-github-actions.md](../decisions/0004-use-github-actions.md) · `topics/12-delivery-and-limitations.md` (**Pending**)
-9. **Known limitations** — [06-system-design-handbook.md](../handbook/06-system-design-handbook.md), [20-maintenance-and-future-enhancement.md](../design/20-maintenance-and-future-enhancement.md), [0005-use-terraform-local.md](../decisions/0005-use-terraform-local.md)
+2. **Architecture** — [topics/01-architecture.md](topics/01-architecture.md) · [02-architecture-handbook.md](../handbook/02-architecture-handbook.md), [0001-use-clean-architecture.md](../decisions/0001-use-clean-architecture.md)
+3. **Application workflow** — [topics/04-domain-and-workflow.md](topics/04-domain-and-workflow.md) · [03-business-feature-handbook.md](../handbook/03-business-feature-handbook.md), [08-workflow-design.md](../design/08-workflow-design.md)
+4. **Security** — [topics/03-security.md](topics/03-security.md) · [07-security-design.md](../design/07-security-design.md), [0006-session-over-jwt.md](../decisions/0006-session-over-jwt.md)
+5. **JPA and transactions** — [topics/05-jpa-and-sql.md](topics/05-jpa-and-sql.md), [topics/06-transactions.md](topics/06-transactions.md) · [05-database-design.md](../design/05-database-design.md), [0007-h2-vs-sqlserver.md](../decisions/0007-h2-vs-sqlserver.md)
+6. **Redis and idempotency** — [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md) · [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md)
+7. **Testing** — [topics/11-testing.md](topics/11-testing.md) · [16-testing-strategy.md](../design/16-testing-strategy.md)
+8. **Docker and CI/CD** — [topics/12-delivery-and-limitations.md](topics/12-delivery-and-limitations.md) · [docker-compose.yml](../../docker-compose.yml), [ci.yml](../../../.github/workflows/ci.yml), [0004-use-github-actions.md](../decisions/0004-use-github-actions.md)
+9. **Known limitations** — [topics/12-delivery-and-limitations.md](topics/12-delivery-and-limitations.md) · [06-system-design-handbook.md](../handbook/06-system-design-handbook.md), [0005-use-terraform-local.md](../decisions/0005-use-terraform-local.md)
 
 ### Full-Day Review
 
 1. **Core 30** — [10-core-interview-questions-30.md](../handbook/10-core-interview-questions-30.md)
 2. **Primary 100** — [11-primary-interview-questions-100.md](../handbook/11-primary-interview-questions-100.md)
 3. **Critical source maps** — [source-map/](source-map/README.md) (14 Critical pages done; High **Pending** Phase 4)
-4. **Unified topic pages** — [topics/](topics/README.md) (**Pending**; Phase 3)
+4. **Unified topic pages** — [topics/](topics/README.md) (**Done**; Phase 3)
 5. **Whiteboard flows** — [whiteboards/](whiteboards/README.md) (**Pending**; Phase 5)
 6. **System evolution** — [06-system-design-handbook.md](../handbook/06-system-design-handbook.md)
 7. **Advanced questions** — [09-interview-source-map-300.md](../handbook/09-interview-source-map-300.md)
@@ -97,27 +97,27 @@ High-priority list (Phase 4, **Pending**): `OtpRecord`, `AuditLogWriter`, `Globa
 
 | Topic page | Status | Existing depth now |
 | --- | --- | --- |
-| `topics/01-architecture.md` | **Pending** | [02-architecture-handbook.md](../handbook/02-architecture-handbook.md), [0001-use-clean-architecture.md](../decisions/0001-use-clean-architecture.md) |
-| `topics/02-request-lifecycle.md` | **Pending** | [06-api-specification.md](../design/06-api-specification.md) |
-| `topics/03-security.md` | **Pending** | [07-security-design.md](../design/07-security-design.md), [0006-session-over-jwt.md](../decisions/0006-session-over-jwt.md) |
-| `topics/04-domain-and-workflow.md` | **Pending** | [04-domain-model.md](../design/04-domain-model.md), [08-workflow-design.md](../design/08-workflow-design.md), [0002-use-ddd.md](../decisions/0002-use-ddd.md) |
-| `topics/05-jpa-and-sql.md` | **Pending** | [05-database-design.md](../design/05-database-design.md), [0007-h2-vs-sqlserver.md](../decisions/0007-h2-vs-sqlserver.md) |
-| `topics/06-transactions.md` | **Pending** | [04-technology-handbook.md](../handbook/04-technology-handbook.md) (transactions chapters) |
-| `topics/07-redis-idempotency.md` | **Pending** | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) |
-| `topics/08-cache.md` | **Pending** | [12-cache-design.md](../design/12-cache-design.md) |
-| `topics/09-events-and-notifications.md` | **Pending** | [08-workflow-design.md](../design/08-workflow-design.md), [09-module-design.md](../design/09-module-design.md) |
-| `topics/10-audit-logging.md` | **Pending** | [11-audit-logging.md](../design/11-audit-logging.md) |
-| `topics/11-testing.md` | **Pending** | [16-testing-strategy.md](../design/16-testing-strategy.md) |
-| `topics/12-delivery-and-limitations.md` | **Pending** | [17-deployment-design.md](../design/17-deployment-design.md), [ci.yml](../../../.github/workflows/ci.yml), [0005-use-terraform-local.md](../decisions/0005-use-terraform-local.md) |
+| [topics/01-architecture.md](topics/01-architecture.md) | **Done** | [02-architecture-handbook.md](../handbook/02-architecture-handbook.md), [0001-use-clean-architecture.md](../decisions/0001-use-clean-architecture.md) |
+| [topics/02-request-lifecycle.md](topics/02-request-lifecycle.md) | **Done** | [06-api-specification.md](../design/06-api-specification.md) |
+| [topics/03-security.md](topics/03-security.md) | **Done** | [07-security-design.md](../design/07-security-design.md), [0006-session-over-jwt.md](../decisions/0006-session-over-jwt.md) |
+| [topics/04-domain-and-workflow.md](topics/04-domain-and-workflow.md) | **Done** | [04-domain-model.md](../design/04-domain-model.md), [08-workflow-design.md](../design/08-workflow-design.md), [0002-use-ddd.md](../decisions/0002-use-ddd.md) |
+| [topics/05-jpa-and-sql.md](topics/05-jpa-and-sql.md) | **Done** | [05-database-design.md](../design/05-database-design.md), [0007-h2-vs-sqlserver.md](../decisions/0007-h2-vs-sqlserver.md) |
+| [topics/06-transactions.md](topics/06-transactions.md) | **Done** | [04-technology-handbook.md](../handbook/04-technology-handbook.md) (transactions chapters) |
+| [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md) | **Done** | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) |
+| [topics/08-cache.md](topics/08-cache.md) | **Done** | [12-cache-design.md](../design/12-cache-design.md) |
+| [topics/09-events-and-notifications.md](topics/09-events-and-notifications.md) | **Done** | [08-workflow-design.md](../design/08-workflow-design.md), [09-module-design.md](../design/09-module-design.md) |
+| [topics/10-audit-logging.md](topics/10-audit-logging.md) | **Done** | [11-audit-logging.md](../design/11-audit-logging.md) |
+| [topics/11-testing.md](topics/11-testing.md) | **Done** | [16-testing-strategy.md](../design/16-testing-strategy.md) |
+| [topics/12-delivery-and-limitations.md](topics/12-delivery-and-limitations.md) | **Done** | [17-deployment-design.md](../design/17-deployment-design.md), [ci.yml](../../../.github/workflows/ci.yml), [0005-use-terraform-local.md](../decisions/0005-use-terraform-local.md) |
 
 ### By Business Flow
 
 | Flow | Existing docs | Open Book |
 | --- | --- | --- |
-| OTP → application → review | [03-business-feature-handbook.md](../handbook/03-business-feature-handbook.md), [08-workflow-design.md](../design/08-workflow-design.md) | `topics/04-domain-and-workflow.md` (**Pending**); Critical classes above |
-| Idempotent create | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) | `topics/07-redis-idempotency.md` (**Pending**) |
-| Document upload | [15-file-upload-design.md](../design/15-file-upload-design.md) | `LocalDocumentStorageService` source-map (**Pending**) |
-| Reports | [14-report-design.md](../design/14-report-design.md) | `ReportAppService` source-map (**Pending**) |
+| OTP → application → review | [03-business-feature-handbook.md](../handbook/03-business-feature-handbook.md), [08-workflow-design.md](../design/08-workflow-design.md) | [topics/04-domain-and-workflow.md](topics/04-domain-and-workflow.md); Critical classes above |
+| Idempotent create | [0003-use-redis-idempotency.md](../decisions/0003-use-redis-idempotency.md) | [topics/07-redis-idempotency.md](topics/07-redis-idempotency.md) |
+| Document upload | [15-file-upload-design.md](../design/15-file-upload-design.md) | [LocalDocumentStorageService](source-map/infrastructure/LocalDocumentStorageService.md) |
+| Reports | [14-report-design.md](../design/14-report-design.md) | `ReportAppService` source-map (**Pending** Phase 4) |
 
 ### By Question ID
 
@@ -140,7 +140,7 @@ Representative tests (link to source now; Open Book citations **Pending** on cla
 - [`IdempotencyServiceTest.java`](../../src/test/java/com/tlbank/lending/application/idempotency/IdempotencyServiceTest.java)
 - [`AuditAspectTest.java`](../../src/test/java/com/tlbank/lending/common/audit/AuditAspectTest.java)
 
-Strategy: [16-testing-strategy.md](../design/16-testing-strategy.md) · topic `topics/11-testing.md` (**Pending**)
+Strategy: [16-testing-strategy.md](../design/16-testing-strategy.md) · [topics/11-testing.md](topics/11-testing.md)
 
 ### By Review Time
 
@@ -188,7 +188,7 @@ Hard constraints already verified in code/docs:
 | --- | --- | --- |
 | 1 Foundation and Navigation | This README + folder READMEs | **Done** |
 | 2 Critical source-map pages | 14 class pages | **Done** |
-| 3 Unified topic pages | 12 topic pages | Pending |
+| 3 Unified topic pages | 12 topic pages | **Done** |
 | 4 High-priority source-map pages | 8 class pages | Pending |
 | 5 Whiteboards | 6 sketches | Pending |
 | 6 Indexes and cross-links | 5 index files + docs index links | Pending |

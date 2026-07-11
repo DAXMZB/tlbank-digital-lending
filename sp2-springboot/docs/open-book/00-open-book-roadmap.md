@@ -315,7 +315,7 @@ All statuses: **Pending**.
 - **Validation:** no theme duplicated under another folder; every Q ID listed exists; Mermaid matches real classes/jobs
 - **Stop condition:** Core interview themes rehearsable from `topics/` in under two hours
 - **Recommended commit message:** `docs(open-book): add 12 unified topic pages`
-- **Status:** Pending
+- **Status:** Done
 
 ### Phase 4 — High-Priority Source Map Pages
 
