@@ -51,7 +51,7 @@ Recommended order (existing docs today; Open Book topic pages are **Pending**):
 
 1. **Core 30** — [10-core-interview-questions-30.md](../handbook/10-core-interview-questions-30.md)
 2. **Primary 100** — [11-primary-interview-questions-100.md](../handbook/11-primary-interview-questions-100.md)
-3. **Critical source maps** — [source-map/](source-map/README.md) (**Pending** class pages; Phase 2)
+3. **Critical source maps** — [source-map/](source-map/README.md) (14 Critical pages done; High **Pending** Phase 4)
 4. **Unified topic pages** — [topics/](topics/README.md) (**Pending**; Phase 3)
 5. **Whiteboard flows** — [whiteboards/](whiteboards/README.md) (**Pending**; Phase 5)
 6. **System evolution** — [06-system-design-handbook.md](../handbook/06-system-design-handbook.md)
@@ -72,24 +72,24 @@ Folder indexes:
 
 ### By Critical Class
 
-Dedicated source-map pages are **Pending** (Phase 2). Use source paths now; speaking pages later.
+Critical source-map pages are available (Phase 2). Index: [source-map/README.md](source-map/README.md).
 
 | Class | Source | Open Book page |
 | --- | --- | --- |
-| `Application` | [`Application.java`](../../src/main/java/com/tlbank/lending/domain/application/Application.java) | `source-map/Application.md` (**Pending**) |
-| `ApplicationAppService` | [`ApplicationAppService.java`](../../src/main/java/com/tlbank/lending/application/application/service/ApplicationAppService.java) | `source-map/ApplicationAppService.md` (**Pending**) |
-| `ApplicationStatus` | [`ApplicationStatus.java`](../../src/main/java/com/tlbank/lending/domain/application/ApplicationStatus.java) | `source-map/ApplicationStatus.md` (**Pending**) |
-| `ApplicationRepositoryImpl` | [`ApplicationRepositoryImpl.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationRepositoryImpl.java) | `source-map/ApplicationRepositoryImpl.md` (**Pending**) |
-| `ApplicationEntity` | [`ApplicationEntity.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationEntity.java) | `source-map/ApplicationEntity.md` (**Pending**) |
-| `SecurityConfig` | [`SecurityConfig.java`](../../src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) | `source-map/SecurityConfig.md` (**Pending**) |
-| `IdempotencyService` | [`IdempotencyService.java`](../../src/main/java/com/tlbank/lending/application/idempotency/IdempotencyService.java) | `source-map/IdempotencyService.md` (**Pending**) |
-| `RedisIdempotencyStore` | [`RedisIdempotencyStore.java`](../../src/main/java/com/tlbank/lending/infrastructure/idempotency/RedisIdempotencyStore.java) | `source-map/RedisIdempotencyStore.md` (**Pending**) |
-| `OtpAppService` | [`OtpAppService.java`](../../src/main/java/com/tlbank/lending/application/otp/service/OtpAppService.java) | `source-map/OtpAppService.md` (**Pending**) |
-| `ReviewAppService` | [`ReviewAppService.java`](../../src/main/java/com/tlbank/lending/application/review/service/ReviewAppService.java) | `source-map/ReviewAppService.md` (**Pending**) |
-| `ReviewCase` | [`ReviewCase.java`](../../src/main/java/com/tlbank/lending/domain/review/ReviewCase.java) | `source-map/ReviewCase.md` (**Pending**) |
-| `AuditAspect` | [`AuditAspect.java`](../../src/main/java/com/tlbank/lending/common/audit/AuditAspect.java) | `source-map/AuditAspect.md` (**Pending**) |
-| `LocalDocumentStorageService` | [`LocalDocumentStorageService.java`](../../src/main/java/com/tlbank/lending/infrastructure/storage/LocalDocumentStorageService.java) | `source-map/LocalDocumentStorageService.md` (**Pending**) |
-| `NotificationEventHandler` | [`NotificationEventHandler.java`](../../src/main/java/com/tlbank/lending/infrastructure/event/NotificationEventHandler.java) | `source-map/NotificationEventHandler.md` (**Pending**) |
+| `Application` | [`Application.java`](../../src/main/java/com/tlbank/lending/domain/application/Application.java) | [domain/Application.md](source-map/domain/Application.md) |
+| `ApplicationAppService` | [`ApplicationAppService.java`](../../src/main/java/com/tlbank/lending/application/application/service/ApplicationAppService.java) | [application/ApplicationAppService.md](source-map/application/ApplicationAppService.md) |
+| `ApplicationStatus` | [`ApplicationStatus.java`](../../src/main/java/com/tlbank/lending/domain/application/ApplicationStatus.java) | [domain/ApplicationStatus.md](source-map/domain/ApplicationStatus.md) |
+| `ApplicationRepositoryImpl` | [`ApplicationRepositoryImpl.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationRepositoryImpl.java) | [infrastructure/ApplicationRepositoryImpl.md](source-map/infrastructure/ApplicationRepositoryImpl.md) |
+| `ApplicationEntity` | [`ApplicationEntity.java`](../../src/main/java/com/tlbank/lending/infrastructure/persistence/application/ApplicationEntity.java) | [infrastructure/ApplicationEntity.md](source-map/infrastructure/ApplicationEntity.md) |
+| `SecurityConfig` | [`SecurityConfig.java`](../../src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) | [security/SecurityConfig.md](source-map/security/SecurityConfig.md) |
+| `IdempotencyService` | [`IdempotencyService.java`](../../src/main/java/com/tlbank/lending/application/idempotency/IdempotencyService.java) | [application/IdempotencyService.md](source-map/application/IdempotencyService.md) |
+| `RedisIdempotencyStore` | [`RedisIdempotencyStore.java`](../../src/main/java/com/tlbank/lending/infrastructure/idempotency/RedisIdempotencyStore.java) | [infrastructure/RedisIdempotencyStore.md](source-map/infrastructure/RedisIdempotencyStore.md) |
+| `OtpAppService` | [`OtpAppService.java`](../../src/main/java/com/tlbank/lending/application/otp/service/OtpAppService.java) | [application/OtpAppService.md](source-map/application/OtpAppService.md) |
+| `ReviewAppService` | [`ReviewAppService.java`](../../src/main/java/com/tlbank/lending/application/review/service/ReviewAppService.java) | [application/ReviewAppService.md](source-map/application/ReviewAppService.md) |
+| `ReviewCase` | [`ReviewCase.java`](../../src/main/java/com/tlbank/lending/domain/review/ReviewCase.java) | [domain/ReviewCase.md](source-map/domain/ReviewCase.md) |
+| `AuditAspect` | [`AuditAspect.java`](../../src/main/java/com/tlbank/lending/common/audit/AuditAspect.java) | [common/AuditAspect.md](source-map/common/AuditAspect.md) |
+| `LocalDocumentStorageService` | [`LocalDocumentStorageService.java`](../../src/main/java/com/tlbank/lending/infrastructure/storage/LocalDocumentStorageService.java) | [infrastructure/LocalDocumentStorageService.md](source-map/infrastructure/LocalDocumentStorageService.md) |
+| `NotificationEventHandler` | [`NotificationEventHandler.java`](../../src/main/java/com/tlbank/lending/infrastructure/event/NotificationEventHandler.java) | [infrastructure/NotificationEventHandler.md](source-map/infrastructure/NotificationEventHandler.md) |
 
 High-priority list (Phase 4, **Pending**): `OtpRecord`, `AuditLogWriter`, `GlobalExceptionHandler`, `ApplicationApiController`, `WorkflowDomainService`, `CachedCardProductRepository`, `OtpCleanupScheduler`, `ReportAppService` — see [source-map/README.md](source-map/README.md).
 
@@ -186,8 +186,8 @@ Hard constraints already verified in code/docs:
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 1 Foundation and Navigation | This README + folder READMEs | **Done (this change)** |
-| 2 Critical source-map pages | 14 class pages | Pending |
+| 1 Foundation and Navigation | This README + folder READMEs | **Done** |
+| 2 Critical source-map pages | 14 class pages | **Done** |
 | 3 Unified topic pages | 12 topic pages | Pending |
 | 4 High-priority source-map pages | 8 class pages | Pending |
 | 5 Whiteboards | 6 sketches | Pending |
