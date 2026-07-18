@@ -13,7 +13,12 @@
     "MD013": false,
 
     // Do not require language tags on fences (encourage ```bash etc. later)
-    "MD040": false
+    "MD040": false,
+
+    // Allow repeated bilingual H3s under different parents
+    "MD024": {
+      "siblings_only": true
+    }
   },
 
   // Defense-in-depth: exclude drafts / generated / scaffold / build
