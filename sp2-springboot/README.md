@@ -9,17 +9,17 @@
 
 ## Project Overview
 
-**TLBank** is a fictional digital lending backend built as a long-term engineering portfolio. Instead of isolated tutorials, backend practices—architecture, testing, security, CI/CD, containers, Redis idempotency, and local Infrastructure as Code—are integrated into one evolving system so trade-offs can be explored together.
+**TLBank** is a fictional digital lending backend used as an engineering portfolio. It combines architecture, testing, security, CI/CD, containers, Redis idempotency, and local Infrastructure as Code in one repository so trade-offs can be examined in context rather than as isolated samples.
 
-**Status:** Portfolio / learning project — not production software. Staging runs on a **local self-hosted Mac** via manual deployment; there is **no cloud production environment** in this repository.
+**Status:** Portfolio / learning project — not production software. Staging runs on a **local self-hosted Mac** via manual deployment. This repository has **no cloud production environment**.
 
-TLBank simulates a credit card application backend: applicants submit applications, verify OTP, upload documents, and reviewers approve or reject cases. The system demonstrates how lending-style workflows map to familiar backend engineering problems—state machines, idempotency, audit trails, and side-effect isolation—without claiming enterprise production maturity.
+TLBank models a credit card application flow: applicants submit applications, verify OTP, upload documents, and reviewers approve or reject cases. The workflow surfaces common backend concerns — state machines, idempotency, audit trails, and side-effect isolation — without claiming enterprise production maturity.
 
 | Audience | What to look at |
 | --- | --- |
-| Recruiters / managers | Highlights below, [CI/CD](#cicd-pipeline), [Testing](#testing-strategy) |
-| Senior engineers | [System Architecture](#system-architecture), [Design Decisions](#design-decisions), [docs/](docs/design/00-sdd-overview.md) |
-| Interviewers | [Business workflow](#core-business-workflow), [Interview topics](#interview-discussion-topics) |
+| Recruiters / managers | [Highlights](#highlights), [CI/CD Pipeline](#cicd-pipeline), [Testing Strategy](#testing-strategy) |
+| Senior engineers | [System Architecture](#system-architecture), [Design Decisions](#design-decisions), [SDD overview](docs/design/00-sdd-overview.md) |
+| Interviewers | [Core Business Workflow](#core-business-workflow), [Interview Discussion Topics](#interview-discussion-topics) |
 
 ### Highlights
 
@@ -27,39 +27,41 @@ Verified capabilities in the current codebase:
 
 - Explicit **application state machine** (`ApplicationStatus` + `WorkflowDomainService`)
 - **Clean / Hexagonal Architecture** — domain ports with infrastructure adapters
-- **Session-based Spring Security** (form login, RBAC, single concurrent session)
+- **Session-based Spring Security** — form login, RBAC, single concurrent session
 - **Redis-backed idempotency** for application creation (`dev` profile; in-memory in tests)
 - **GitHub Actions CI** — Maven verify, Trivy scan, GHCR image publish
 - **Manual CD** — `workflow_dispatch` deploy to a self-hosted macOS runner
-- **Docker Compose** — SQL Server + Spring Boot app (local/staging stack)
+- **Docker Compose** — SQL Server + Spring Boot app (local / staging stack)
 - **Local Terraform** — `hashicorp/local` provider for IaC practice (no cloud resources)
 - **Automated tests** — 36 test classes, 133 test methods (`mvn clean verify`)
 
 ### Key Engineering Highlights
 
-- **Domain-centric workflow** — transitions enforced in `Application` and `ApplicationStatus`; invalid moves throw `WorkflowException`.
-- **Ports and adapters** — JPA repositories, file storage, cache, notifications, and idempotency implement interfaces consumed by application services.
-- **Side effects via domain events** — `ApplicationSubmittedEvent`, `ApplicationApprovedEvent`, and `ApplicationRejectedEvent` trigger mock SMS/email without rolling back transactions.
-- **Operational hooks** — Flyway migrations, Actuator health, scheduled OTP cleanup / cache refresh / daily stats, Excel & PDF reports.
-- **Security defaults** — BCrypt (strength 12), CSRF on web forms, API CSRF relaxed, role-based URL and method security.
+- **Domain-centric workflow** — transitions enforced in `Application` and `ApplicationStatus`; invalid moves throw `WorkflowException`
+- **Ports and adapters** — JPA repositories, file storage, cache, notifications, and idempotency implement interfaces consumed by application services
+- **Side effects via domain events** — `ApplicationSubmittedEvent`, `ApplicationApprovedEvent`, and `ApplicationRejectedEvent` trigger mock SMS/email without rolling back transactions
+- **Operational hooks** — Flyway migrations, Actuator health, scheduled OTP cleanup / cache refresh / daily stats, Excel and PDF reports
+- **Security defaults** — BCrypt (strength 12), CSRF on web forms, API CSRF relaxed, role-based URL and method security
 
 ## System Architecture
 
-Dependency rule: **outer layers depend inward; the domain layer does not depend on Spring, JPA, or infrastructure implementations.**
+**Dependency rule:** outer layers depend inward; the domain layer does not depend on Spring, JPA, or infrastructure implementations.
 
 ![System Architecture Diagram](docs/images/architecture/System%20Architecture%20Diagram-selection.png)
 
-**Why this architecture:** Business rules (workflow, OTP, review) stay in the domain so they remain testable without Spring, JPA, or infrastructure. Domain aggregates and ports live in `domain/`; Spring/JPA adapters live in `infrastructure/`. Controllers stay thin and call application services.
+**Why.** Keep business rules (workflow, OTP, review) framework-independent so they stay unit-testable without Spring, JPA, or infrastructure. Controllers stay thin; orchestration lives in application services.
 
-**Request flow:** Thymeleaf Web UI and REST API Controllers (presentation) call Application Services and, for create-application, `IdempotencyService`. Application services orchestrate aggregates, repository ports, and `WorkflowDomainService`. Ports are implemented by JPA repositories and other infrastructure adapters (cache, local file storage, reports, mock SMS/email, schedulers, AOP audit). Persistence uses H2 (`dev`) or SQL Server (`staging`).
+**How.** Domain aggregates and ports live in `domain/`. Spring / JPA adapters live in `infrastructure/`. Presentation (Thymeleaf and REST) calls application services. Create-application may also go through `IdempotencyService`. Services use aggregates, repository ports, and `WorkflowDomainService`. Adapters cover JPA, in-process cache, local file storage, reports, mock SMS/email, schedulers, and AOP audit. Persistence is H2 (`dev`) or SQL Server (`staging`).
 
-**Why Redis exists:** Redis backs **idempotency only** for duplicate `POST /api/v1/applications` replay (`RedisIdempotencyStore` when `tlbank.idempotency.store=redis`). Application-level cache remains in-process (`InMemoryCacheStore`); sessions are not in Redis. Docker Compose in this repo does **not** include a Redis service.
+**Trade-offs.** Some domain-adjacent types still touch Spring APIs (for example `WorkflowDomainService` with `@Service`, `ReviewCaseRepository` with `Pageable`). Boundaries are real for learning and interviews, not a strict hexagonal audit. See [Design Decisions](#design-decisions).
 
-**Why Docker Compose exists:** Local/staging stack runs SQL Server + the Spring Boot app together (`docker-compose up -d`), using the `staging` profile and SQL Server migrations.
+**Redis — why / how / trade-offs.** Redis stores **idempotency** data only (`RedisIdempotencyStore` when `tlbank.idempotency.store=redis`) so duplicate `POST /api/v1/applications` can replay safely. Cache stays in-process (`InMemoryCacheStore`); sessions are not in Redis. Docker Compose in this repository does **not** start Redis.
 
-**Why GitHub Actions exists:** Automated CI runs Maven verify, Trivy scan, and GHCR image publish; staging deploy is manual (`workflow_dispatch`) to a self-hosted macOS runner.
+**Docker Compose — why / how / trade-offs.** Runs SQL Server and the Spring Boot app as one local / staging stack (`docker-compose up -d`) on the `staging` profile with SQL Server Flyway migrations. It does not mirror every `dev` dependency (notably Redis).
 
-**Why Terraform Validation exists:** [`infra/local/`](../infra/local/) uses the `hashicorp/local` provider for IaC practice (`fmt` / `validate` / `plan` in CI). It does **not** provision AWS, Azure, GCP, or any billable cloud resources.
+**GitHub Actions — why / how / trade-offs.** Automates Maven verify, Trivy scan, and GHCR publish. Staging deploy is intentional only (`workflow_dispatch` on a self-hosted macOS runner). Trivy is report-only; deploy is never automatic on push.
+
+**Terraform validation — why / how / trade-offs.** [`infra/local/`](../infra/local/) uses the `hashicorp/local` provider so CI can run `fmt` / `validate` / `plan`. It does **not** provision AWS, Azure, GCP, or other billable cloud resources.
 
 ```mermaid
 flowchart TB
@@ -123,21 +125,21 @@ flowchart TB
     Storage --> FS
 ```
 
-The Mermaid diagram matches the same layering: presentation → application → domain ← infrastructure, with Redis on the idempotency path and H2/SQL Server behind JPA.
+Same layering as the diagram above: presentation → application → domain ← infrastructure. Redis sits on the idempotency path; H2 and SQL Server sit behind JPA.
 
 Package layout:
 
-```
+```text
 src/main/java/com/tlbank/lending/
 ├── domain/           # Entities, value objects, events, repository ports
 ├── application/      # Use cases, services, DTOs
 ├── infrastructure/   # JPA, cache, idempotency, notification, storage, reports
-├── presentation/     # REST API & Thymeleaf controllers
+├── presentation/     # REST API and Thymeleaf controllers
 ├── security/         # Spring Security configuration
 └── common/           # Audit, exceptions, shared config
 ```
 
-Deeper design notes: [docs/02-architecture-design.md](docs/design/02-architecture-design.md)
+Deeper design notes: [Architecture design](docs/design/02-architecture-design.md)
 
 ### Core Business Workflow
 
@@ -156,12 +158,12 @@ INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_REVIEW → A
 | OTP verify | `Application.verifyOtp()` | `INIT → OTP_VERIFIED` |
 | Document upload | `Application.uploadDocuments()` | Requires `OTP_VERIFIED`; may stay in `DOCUMENT_UPLOADED` to add files |
 | Submit | `Application.submit()` | Requires identity + income documents |
-| Review | `ReviewAppService` | `SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED` |
+| Review | `ReviewAppService` | `SUBMITTED → UNDER_REVIEW → APPROVED` / `REJECTED` |
 | Idempotency | `IdempotencyService` + `ApplicationApiController` | Optional `Idempotency-Key` on create; see [API Example](#api-example) |
-| Audit | `@Auditable` + `AuditAspect` | Async persistence of operator, action, IP, success/failure |
+| Audit | `@Auditable` + `AuditAspect` | Async persistence of operator, action, IP, success / failure |
 | Notifications | `NotificationEventHandler` | Listens for domain events; failures logged, not propagated |
 
-Workflow detail: [docs/08-workflow-design.md](docs/design/08-workflow-design.md)
+Workflow detail: [Workflow design](docs/design/08-workflow-design.md)
 
 ## Technology Stack
 
@@ -171,13 +173,13 @@ Workflow detail: [docs/08-workflow-design.md](docs/design/08-workflow-design.md)
 | Framework | Spring Boot 3.4.2 |
 | Security | Spring Security (server-side sessions) |
 | Persistence | Spring Data JPA, Flyway |
-| Database (dev) | H2 in-memory (`MODE=MSSQLServer`) |
-| Database (staging) | Microsoft SQL Server 2022 (Docker) |
+| Database (`dev`) | H2 in-memory (`MODE=MSSQLServer`) |
+| Database (`staging`) | Microsoft SQL Server 2022 (Docker) |
 | Cache | In-process `InMemoryCacheStore` |
 | Idempotency store | Redis (`dev`) or in-memory (`test`) via `tlbank.idempotency.store` |
 | UI | Thymeleaf + Bootstrap 5 |
 | API docs | SpringDoc OpenAPI 3 |
-| Reports | Apache POI, iText7 |
+| Reports | Apache POI, iText 7 |
 | Build | Maven, JaCoCo |
 | Containers | Docker, Docker Compose |
 | IaC | Terraform (`hashicorp/local` provider) |
@@ -187,18 +189,18 @@ Workflow detail: [docs/08-workflow-design.md](docs/design/08-workflow-design.md)
 
 | Area | Implementation |
 | --- | --- |
-| Authentication & RBAC | Session login, `ADMIN` / `REVIEWER` / `USER` roles, `maximumSessions(1)` |
+| Authentication and RBAC | Session login; `ADMIN` / `REVIEWER` / `USER` roles; `maximumSessions(1)` |
 | Card products | Catalog with features; `CachedCardProductRepository` + in-memory TTL cache |
 | Applications | Full lifecycle API and Thymeleaf UI |
-| OTP | Send/verify with expiry and retry limits; scheduled cleanup |
+| OTP | Send / verify with expiry and retry limits; scheduled cleanup |
 | Documents | Local filesystem storage (`LocalDocumentStorageService`) |
-| Credit review | Reviewer approve/reject/remark workflow |
+| Credit review | Reviewer approve / reject / remark workflow |
 | System parameters | Grouped runtime config with cache |
 | Audit log | AOP-based operation trail |
-| Reports | Daily statistics export (Apache POI, iText7) |
+| Reports | Daily statistics export (Apache POI, iText 7) |
 | Schedulers | OTP cleanup, cache refresh, daily stats |
 | API docs | SpringDoc OpenAPI (`dev` / `staging` only) |
-| Idempotency | Redis (`dev`) or in-memory (`test`); see [limitations](#current-limitations) |
+| Idempotency | Redis (`dev`) or in-memory (`test`); see [Current Limitations](#current-limitations) |
 | Notifications | Mock SMS and email (`tlbank.notification.mode=mock`) |
 
 ## Project Structure
@@ -224,30 +226,34 @@ infra/local/                            # Local Terraform (repo root)
 
 ## API Example
 
-Existing create-application idempotency behavior (from `IdempotencyService` + `ApplicationApiController`):
+Create-application idempotency (`IdempotencyService` + `ApplicationApiController`):
 
 - Optional `Idempotency-Key` on `POST /api/v1/applications`
-- Same key + body returns cached response
-- Conflicting body → 409
+- Same key + body returns the cached response
+- Conflicting body returns HTTP 409
 
-Health check used after local/Docker start:
+Health check after local or Docker start:
 
 ```bash
 curl http://localhost:8080/actuator/health
 ```
 
-Swagger / OpenAPI links: [API Documentation](#api-documentation).
+Interactive docs: [API Documentation](#api-documentation).
 
 ## CI/CD Pipeline
 
 Workflow definitions (monorepo root):
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — build, test, scan, image publish, manual deploy
-- [`.github/workflows/terraform.yml`](../.github/workflows/terraform.yml) — Terraform fmt / validate / plan
+- [`.github/workflows/terraform.yml`](../.github/workflows/terraform.yml) — Terraform `fmt` / `validate` / `plan`
 
 ![GitHub Actions workflow](docs/images/workflow/5.%20Git%20Hub%20Action.png)
 
-The diagram above shows the same pipeline as the Mermaid flow: build/test → quality and Trivy scan → GHCR image publish → optional manual staging deploy on a self-hosted macOS runner.
+**Why.** Keep build, test, scan, and image publish automated while staging stays operator-controlled on a local Mac.
+
+**How.** Push / PR to `main` or `develop` (paths under `sp2-springboot/**`) runs CI. `main` (or `workflow_dispatch`) can publish to GHCR. Deploy writes `~/tlbank/docker-compose.yml`, pulls the image, and restarts SQL Server + app on the self-hosted runner.
+
+**Trade-offs.** Deploy is never automatic on push. Trivy findings are report-only (`exit-code: 0`). No blue / green or canary path.
 
 ```mermaid
 flowchart LR
@@ -262,39 +268,42 @@ flowchart LR
 
 | Job | Runner | Trigger | Command / tool |
 | --- | --- | --- | --- |
-| Build and Test | `ubuntu-latest` | Push/PR to `main` or `develop` when `sp2-springboot/**` changes | `mvn clean verify` (JDK 17 Temurin) |
-| Code Quality | `ubuntu-latest` | After build-test passes | `mvn verify` |
-| Dependency Scan | `ubuntu-latest` | After build-test passes | Trivy filesystem scan; **report-only** (`exit-code: 0`) |
+| Build and Test | `ubuntu-latest` | Push / PR to `main` or `develop` when `sp2-springboot/**` changes | `mvn clean verify` (JDK 17 Temurin) |
+| Code Quality | `ubuntu-latest` | After Build and Test passes | `mvn verify` |
+| Dependency Scan | `ubuntu-latest` | After Build and Test passes | Trivy filesystem scan; **report-only** (`exit-code: 0`) |
 | Build and Push Image | `ubuntu-latest` | `main` push or `workflow_dispatch` (after CI jobs pass) | Docker build → `ghcr.io/<owner>/tlbank-backend:latest` and `:sha` |
 
 ### CD (manual)
 
 | Job | Runner | Trigger | What it does |
 | --- | --- | --- | --- |
-| Deploy to Staging | `self-hosted, macos` | **`workflow_dispatch` only** | Writes `~/tlbank/docker-compose.yml`, pulls GHCR image, restarts SQL Server + app on **local Mac** |
+| Deploy to Staging | `self-hosted`, `macos` | **`workflow_dispatch` only** | Writes `~/tlbank/docker-compose.yml`, pulls GHCR image, restarts SQL Server + app on **local Mac** |
 
-Deploy is **not automatic on push**. Everyday pushes run CI and may publish images from `main`; staging is updated only when you manually run the workflow.
+Deploy is **not automatic on push**. Everyday pushes run CI and may publish images from `main`. Staging updates only when the workflow is run manually.
 
 ### Why manual deploy on a self-hosted runner?
 
-Staging runs on a local Mac (Docker Desktop + SQL Server). A self-hosted runner polls GitHub outbound, avoiding inbound SSH from the public internet. `workflow_dispatch` keeps deploys intentional.
+Staging runs on a local Mac (Docker Desktop + SQL Server). A self-hosted runner polls GitHub outbound, so inbound SSH from the public internet is not required. `workflow_dispatch` keeps deploys intentional.
 
 ## Infrastructure (Terraform)
 
 ![Terraform local workflow](docs/images/workflow/6.%20Terraform.png)
 
-Terraform under [`infra/local/`](../infra/local/) is a **local learning environment only**:
+Terraform under [`infra/local/`](../infra/local/) is a **local learning environment only**.
+
+**Why.** Practice Infrastructure as Code workflows without cloud cost.
+
+**How.**
 
 - Uses the `hashicorp/local` provider to generate `generated-staging-env.md`
 - Practices `terraform init`, `fmt`, `validate`, `plan`, and state handling
-- **Does not** provision AWS, Azure, GCP, or any billable cloud resources
 - Validated in CI via [`.github/workflows/terraform.yml`](../.github/workflows/terraform.yml)
 
-This demonstrates IaC workflow and reproducibility — not production cloud operations. The image above corresponds to that local validate/plan workflow, not cloud provisioning.
+**Trade-offs.** **Does not** provision AWS, Azure, GCP, or any billable cloud resources. The image above is the local validate / plan workflow, not cloud operations.
 
 ## Testing Strategy
 
-Requires **JDK 17**. Tests run with `@ActiveProfiles("dev")` and H2; idempotency uses in-memory store via `src/test/resources/application-dev.yml`.
+Requires **JDK 17**. Tests use `@ActiveProfiles("dev")` and H2. Idempotency uses the in-memory store via `src/test/resources/application-dev.yml`.
 
 ```bash
 mvn clean verify
@@ -310,7 +319,7 @@ After `mvn verify`:
 target/site/jacoco/index.html
 ```
 
-JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main class.
+JaCoCo excludes configuration classes, DTOs, JPA entities, and the Spring Boot main class.
 
 ### Test categories
 
@@ -323,7 +332,7 @@ JaCoCo excludes configuration, DTOs, JPA entities, and the Spring Boot main clas
 | Security tests | `SecurityIntegrationTest` |
 | Presentation tests | `AdminControllerTest`, `ReviewApiControllerTest` |
 
-Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
+Detail: [Testing strategy](docs/design/16-testing-strategy.md)
 
 ## Roadmap
 
@@ -336,8 +345,8 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 - Docker image build and GHCR publish
 - Manual self-hosted staging deploy
 - Local Terraform CI checks
-- Mock SMS/email via domain events
-- Excel/PDF reporting and scheduled jobs
+- Mock SMS / email via domain events
+- Excel / PDF reporting and scheduled jobs
 
 ### In progress
 
@@ -348,7 +357,7 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 - `RedisCacheStore` for distributed caching when scaling beyond one instance
 - Spring Session + Redis for externalized sessions
-- Real SMS/email providers (Twilio, SendGrid, etc.)
+- Real SMS / email providers (Twilio, SendGrid, and similar)
 - Outbox pattern / Kafka for reliable async events
 - Cloud deployment design (not implemented)
 - Observability (metrics, tracing, centralized logging)
@@ -361,11 +370,11 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 **Problem:** Business rules (workflow, OTP, review) must stay testable and independent of frameworks.
 
-**Choice:** Domain aggregates and ports in `domain/`; Spring/JPA adapters in `infrastructure/`.
+**Choice:** Domain aggregates and ports in `domain/`; Spring / JPA adapters in `infrastructure/`.
 
 **Reason:** Credit review and application lifecycle can be unit-tested without a database; new adapters can be swapped behind ports.
 
-**Trade-off:** Some domain-adjacent code still references Spring types (e.g. `WorkflowDomainService` uses `@Service`; `ReviewCaseRepository` uses `Pageable`).
+**Trade-off:** Some domain-adjacent code still references Spring types (for example `WorkflowDomainService` uses `@Service`; `ReviewCaseRepository` uses `Pageable`).
 
 **Current scope:** Educational portfolio — patterns are real, not a strict hexagonal boundary audit.
 
@@ -383,9 +392,9 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 ### Domain events for notifications
 
-**Problem:** SMS/email must not roll back core workflow transactions on delivery failure.
+**Problem:** SMS / email must not roll back core workflow transactions on delivery failure.
 
-**Choice:** Publish `ApplicationSubmittedEvent`, `ApplicationApprovedEvent`, `ApplicationRejectedEvent`; `NotificationEventHandler` sends mock notifications in a try/catch.
+**Choice:** Publish `ApplicationSubmittedEvent`, `ApplicationApprovedEvent`, `ApplicationRejectedEvent`; `NotificationEventHandler` sends mock notifications in a try / catch.
 
 **Reason:** Decouples workflow commits from notification side effects.
 
@@ -399,31 +408,31 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 **Choice:** `IdempotencyService` with pluggable `IdempotencyStore` — `RedisIdempotencyStore` when `tlbank.idempotency.store=redis`, `InMemoryIdempotencyStore` when `=memory`.
 
-**Reason:** Redis TTL and `SETNX` locks suit idempotency keys; mirrors how a distributed store would behave.
+**Reason:** Redis TTL and `SETNX` locks suit idempotency keys and approximate distributed-store behavior.
 
-**Trade-off:** Application-level cache remains in-process (`InMemoryCacheStore`); sessions are not in Redis. `dev` expects Redis at `localhost:6379`; Docker Compose in this repo does **not** include a Redis service.
+**Trade-off:** Application-level cache remains in-process (`InMemoryCacheStore`); sessions are not in Redis. `dev` expects Redis at `localhost:6379`; Docker Compose in this repository does **not** include a Redis service.
 
-**Current scope:** Implemented for `dev` and tests; staging compose does not configure Redis or idempotency store (see limitations).
+**Current scope:** Implemented for `dev` and tests; staging Compose does not configure Redis or the idempotency store (see [Current Limitations](#current-limitations)).
 
 ### Manual staging deployment
 
-**Problem:** Deploy to a home/office Mac without exposing SSH to the internet.
+**Problem:** Deploy to a home / office Mac without exposing SSH to the internet.
 
 **Choice:** Self-hosted macOS runner + `workflow_dispatch` deploy job.
 
 **Reason:** Runner initiates outbound connections; operator controls when staging updates.
 
-**Trade-off:** No blue/green, canary, or automated promotion pipeline.
+**Trade-off:** No blue / green, canary, or automated promotion pipeline.
 
 **Current scope:** Local staging on one machine.
 
 ### H2 for development, SQL Server for staging
 
-**Problem:** Fast local iteration vs. production-like SQL dialect and migrations.
+**Problem:** Fast local iteration versus production-like SQL dialect and migrations.
 
 **Choice:** H2 (`db/migration/` + `db/dev-seed/`) for `dev`; SQL Server (`db/migration-sqlserver/`) for `staging` / `prod` profiles.
 
-**Reason:** H2 enables fast tests and IDE runs; SQL Server matches staging container deployment.
+**Reason:** H2 enables fast tests and IDE runs; SQL Server matches the staging container deployment.
 
 **Trade-off:** Two migration trees must stay aligned manually.
 
@@ -435,7 +444,7 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 **Choice:** `local_file` resource documenting staging components.
 
-**Reason:** Validates fmt/validate/plan in CI; teaches state and reproducibility.
+**Reason:** Validates `fmt` / `validate` / `plan` in CI; teaches state and reproducibility.
 
 **Trade-off:** No real infrastructure provisioning.
 
@@ -445,29 +454,29 @@ Detail: [docs/16-testing-strategy.md](docs/design/16-testing-strategy.md)
 
 | Topic | Where to look |
 | --- | --- |
-| Why one evolving repository? | This README overview; [docs/00-sdd-overview.md](docs/design/00-sdd-overview.md) |
+| Why one evolving repository? | This README overview; [SDD overview](docs/design/00-sdd-overview.md) |
 | Why framework-independent domain? | `domain/application/Application.java`, `ApplicationStatus.java` |
-| Why sessions over JWT? | [security/config/SecurityConfig.java](src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) |
+| Why sessions over JWT? | [SecurityConfig.java](src/main/java/com/tlbank/lending/security/config/SecurityConfig.java) |
 | How idempotency prevents duplicates | `IdempotencyService`, `ApplicationApiController`, `ApplicationIdempotencyIntegrationTest` |
-| Why manual deployment? | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) `deploy-staging` job |
+| Why manual deployment? | [ci.yml](../.github/workflows/ci.yml) `deploy-staging` job |
 | What Terraform does / does not do | [`infra/local/main.tf`](../infra/local/main.tf) |
-| H2 vs SQL Server trade-offs | `application-dev.yml` vs `application-staging.yml`, dual Flyway folders |
+| H2 vs SQL Server trade-offs | `application-dev.yml` vs `application-staging.yml`; dual Flyway folders |
 | How domain events isolate side effects | `NotificationEventHandler`, `ApplicationAppService` event publication |
 | Invalid workflow transitions | `ApplicationStatus.canTransitionTo()`, `WorkflowDomainService` |
-| Lending ↔ payment analogies | State machines, OTP as step-up auth, review queue as fraud hold — see [docs/08-workflow-design.md](docs/design/08-workflow-design.md) |
+| Lending ↔ payment analogies | State machines, OTP as step-up auth, review queue as fraud hold — see [Workflow design](docs/design/08-workflow-design.md) |
 
 ## Current Limitations
 
-This is intentional honesty for portfolio reviewers:
+Known limits for portfolio reviewers:
 
-- **Not production-ready** — mock notifications, no secrets management, no observability stack, no load testing.
-- **Single-instance assumptions** — in-memory cache and server-side sessions; no Kubernetes or horizontal scaling.
-- **Redis scope** — idempotency only; cache and sessions are not Redis-backed. Docker Compose does not run Redis; `staging` profile does not set `tlbank.idempotency.store`.
-- **No cloud deployment** — Terraform manages a local generated file only; staging is a local Mac with Docker.
-- **Manual CD** — deploy requires `workflow_dispatch`; pushes to `develop` do not publish images.
-- **Trivy is report-only** — HIGH/CRITICAL findings do not fail the pipeline.
-- **Dual migration maintenance** — H2 and SQL Server Flyway scripts must be kept in sync manually.
-- **`prod` profile** — configuration exists (Swagger off, WARN logging) but no automated prod environment.
+- **Not production-ready** — mock notifications, no secrets management, no observability stack, no load testing
+- **Single-instance assumptions** — in-memory cache and server-side sessions; no Kubernetes or horizontal scaling
+- **Redis scope** — idempotency only; cache and sessions are not Redis-backed. Docker Compose does not run Redis; `staging` does not set `tlbank.idempotency.store`
+- **No cloud deployment** — Terraform manages a local generated file only; staging is a local Mac with Docker
+- **Manual CD** — deploy requires `workflow_dispatch`; pushes to `develop` do not publish images
+- **Trivy is report-only** — HIGH / CRITICAL findings do not fail the pipeline
+- **Dual migration maintenance** — H2 and SQL Server Flyway scripts must be kept in sync manually
+- **`prod` profile** — configuration exists (Swagger off, WARN logging) but no automated production environment
 
 ## Quick Start
 
@@ -483,17 +492,17 @@ docker-compose up -d
 - Health: `curl http://localhost:8080/actuator/health` (see also [API Example](#api-example))
 - Verify: `chmod +x scripts/verify.sh && ./scripts/verify.sh`
 
-Uses `staging` profile and SQL Server migrations. See [demo accounts](#demo-accounts-local-development-only) for staging seed users.
+Uses the `staging` profile and SQL Server migrations. See [Demo Accounts](#demo-accounts-local-development-only) for staging seed users.
 
 ### Option B — Local Maven (H2)
 
 ```bash
-# Optional: scripts/start-dev.sh compiles and runs dev profile
+# Optional: scripts/start-dev.sh compiles and runs the dev profile
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 - H2 console: <http://localhost:8080/h2-console>
-- **Note:** `dev` profile sets `tlbank.idempotency.store=redis` — run Redis on `localhost:6379` for idempotent application creation, or expect connection errors on that code path.
+- **Note:** `dev` sets `tlbank.idempotency.store=redis`. Run Redis on `localhost:6379` for idempotent application creation, or expect connection errors on that path.
 
 ### Environment Profiles
 
@@ -501,7 +510,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 | --- | --- | --- | --- | --- |
 | `dev` | H2 in-memory | `db/migration/`, `db/dev-seed/` | Enabled | H2 console; debug logging |
 | `staging` | SQL Server | `db/migration-sqlserver/` | Enabled | Docker Compose / CI deploy |
-| `prod` | SQL Server (env vars) | `db/migration-sqlserver/` | **Disabled** | Config only — no prod deployment in repo |
+| `prod` | SQL Server (env vars) | `db/migration-sqlserver/` | **Disabled** | Config only — no production deployment in repo |
 
 ## Demo Accounts (local development only)
 
