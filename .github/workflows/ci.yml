@@ -224,6 +224,24 @@ jobs:
                   /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'tlbank') CREATE DATABASE tlbank;"
               restart: "no"                                # 任務完成即關閉，不需要反覆重啟容器
 
+            redis:
+              image: redis:7.4-alpine                         # 使用固定版本的輕量 Redis 映像，避免 latest 造成版本漂移
+              container_name: tlbank-redis
+              command: ["redis-server", "--appendonly", "yes"] # 開啟 AOF，讓資料可寫入持久化磁碟卷
+              ports:
+                - "6379:6379"                                # 將 Redis 6379 埠映射至 Mac 本機，方便本機檢查
+              volumes:
+                - redis-data:/data                           # 保存 Redis 資料，容器重建後仍可保留
+              networks:
+                - tlbank-network
+              healthcheck:                                   # 使用 redis-cli PING 確認服務可正常回應
+                test: ["CMD", "redis-cli", "ping"]
+                interval: 10s
+                timeout: 5s
+                retries: 10
+                start_period: 10s
+              restart: unless-stopped                        # 非手動停止時，自動重新啟動服務
+
             app:
               image: ${{ env.IMAGE_NAME }}:latest         # 抓取剛才封裝好並上傳到 GHCR 的最新後端映像檔
               container_name: tlbank-app
@@ -232,6 +250,8 @@ jobs:
                   condition: service_healthy              # 基礎依賴：確保資料庫已經處於健康可連線狀態
                 db-init:
                   condition: service_completed_successfully # 基礎依賴：確保資料庫 tlbank 已經成功被初始化建立
+                redis:
+                  condition: service_healthy                # 快取依賴：Redis 健康後才啟動 Spring Boot 應用
               ports:
                 - "8080:8080"                              # 將後端 Java 應用的 8080 埠對外映射到 Mac 的 8080 埠
               environment:                                 # 注入 Spring Boot 執行環境變數
@@ -241,16 +261,26 @@ jobs:
                 SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 資料庫登入密碼
                 SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 設定使用者登入 Session 逾時時間為 30 分鐘
                 TLBANK_UPLOAD_BASE_PATH: /app/uploads      # 指定檔案上傳在本機容器內的實體根路徑
+                SPRING_DATA_REDIS_HOST: redis                # 使用 Compose 服務名稱連線 Redis，不使用 localhost
+                SPRING_DATA_REDIS_PORT: 6379                 # Redis 容器內部服務埠
               volumes:
                 - app-uploads:/app/uploads                 # 掛載持久化硬碟空間，避免上傳的圖片因容器重啟而消失
                 - app-logs:/app/logs                       # 掛載日誌檔案路徑，將 Spring Boot Log 導出至 Mac 本地方便排查
               networks:
                 - tlbank-network
+              healthcheck:                                  # 透過 Spring Boot Actuator 確認應用程式已可正常提供服務
+                test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+                interval: 15s
+                timeout: 10s
+                retries: 12
+                start_period: 90s
+              restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
 
           volumes:
             sqlserver-data:                                # 定義 SQL Server 資料持久化磁碟卷
             app-uploads:                                   # 定義應用程式檔案上傳持久化磁碟卷
             app-logs:                                      # 定義應用程式日誌持久化磁碟卷
+            redis-data:                                     # 定義 Redis AOF 資料持久化磁碟卷
 
           networks:
             tlbank-network:
@@ -300,14 +330,52 @@ jobs:
           docker compose down --remove-orphans 2>/dev/null || true
 
           # 🧹 保險：不管容器屬於哪個 compose 專案，只要名字撞到就強制移除，
-          # 避免其他手動起的 compose 專案（例如本機開發用的 sp2-springboot）佔用同名容器
-          for c in tlbank-sqlserver tlbank-db-init tlbank-app; do
+          # 避免其他手動啟動的 Compose 專案佔用同名容器
+          for c in tlbank-sqlserver tlbank-db-init tlbank-redis tlbank-app; do
             docker rm -f "$c" >/dev/null 2>&1 || true
           done
 
-          # 🚀 網內直發：繞過登入儲存限制，直接使用臨時驗證拉取最新映像檔
-          docker compose pull app
-          # 🔄 背景重啟應用與資料庫容器，完成無感部署
-          docker compose up -d
-          # 🧹 強制清空本地因重拉映像檔而產生的舊殘留鏡像 (Dangling Images)
+          # 📥 拉取 Compose 內所有服務需要的最新映像檔
+          # app 會從 GHCR 拉取，SQL Server 與 Redis 則從各自的公開映像倉庫拉取
+          docker compose pull
+
+          # 🚀 依照健康檢查與相依順序，在背景啟動全部服務
+          docker compose up -d --remove-orphans
+
+          # 📋 顯示目前服務狀態，方便從 GitHub Actions 日誌確認容器是否成功建立
+          docker compose ps
+
+          # 🩺 等待 Spring Boot Actuator 回報 UP，最多等待 5 分鐘
+          APP_READY=false
+          for attempt in $(seq 1 30); do
+            if curl -fsS "http://localhost:8080/actuator/health" | grep -q '"status":"UP"'; then
+              APP_READY=true
+              echo "Spring Boot application is healthy."
+              break
+            fi
+
+            echo "Waiting for application health check... (${attempt}/30)"
+            sleep 10
+          done
+
+          # 若應用程式逾時仍未健康，輸出容器狀態與日誌後讓部署失敗
+          if [ "$APP_READY" != "true" ]; then
+            echo "Application health check failed."
+            docker compose ps
+            docker compose logs --no-color --tail=200 app sqlserver redis
+            exit 1
+          fi
+
+          # 🧪 驗證 Redis 可正常回應
+          if [ "$(docker exec tlbank-redis redis-cli ping)" != "PONG" ]; then
+            echo "Redis health verification failed."
+            docker compose logs --no-color --tail=100 redis
+            exit 1
+          fi
+
+          # ✅ 再次輸出完整服務狀態，作為部署成功紀錄
+          docker compose ps
+          echo "TLBank staging deployment completed successfully."
+
+          # 🧹 清理沒有被任何容器使用的舊映像層，避免本機磁碟長期累積
           docker image prune -f
