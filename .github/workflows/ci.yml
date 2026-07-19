@@ -20,7 +20,7 @@ on:
       - "sp2-springboot/**"          # 限制只有 PR 內容涉及後端專案時才進行品質審查
       - ".github/workflows/ci.yml"
   workflow_dispatch:                 # 🖐️ 手動觸發開關：在 GitHub 網頁上生成「Run workflow」按鈕。
-                                      # 讓 Staging 部署完全由自己手動決定時機，平時 Push 絕不驚動本機。
+                                      # 讓 Staging 部署完全由你自己手動決定時機，平時 Push 絕不驚動本機。
 
 # --------------------------------------------------------------------------
 # 🔒 執行身份存取權限控管 (Permissions)
@@ -268,7 +268,9 @@ jobs:
                 - app-logs:/app/logs                       # 掛載日誌檔案路徑，將 Spring Boot Log 導出至 Mac 本地方便排查
               networks:
                 - tlbank-network
-              healthcheck:                                  # 透過 Spring Boot Actuator 確認應用程式已可正常提供服務
+              # 🐳 調整點 1 & 2：優化內置健康檢查參數，應對高負載 CI 環境
+              # 將暖機緩衝期 (start_period) 延長至 300 秒，重試次數拉長至 40 次，給予 Spring Boot、資料庫及 Redis 完整的建置和連線池初始化時間
+              healthcheck:
                 test: 
                   [
                     "CMD-SHELL",
@@ -276,8 +278,8 @@ jobs:
                   ]
                 interval: 15s
                 timeout: 10s
-                retries: 24
-                start_period: 180s
+                retries: 40
+                start_period: 300s
               restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
 
           volumes:
@@ -330,7 +332,7 @@ jobs:
           }
           EOF
 
-          # 🗑️ 環境清理：先清掉「tlbank」這個 compose 專案的殘留容器，確保部署環境乾淨
+          # 🗑️ 環境清理：先清掉「tlbank Groot」這個 compose 專案的殘留容器，確保部署環境乾淨
           docker compose down --remove-orphans 2>/dev/null || true
 
           # 🧹 保險：不管容器屬於哪個 compose 專案，只要名字撞到就強制移除，
@@ -349,24 +351,32 @@ jobs:
           # 📋 顯示目前服務狀態，方便從 GitHub Actions 日誌確認容器是否成功建立
           docker compose ps
 
-          # 🩺 等待 Spring Boot Actuator 回報 UP，最多等待 5 分鐘
+          # 🩺 調整點 3：提升手動部署腳本的等待耐受度
+          # 改為最多嘗試 60 次 (每次間隔 10 秒，總計 10 分鐘上限)，並加上 2>/dev/null 遮蔽網路噪訊，防止 Connection Reset 階段直接中斷腳本
           APP_READY=false
-          for attempt in $(seq 1 30); do
-            if curl -fsS "http://localhost:8080/actuator/health" | grep -q '"status":"UP"'; then
+          for attempt in $(seq 1 60); do
+            if curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
               APP_READY=true
-              echo "Spring Boot application is healthy."
+              echo "Spring Boot application is healthy on attempt ${attempt}."
               break
             fi
 
-            echo "Waiting for application health check... (${attempt}/30)"
+            echo "Waiting for application health check... (${attempt}/60)"
             sleep 10
           done
 
-          # 若應用程式逾時仍未健康，輸出容器狀態與日誌後讓部署失敗
+          # 🔍 調整點 4：增加多維度診斷輸出 (Diagnostic Output)
+          # 若應用程式逾時仍未健康，不再只輸出單一錯誤，而是即時 dump 出實時狀態、Spring Stack Trace 以及基礎設施日誌，精確指出連線卡死的核心點
           if [ "$APP_READY" != "true" ]; then
-            echo "Application health check failed."
+            echo "❌ 錯誤：Spring Boot 應用程式健康檢查逾時失敗！正在啟動自動排查診斷..."
+            echo "========= [1. 目前容器集群狀態] ========="
             docker compose ps
-            docker compose logs --no-color --tail=200 app sqlserver redis
+            echo "========= [2. Spring Boot 應用日誌 (最後 200 行)] ========="
+            docker compose logs --no-color --tail=200 app
+            echo "========= [3. SQL Server 關係型資料庫日誌] ========="
+            docker compose logs --no-color --tail=50 sqlserver
+            echo "========= [4. Redis 高效能快取日誌] ========="
+            docker compose logs --no-color --tail=50 redis
             exit 1
           fi
 
