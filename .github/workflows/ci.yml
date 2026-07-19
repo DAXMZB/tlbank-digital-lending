@@ -152,12 +152,21 @@ jobs:
           username: ${{ github.actor }} # 自動獲取當前觸發流程的 GitHub 帳號名稱
           password: ${{ secrets.GITHUB_TOKEN }} # 使用 Actions 內建短暫產生的權杖安全登入
 
+      # 讓 Buildx 能交叉編譯 arm64，供本機 Apple Silicon Runner 原生執行（避免 QEMU 模擬 amd64 過慢）
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6 # 呼叫官方進階 Docker 打包套件
         with:
           context: ${{ env.APP_DIR }} # 宣告 Docker 構建的上下文起點為後端專案目錄
           file: ${{ env.APP_DIR }}/docker/app/Dockerfile # 讀取子專案目錄底下的 Dockerfile 封裝食譜
           push: true                  # 打包成功後，立刻推送到 GitHub 雲端映像檔倉庫上
+          # 同時產出 amd64（雲端慣用）與 arm64（本機 Mac Runner 原生），部署時由 Docker 自動選對架構
+          platforms: linux/amd64,linux/arm64
           tags: |                     # 同時為這枚映像檔貼上兩種識別標籤：
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -248,8 +257,7 @@ jobs:
 
             app:
               image: ${{ env.IMAGE_NAME }}:latest         # 抓取剛才封裝好並上傳到 GHCR 的最新後端映像檔
-              # GHCR 映像由 ubuntu-latest（amd64）建置；在 arm64 Mac 上需同架構模擬，啟動會明顯變慢
-              platform: linux/amd64
+              # 不強制 platform：多架構映像在 Apple Silicon 上會自動選 linux/arm64 原生執行（遠快於模擬 amd64）
               container_name: tlbank-app
               depends_on:
                 sqlserver:
@@ -267,6 +275,7 @@ jobs:
                 SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 資料庫登入密碼
                 SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 設定使用者登入 Session 逾時時間為 30 分鐘
                 APP_UPLOAD_PATH: /app/uploads      # 指定檔案上傳在本機容器內的實體根路徑
+                LOG_PATH: /app/logs                          # 將 Logback 檔案日誌導向已掛載的 volume，避免寫入容器工作目錄
                 SPRING_DATA_REDIS_HOST: redis                # 使用 Compose 服務名稱連線 Redis，不使用 localhost
                 SPRING_DATA_REDIS_PORT: 6379                 # Redis 容器內部服務埠
               volumes:
@@ -276,15 +285,16 @@ jobs:
                 - tlbank-network
               healthcheck:                                  # 透過 Spring Boot Actuator 確認應用程式已可正常提供服務
                 # 映像僅安裝 wget（見 docker/app/Dockerfile），不可使用 curl，否則容器永遠卡在 health: starting
+                # 使用 liveness：確認程序已可服務；完整 readiness（含 DB）仍由下方主機端等待腳本驗證
                 test:
                   [
                     "CMD-SHELL",
-                    "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"
+                    "wget -qO- http://localhost:8080/actuator/health/liveness | grep -q '\"status\":\"UP\"' || exit 1"
                   ]
-                interval: 20s                                # 每隔 20 秒探測一次（模擬執行時降低檢查頻率）
-                timeout: 15s                                 # 單次探測逾時上限為 15 秒
-                retries: 60                                  # amd64 模擬下暖機更久，允許連續失敗最多 60 次
-                start_period: 600s                           # 啟動緩衝 600 秒：Apple Silicon 模擬 amd64 時 JVM／Flyway 極慢
+                interval: 15s                                # 每隔 15 秒探測一次 Actuator 健康狀態
+                timeout: 10s                                 # 單次探測逾時上限為 10 秒
+                retries: 40                                  # 允許連續失敗最多 40 次
+                start_period: 180s                           # arm64 原生執行後暖機明顯較短，保留 180 秒緩衝
               restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
 
           volumes:
@@ -356,27 +366,30 @@ jobs:
           # 📋 顯示目前服務狀態，方便從 GitHub Actions 日誌確認容器是否成功建立
           docker compose ps
 
-          # 🩺 等待 Spring Boot Actuator 回報 UP：共 120 次、每次間隔 10 秒，總計最多約 20 分鐘
-          # Apple Silicon 以 QEMU 模擬 linux/amd64 時，JVM／Flyway 暖機極慢；過短等待會在只印出 Spring Banner 時就失敗
-          echo "Waiting for Actuator UP (up to 20 minutes; amd64 emulation on arm64 Mac is expected to be slow)..."
+          # 🩺 等待完整健康狀態 UP：共 60 次、每次間隔 10 秒（約 10 分鐘）
+          # app 已改為多架構原生 arm64；此處驗證含資料來源的 /actuator/health，不只 liveness
+          echo "Waiting for Actuator /health UP (up to 10 minutes)..."
           APP_READY=false
-          for attempt in $(seq 1 120); do
+          for attempt in $(seq 1 60); do
             # 2>/dev/null：屏蔽連線重置階段的 curl 網路噪訊，避免日誌被 Recv failure 淹沒
             if curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
               APP_READY=true
-              echo "Spring Boot application is healthy on attempt ${attempt}/120."
+              echo "Spring Boot application is healthy on attempt ${attempt}/60."
               break
             fi
 
-            echo "Waiting for application health check... (${attempt}/120)"
+            echo "Waiting for application health check... (${attempt}/60)"
             sleep 10
           done
 
           # 若應用程式逾時仍未健康，輸出多維度診斷日誌後讓部署失敗，便於本機自託管環境排查
           if [ "$APP_READY" != "true" ]; then
-            echo "Application health check failed after 20 minutes."
+            echo "Application health check failed after waiting for /actuator/health."
             echo "===== [診斷] 目前容器集群狀態 (docker compose ps) ====="
             docker compose ps
+            echo "===== [診斷] 主機架構與 app 映像架構 ====="
+            uname -m || true
+            docker image inspect "${IMAGE_NAME}:latest" --format '{{.Os}}/{{.Architecture}}' || true
             echo "===== [診斷] app 容器日誌（最後 200 行）====="
             docker compose logs --no-color --tail=200 app
             echo "===== [診斷] sqlserver 容器日誌（最後 50 行）====="
