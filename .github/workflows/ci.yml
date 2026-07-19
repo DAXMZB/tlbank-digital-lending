@@ -190,6 +190,8 @@ jobs:
           services:
             sqlserver:
               image: mcr.microsoft.com/mssql/server:2022-latest
+              # Apple Silicon (arm64) 上必須明確指定 amd64：SQL Server 官方映像僅提供此架構，由 Docker 模擬執行
+              platform: linux/amd64
               container_name: tlbank-sqlserver
               environment:
                 ACCEPT_EULA: "Y"                           # 同意微軟官方授權條款 (End User License Agreement)
@@ -210,6 +212,8 @@ jobs:
 
             db-init:
               image: mcr.microsoft.com/mssql/server:2022-latest # 復用微軟官方映像檔作為指令執行工具
+              # 與 sqlserver 相同架構，避免 init 容器在 arm64 主機上選錯平台
+              platform: linux/amd64
               container_name: tlbank-db-init
               depends_on:
                 sqlserver:
@@ -244,6 +248,8 @@ jobs:
 
             app:
               image: ${{ env.IMAGE_NAME }}:latest         # 抓取剛才封裝好並上傳到 GHCR 的最新後端映像檔
+              # GHCR 映像由 ubuntu-latest（amd64）建置；在 arm64 Mac 上需同架構模擬，啟動會明顯變慢
+              platform: linux/amd64
               container_name: tlbank-app
               depends_on:
                 sqlserver:
@@ -275,10 +281,10 @@ jobs:
                     "CMD-SHELL",
                     "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"
                   ]
-                interval: 15s                                # 每隔 15 秒探測一次 Actuator 健康狀態
-                timeout: 10s                                 # 單次探測逾時上限為 10 秒
-                retries: 40                                  # 高負載暖機容忍：允許連續失敗最多 40 次
-                start_period: 300s                           # 啟動緩衝 300 秒：SQL Server／Redis／Spring Boot 併發暖機期間不計入失敗
+                interval: 20s                                # 每隔 20 秒探測一次（模擬執行時降低檢查頻率）
+                timeout: 15s                                 # 單次探測逾時上限為 15 秒
+                retries: 60                                  # amd64 模擬下暖機更久，允許連續失敗最多 60 次
+                start_period: 600s                           # 啟動緩衝 600 秒：Apple Silicon 模擬 amd64 時 JVM／Flyway 極慢
               restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
 
           volumes:
@@ -350,24 +356,25 @@ jobs:
           # 📋 顯示目前服務狀態，方便從 GitHub Actions 日誌確認容器是否成功建立
           docker compose ps
 
-          # 🩺 等待 Spring Boot Actuator 回報 UP：共 60 次、每次間隔 10 秒，總計最多約 10 分鐘
-          # 高負載本機環境下，應用／資料庫／Redis 併發暖機常出現短暫 Connection reset，需拉長驗證窗口
+          # 🩺 等待 Spring Boot Actuator 回報 UP：共 120 次、每次間隔 10 秒，總計最多約 20 分鐘
+          # Apple Silicon 以 QEMU 模擬 linux/amd64 時，JVM／Flyway 暖機極慢；過短等待會在只印出 Spring Banner 時就失敗
+          echo "Waiting for Actuator UP (up to 20 minutes; amd64 emulation on arm64 Mac is expected to be slow)..."
           APP_READY=false
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 120); do
             # 2>/dev/null：屏蔽連線重置階段的 curl 網路噪訊，避免日誌被 Recv failure 淹沒
             if curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
               APP_READY=true
-              echo "Spring Boot application is healthy."
+              echo "Spring Boot application is healthy on attempt ${attempt}/120."
               break
             fi
 
-            echo "Waiting for application health check... (${attempt}/60)"
+            echo "Waiting for application health check... (${attempt}/120)"
             sleep 10
           done
 
           # 若應用程式逾時仍未健康，輸出多維度診斷日誌後讓部署失敗，便於本機自託管環境排查
           if [ "$APP_READY" != "true" ]; then
-            echo "Application health check failed."
+            echo "Application health check failed after 20 minutes."
             echo "===== [診斷] 目前容器集群狀態 (docker compose ps) ====="
             docker compose ps
             echo "===== [診斷] app 容器日誌（最後 200 行）====="
