@@ -205,8 +205,8 @@ jobs:
                 test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "SELECT 1" || exit 1
                 interval: 15s                              # 每隔 15 秒檢測一次健康狀態
                 timeout: 10s                               # 每次檢測連線超時上限為 10 秒
-                retries: 10                                # 允許連續失敗的最大重試次數為 10 次
-                start_period: 40s                          # 容器啟動後的前 40 秒為緩衝期，不計入失敗次數
+                retries: 12                                # 允許連續失敗的最大重試次數為 12 次
+                start_period: 180s                          # 容器啟動後的前 180 秒為緩衝期，不計入失敗次數
 
             db-init:
               image: mcr.microsoft.com/mssql/server:2022-latest # 復用微軟官方映像檔作為指令執行工具
