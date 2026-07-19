@@ -273,11 +273,11 @@ jobs:
                   [
                     "CMD-SHELL",
                     "curl -f http://localhost:8080/actuator/health || exit 1"
-                  ]
-                interval: 15s                                # 每隔 15 秒探測一次 Actuator 健康狀態
-                timeout: 10s                                 # 單次探測逾時上限為 10 秒
-                retries: 40                                  # 高負載暖機容忍：允許連續失敗最多 40 次
-                start_period: 300s                           # 啟動緩衝 300 秒：SQL Server／Redis／Spring Boot 併發暖機期間不計入失敗
+                ]
+                interval: 15s
+                timeout: 10s
+                retries: 24
+                start_period: 180s
               restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
 
           volumes:
@@ -349,32 +349,24 @@ jobs:
           # 📋 顯示目前服務狀態，方便從 GitHub Actions 日誌確認容器是否成功建立
           docker compose ps
 
-          # 🩺 等待 Spring Boot Actuator 回報 UP：共 60 次、每次間隔 10 秒，總計最多約 10 分鐘
-          # 高負載本機環境下，應用／資料庫／Redis 併發暖機常出現短暫 Connection reset，需拉長驗證窗口
+          # 🩺 等待 Spring Boot Actuator 回報 UP，最多等待 5 分鐘
           APP_READY=false
-          for attempt in $(seq 1 60); do
-            # 2>/dev/null：屏蔽連線重置階段的 curl 網路噪訊，避免日誌被 Recv failure 淹沒
-            if curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
+          for attempt in $(seq 1 30); do
+            if curl -fsS "http://localhost:8080/actuator/health" | grep -q '"status":"UP"'; then
               APP_READY=true
               echo "Spring Boot application is healthy."
               break
             fi
 
-            echo "Waiting for application health check... (${attempt}/60)"
+            echo "Waiting for application health check... (${attempt}/30)"
             sleep 10
           done
 
-          # 若應用程式逾時仍未健康，輸出多維度診斷日誌後讓部署失敗，便於本機自託管環境排查
+          # 若應用程式逾時仍未健康，輸出容器狀態與日誌後讓部署失敗
           if [ "$APP_READY" != "true" ]; then
             echo "Application health check failed."
-            echo "===== [診斷] 目前容器集群狀態 (docker compose ps) ====="
             docker compose ps
-            echo "===== [診斷] app 容器日誌（最後 200 行）====="
-            docker compose logs --no-color --tail=200 app
-            echo "===== [診斷] sqlserver 容器日誌（最後 50 行）====="
-            docker compose logs --no-color --tail=50 sqlserver
-            echo "===== [診斷] redis 容器日誌（最後 50 行）====="
-            docker compose logs --no-color --tail=50 redis
+            docker compose logs --no-color --tail=200 app sqlserver redis
             exit 1
           fi
 
