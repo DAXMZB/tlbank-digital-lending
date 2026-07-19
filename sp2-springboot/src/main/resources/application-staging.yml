@@ -1,88 +1,119 @@
 # ==========================================================================
-# 🏦 TLBank 預發布環境設定 (Staging Profile)
-# 適用環境：本機 Mac 容器化維運架構 / 測試伺服器環境
+# TLBank 預發布環境設定
+# 適用環境：本機 Mac 容器化部署與測試伺服器
 # ==========================================================================
 
 spring:
-  # ------------------------------------------------------------------------
-  # 🔌 資料庫連線配置 (SQL Server)
-  # ------------------------------------------------------------------------
-  datasource:
-    # 從外部環境變數動態注入資料庫連接字串 (JDBC URL)
-    url: ${SPRING_DATASOURCE_URL}
-    # 從外部環境變數動態注入資料庫登入帳號
-    username: ${SPRING_DATASOURCE_USERNAME}
-    # 從外部環境變數動態注入資料庫登入密碼
-    password: ${SPRING_DATASOURCE_PASSWORD}
-    # 指定微軟官方提供的 SQL Server JDBC 驅動程式類別
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    
-    # ⚡ [關鍵新增] HikariCP 高效能連線池優化調整（防禦 CI/CD 連線延遲）
-    hikari:
-      # 設定連線池內允許維持的最大連線數
-      maximum-pool-size: 10
-      # 暖機防禦：拉長等待連線建立的超時時間至 30 秒（30000ms），防止資料庫剛啟動時引發連線池崩潰
-      connection-timeout: 30000
-      # 連線在池中保持閒置而不被回收的最大時間（10 分鐘）
-      idle-timeout: 600000
-      # 連線在池中的最大生存時間（30 分鐘），避免長時間佔用產生死鎖
-      max-lifetime: 1800000
 
   # ------------------------------------------------------------------------
-  # 🗄️ JPA / Hibernate 實體映射設定
+  # SQL Server 資料庫連線設定
+  # ------------------------------------------------------------------------
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+    # HikariCP 資料庫連線池設定
+    hikari:
+      # 允許連線池維持的最大連線數
+      maximum-pool-size: 10
+
+      # 啟動時若資料庫尚未準備完成，最多等待 60 秒取得連線
+      connection-timeout: 60000
+
+      # 連線驗證逾時時間
+      validation-timeout: 10000
+
+      # 閒置連線最多保留 10 分鐘
+      idle-timeout: 600000
+
+      # 單一連線最多使用 30 分鐘
+      max-lifetime: 1800000
+
+      # 啟動階段不要求立即建立固定數量的連線
+      minimum-idle: 0
+
+      # 允許應用程式啟動時等待資料庫，而不是立即結束程序
+      initialization-fail-timeout: 60000
+
+  # ------------------------------------------------------------------------
+  # JPA 與 Hibernate 設定
   # ------------------------------------------------------------------------
   jpa:
-    # 關閉主控台的 SQL 語法傾印，避免預發布環境日誌過於雜亂並提升效能
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
-        # 明確指定 Hibernate 針對 SQL Server 的資料庫方言 (Dialect)
         dialect: org.hibernate.dialect.SQLServerDialect
 
   # ------------------------------------------------------------------------
-  # 🚀 Flyway 資料庫變更版本控管設定
+  # Flyway 資料庫版本管理設定
   # ------------------------------------------------------------------------
   flyway:
-    # 指定 SQL Server 專屬的資料庫遷移腳本存放路徑 (Classpath)
+    enabled: true
     locations: classpath:db/migration-sqlserver
 
+    # 最多重試資料庫連線 20 次，避免 SQL Server 尚在暖機時立即失敗
+    connect-retries: 20
+
+    # 每次重試之間等待 10 秒
+    connect-retries-interval: 10
+
 # --------------------------------------------------------------------------
-# 🌐 網頁伺服器核心配置
+# Web Server 設定
 # --------------------------------------------------------------------------
 server:
   servlet:
     session:
-      # 使用者登入 Session 的逾時時間，優先讀取環境變數，預設為 30 分鐘
       timeout: ${APP_SESSION_TIMEOUT:30m}
 
 # --------------------------------------------------------------------------
-# 📖 Springdoc OpenAPI / Swagger 線上 API 文件設定
+# Spring Boot Actuator 健康檢查設定
+# --------------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      enabled: true
+
+      # 預發布環境顯示健康檢查細節，方便排除資料庫與 Redis 問題
+      show-details: always
+
+  health:
+    # 啟用 Kubernetes 風格的 liveness 與 readiness 狀態
+    probes:
+      enabled: true
+
+# --------------------------------------------------------------------------
+# OpenAPI 與 Swagger UI 設定
 # --------------------------------------------------------------------------
 springdoc:
   api-docs:
-    # 啟用 OpenAPI 底層 JSON/YAML 數據端點，供前端或外部測試存取
     enabled: true
   swagger-ui:
-    # 啟用 Swagger UI 互動式網頁介面，方便在預發布環境直接進行 API 測試
     enabled: true
 
 # --------------------------------------------------------------------------
-# 📝 系統日誌輸出等級設定 (Logging)
+# 日誌設定
 # --------------------------------------------------------------------------
 logging:
   level:
-    # 系統全域預設日誌等級，設定為 INFO 級別以兼顧關鍵效能與除錯需求
     root: INFO
-    # 針對本專案核心業務邏輯套件，指定日誌等級為 INFO
     com.tlbank.lending: INFO
+    org.flywaydb: INFO
+    com.zaxxer.hikari: INFO
 
 # --------------------------------------------------------------------------
-# 🛠️ TLBank 專案自訂業務參數 (Custom Business Properties)
+# TLBank 自訂設定
 # --------------------------------------------------------------------------
 tlbank:
   notification:
-    # 通知發送模式：設定為 mock（模擬模式），此環境下不會發出真實簡訊或郵件
-  mode: mock
+    mode: mock
+
   upload:
-    # 檔案上傳實體根路徑：優先讀取環境變數，預設指向容器內的安全的 /app/uploads 目錄
     base-path: ${APP_UPLOAD_PATH:/app/uploads}

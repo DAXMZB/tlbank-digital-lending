@@ -80,6 +80,12 @@ public class SecurityConfig {
                     }
                 })
                 .authorizeHttpRequests(auth -> auth
+                        // Docker Compose 與部署流程需要在未登入時檢查服務狀態
+                        .requestMatchers(
+                            "/actuator/health",
+                            "/actuator/health/**",
+                            "/actuator/info"
+                        ).permitAll()
                         .requestMatchers("/", "/login", "/products", "/apply", "/apply/**", "/application/**",
                                 "/api/v1/auth/**", "/api/v1/otp/**")
                         .permitAll()

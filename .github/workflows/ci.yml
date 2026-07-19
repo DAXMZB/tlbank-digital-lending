@@ -206,7 +206,7 @@ jobs:
                 interval: 15s                              # 每隔 15 秒檢測一次健康狀態
                 timeout: 10s                               # 每次檢測連線超時上限為 10 秒
                 retries: 12                                # 允許連續失敗的最大重試次數為 12 次
-                start_period: 180s                          # 容器啟動後的前 180 秒為緩衝期，不計入失敗次數
+                start_period: 300s                          # 容器啟動後的前 300 秒為緩衝期，不計入失敗次數
 
             db-init:
               image: mcr.microsoft.com/mssql/server:2022-latest # 復用微軟官方映像檔作為指令執行工具
@@ -260,7 +260,7 @@ jobs:
                 SPRING_DATASOURCE_USERNAME: sa             # 資料庫登入帳號
                 SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 資料庫登入密碼
                 SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 設定使用者登入 Session 逾時時間為 30 分鐘
-                TLBANK_UPLOAD_BASE_PATH: /app/uploads      # 指定檔案上傳在本機容器內的實體根路徑
+                APP_UPLOAD_PATH: /app/uploads      # 指定檔案上傳在本機容器內的實體根路徑
                 SPRING_DATA_REDIS_HOST: redis                # 使用 Compose 服務名稱連線 Redis，不使用 localhost
                 SPRING_DATA_REDIS_PORT: 6379                 # Redis 容器內部服務埠
               volumes:
@@ -269,11 +269,15 @@ jobs:
               networks:
                 - tlbank-network
               healthcheck:                                  # 透過 Spring Boot Actuator 確認應用程式已可正常提供服務
-                test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+                test: 
+                  [
+                    "CMD-SHELL",
+                    "curl -f http://localhost:8080/actuator/health || exit 1"
+                  ]
                 interval: 15s
                 timeout: 10s
-                retries: 12
-                start_period: 90s
+                retries: 24
+                start_period: 180s
               restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
 
           volumes:
