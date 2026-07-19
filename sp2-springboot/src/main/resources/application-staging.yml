@@ -117,3 +117,9 @@ tlbank:
 
   upload:
     base-path: ${APP_UPLOAD_PATH:/app/uploads}
+
+  # staging Compose 已提供 Redis；必須顯式啟用，否則 IdempotencyStore bean 不會建立，應用程式無法啟動
+  idempotency:
+    store: redis
+    ttl-hours: 24
+    key-prefix: "idempotency:applications:"

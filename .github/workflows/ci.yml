@@ -278,6 +278,8 @@ jobs:
                 LOG_PATH: /app/logs                          # 將 Logback 檔案日誌導向已掛載的 volume，避免寫入容器工作目錄
                 SPRING_DATA_REDIS_HOST: redis                # 使用 Compose 服務名稱連線 Redis，不使用 localhost
                 SPRING_DATA_REDIS_PORT: 6379                 # Redis 容器內部服務埠
+                # 啟用 Redis 冪等儲存；未設定時 IdempotencyService 會因缺少 IdempotencyStore bean 而啟動失敗
+                TLBANK_IDEMPOTENCY_STORE: redis
               volumes:
                 - app-uploads:/app/uploads                 # 掛載持久化硬碟空間，避免上傳的圖片因容器重啟而消失
                 - app-logs:/app/logs                       # 掛載日誌檔案路徑，將 Spring Boot Log 導出至 Mac 本地方便排查
@@ -372,10 +374,17 @@ jobs:
           APP_READY=false
           for attempt in $(seq 1 60); do
             # 2>/dev/null：屏蔽連線重置階段的 curl 網路噪訊，避免日誌被 Recv failure 淹沒
-            if curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
+            HEALTH_BODY=$(curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null || true)
+            if echo "$HEALTH_BODY" | grep -q '"status":"UP"'; then
               APP_READY=true
               echo "Spring Boot application is healthy on attempt ${attempt}/60."
               break
+            fi
+
+            # 每 10 次輸出一次回應摘要，方便分辨「連不上」與「已回應但 status=DOWN」
+            if [ $((attempt % 10)) -eq 0 ]; then
+              echo "Health probe attempt ${attempt}/60 body=${HEALTH_BODY:-<empty>}"
+              docker inspect tlbank-app --format 'app status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' 2>/dev/null || true
             fi
 
             echo "Waiting for application health check... (${attempt}/60)"
