@@ -173,172 +173,72 @@ jobs:
 
   # ==========================================================================
   # 🚀 任務五：本機 Mac 手動部署 (Deploy to Staging Server) —— 僅限手動觸發
+  # 部署模板唯一來源：sp2-springboot/docker-compose.deploy.yml（不再以 heredoc 維護第二份 Compose）
   # ==========================================================================
   deploy-staging:
     name: Deploy to Staging Server
-    runs-on: [self-hosted, macos]      # 跑在本機 Mac 的自託管執行器上
+    runs-on: [self-hosted, macos]
     needs: build-and-push-image
-
-    # 🔒 唯一允許執行條件：只有在 GitHub Actions 網頁上手動點擊「Run workflow」時才會啟動
     if: github.event_name == 'workflow_dispatch'
 
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
       - name: Set lowercase GHCR image name
         run: |
           OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
           echo "IMAGE_NAME=ghcr.io/${OWNER}/tlbank-backend" >> "$GITHUB_ENV"
 
-      # 🛠️ 步驟 1：直接在 Mac 本機硬碟中動態建立或更新 docker-compose.yml 檔案
-      - name: Write docker-compose.yml on local Mac
-        run: |
-          set -e                       # 防禦語法：只要有任何一條指令出錯，立刻中斷
-          mkdir -p ~/tlbank              # 在 Mac 家目錄下建立專屬維運資料夾
-          cd ~/tlbank                  # 切換進該資料夾內
-
-          cat > docker-compose.yml << 'INNER_EOF'
-          services:
-            sqlserver:
-              image: mcr.microsoft.com/mssql/server:2022-latest
-              # Apple Silicon (arm64) 上必須明確指定 amd64：SQL Server 官方映像僅提供此架構，由 Docker 模擬執行
-              platform: linux/amd64
-              container_name: tlbank-sqlserver
-              environment:
-                ACCEPT_EULA: "Y"                           # 同意微軟官方授權條款 (End User License Agreement)
-                MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 帶入本機真實密碼 (ChangeMe@SA2024)
-                MSSQL_PID: Developer                       # 設定 SQL Server 產品識別碼為免費的開發者版本 (Developer)
-              ports:
-                - "1433:1433"                              # 將容器的 1433 埠對外映射到 Mac 本地的 1433 埠
-              volumes:
-                - sqlserver-data:/var/opt/mssql            # 將資料庫實體檔案持久化掛載至 Mac 本地磁碟
-              networks:
-                - tlbank-network                            # 加入內部專屬虛擬網路，確保容器間可以互相通訊
-              healthcheck:                                 # 資料庫健康檢查機制
-                test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "SELECT 1" || exit 1
-                interval: 15s                              # 每隔 15 秒檢測一次健康狀態
-                timeout: 10s                               # 每次檢測連線超時上限為 10 秒
-                retries: 12                                # 允許連續失敗的最大重試次數為 12 次
-                start_period: 300s                          # 容器啟動後的前 300 秒為緩衝期，不計入失敗次數
-
-            db-init:
-              image: mcr.microsoft.com/mssql/server:2022-latest # 復用微軟官方映像檔作為指令執行工具
-              # 與 sqlserver 相同架構，避免 init 容器在 arm64 主機上選錯平台
-              platform: linux/amd64
-              container_name: tlbank-db-init
-              depends_on:
-                sqlserver:
-                  condition: service_healthy              # 嚴格要求：必須等待 sqlserver 容器健康檢查完全通過後才啟動
-              environment:
-                MSSQL_SA_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}"
-              networks:
-                - tlbank-network
-              entrypoint: ["/bin/bash", "-c"]             # 覆寫預設進入點，指定使用 bash 終端機執行初始化
-              command:                                     # 自動化 SQL 語法：若 tlbank 資料庫不存在則自動建立
-                - >
-                  /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "${{ secrets.MSSQL_SA_PASSWORD }}" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'tlbank') CREATE DATABASE tlbank;"
-              restart: "no"                                # 任務完成即關閉，不需要反覆重啟容器
-
-            redis:
-              image: redis:7.4-alpine                         # 使用固定版本的輕量 Redis 映像，避免 latest 造成版本漂移
-              container_name: tlbank-redis
-              command: ["redis-server", "--appendonly", "yes"] # 開啟 AOF，讓資料可寫入持久化磁碟卷
-              ports:
-                - "6379:6379"                                # 將 Redis 6379 埠映射至 Mac 本機，方便本機檢查
-              volumes:
-                - redis-data:/data                           # 保存 Redis 資料，容器重建後仍可保留
-              networks:
-                - tlbank-network
-              healthcheck:                                   # 使用 redis-cli PING 確認服務可正常回應
-                test: ["CMD", "redis-cli", "ping"]
-                interval: 10s
-                timeout: 5s
-                retries: 10
-                start_period: 10s
-              restart: unless-stopped                        # 非手動停止時，自動重新啟動服務
-
-            app:
-              image: ${{ env.IMAGE_NAME }}:latest         # 抓取剛才封裝好並上傳到 GHCR 的最新後端映像檔
-              # 不強制 platform：多架構映像在 Apple Silicon 上會自動選 linux/arm64 原生執行（遠快於模擬 amd64）
-              container_name: tlbank-app
-              depends_on:
-                sqlserver:
-                  condition: service_healthy              # 基礎依賴：確保資料庫已經處於健康可連線狀態
-                db-init:
-                  condition: service_completed_successfully # 基礎依賴：確保資料庫 tlbank 已經成功被初始化建立
-                redis:
-                  condition: service_healthy                # 快取依賴：Redis 健康後才啟動 Spring Boot 應用
-              ports:
-                - "8080:8080"                              # 將後端 Java 應用的 8080 埠對外映射到 Mac 的 8080 埠
-              environment:                                 # 注入 Spring Boot 執行環境變數
-                SPRING_PROFILES_ACTIVE: staging            # 啟用 staging 環境設定（對應 application-staging.yml）
-                SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=tlbank;encrypt=false; # 資料庫連線字串
-                SPRING_DATASOURCE_USERNAME: sa             # 資料庫登入帳號
-                SPRING_DATASOURCE_PASSWORD: "${{ secrets.MSSQL_SA_PASSWORD }}" # 資料庫登入密碼
-                SERVER_SERVLET_SESSION_TIMEOUT: 30m        # 設定使用者登入 Session 逾時時間為 30 分鐘
-                APP_UPLOAD_PATH: /app/uploads      # 指定檔案上傳在本機容器內的實體根路徑
-                LOG_PATH: /app/logs                          # 將 Logback 檔案日誌導向已掛載的 volume，避免寫入容器工作目錄
-                SPRING_DATA_REDIS_HOST: redis                # 使用 Compose 服務名稱連線 Redis，不使用 localhost
-                SPRING_DATA_REDIS_PORT: 6379                 # Redis 容器內部服務埠
-                # 啟用 Redis 冪等儲存；未設定時 IdempotencyService 會因缺少 IdempotencyStore bean 而啟動失敗
-                TLBANK_IDEMPOTENCY_STORE: redis
-              volumes:
-                - app-uploads:/app/uploads                 # 掛載持久化硬碟空間，避免上傳的圖片因容器重啟而消失
-                - app-logs:/app/logs                       # 掛載日誌檔案路徑，將 Spring Boot Log 導出至 Mac 本地方便排查
-              networks:
-                - tlbank-network
-              healthcheck:                                  # 透過 Spring Boot Actuator 確認應用程式已可正常提供服務
-                # 映像僅安裝 wget（見 docker/app/Dockerfile），不可使用 curl，否則容器永遠卡在 health: starting
-                # 使用 liveness：確認程序已可服務；完整 readiness（含 DB）仍由下方主機端等待腳本驗證
-                test:
-                  [
-                    "CMD-SHELL",
-                    "wget -qO- http://localhost:8080/actuator/health/liveness | grep -q '\"status\":\"UP\"' || exit 1"
-                  ]
-                interval: 15s                                # 每隔 15 秒探測一次 Actuator 健康狀態
-                timeout: 10s                                 # 單次探測逾時上限為 10 秒
-                retries: 40                                  # 允許連續失敗最多 40 次
-                start_period: 180s                           # arm64 原生執行後暖機明顯較短，保留 180 秒緩衝
-              restart: unless-stopped                        # 發生異常退出時自動重新啟動應用程式
-
-          volumes:
-            sqlserver-data:                                # 定義 SQL Server 資料持久化磁碟卷
-            app-uploads:                                   # 定義應用程式檔案上傳持久化磁碟卷
-            app-logs:                                      # 定義應用程式日誌持久化磁碟卷
-            redis-data:                                     # 定義 Redis AOF 資料持久化磁碟卷
-
-          networks:
-            tlbank-network:
-              driver: bridge                               # 採用橋接模式 (Bridge) 建立容器間的內部隔離虛擬網路
-          INNER_EOF
-
-      # 🎯 步驟 2：隔離 macOS 鑰匙圈！在本機直接執行安全部署
-      - name: Pull and restart containers locally
-        working-directory: /Users/lidong/tlbank
+      - name: Prepare deploy directory from repository template
         env:
-          # 💡 核心防禦：強迫 Docker 使用 Actions 虛擬機提供的臨時空目錄作為 config 儲存點
           DOCKER_CONFIG: ${{ runner.temp }}/.docker
-          # 📌 架構對齊：明確固定 project 名稱，避免因目錄別名造成的不確定性
           COMPOSE_PROJECT_NAME: tlbank
         run: |
-          set -e
+          set -euo pipefail
 
-          # 建立乾淨臨時 Docker 設定資料夾，阻絕舊快取與實體系統鑰匙圈干擾
+          DEPLOY_DIR="${HOME}/tlbank"
+          SOURCE_COMPOSE="${GITHUB_WORKSPACE}/sp2-springboot/docker-compose.deploy.yml"
+          SOURCE_INIT="${GITHUB_WORKSPACE}/sp2-springboot/docker/sqlserver/init"
+
+          mkdir -p "$DEPLOY_DIR/docker/sqlserver/init"
+          cp "$SOURCE_COMPOSE" "$DEPLOY_DIR/docker-compose.yml"
+          cp "$SOURCE_INIT"/*.sql "$DEPLOY_DIR/docker/sqlserver/init/"
+
+          # 寫入部署用 .env（chmod 600）；禁止 cat / echo 檔案內容到日誌
+          # 使用 printf 避免 heredoc 縮排污染 key=value
+          umask 077
+          printf '%s\n' \
+            "APP_IMAGE=${IMAGE_NAME}:latest" \
+            "DB_SA_PASSWORD=${{ secrets.MSSQL_SA_PASSWORD }}" \
+            "SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=TLBankLending;encrypt=true;trustServerCertificate=true" \
+            "SPRING_DATASOURCE_USERNAME=tlbank_app" \
+            "SPRING_DATASOURCE_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" \
+            "APP_SESSION_TIMEOUT=30m" \
+            "APP_UPLOAD_PATH=/app/uploads" \
+            > "$DEPLOY_DIR/.env"
+          chmod 600 "$DEPLOY_DIR/.env"
+          echo "Deploy files prepared under \$HOME/tlbank (compose + init SQL + .env)."
+
+      - name: Pull and restart containers locally
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/.docker
+          COMPOSE_PROJECT_NAME: tlbank
+        run: |
+          set -euo pipefail
+
+          DEPLOY_DIR="${HOME}/tlbank"
+          cd "$DEPLOY_DIR"
+
           mkdir -p "$DOCKER_CONFIG"
-
-          # 關鍵補丁：把原本 Docker Desktop 裝好的 cli-plugins（含 docker-compose）
-          # 複製進隔離用的臨時 config 目錄，避免 DOCKER_CONFIG 覆寫後找不到 compose 外掛
           if [ -d "$HOME/.docker/cli-plugins" ]; then
             mkdir -p "$DOCKER_CONFIG/cli-plugins"
             cp -a "$HOME/.docker/cli-plugins/." "$DOCKER_CONFIG/cli-plugins/"
           fi
 
-          # 驗證 compose 外掛是否真的能被找到（方便排查，可事後拿掉）
           docker compose version
 
-          # 🔐 核心防禦：直接把帳密寫成 base64 塞進 auths，完全跳過 docker login 與 keychain 機制
-          # 透過將「使用者名稱:Token」進行 Base64 編碼，生成符合 Docker 規範的憑證字串並過濾換行符號
           AUTH=$(printf '%s:%s' "${{ secrets.GHCR_USERNAME }}" "${{ secrets.GHCR_TOKEN }}" | base64 | tr -d '\n')
-
-          # 🔒 關鍵修正：硬性覆寫設定檔，直接將驗證金鑰寫入臨時設定，徹底阻斷 Docker 調用 macOS 的鑰匙圈機制
           cat > "$DOCKER_CONFIG/config.json" << EOF
           {
             "auths": {
@@ -349,98 +249,105 @@ jobs:
           }
           EOF
 
-          # 🗑️ 環境清理：先清掉「tlbank」這個 compose 專案的殘留容器，確保部署環境乾淨
+          # 不使用 docker compose down -v，避免刪除 named volumes
           docker compose down --remove-orphans 2>/dev/null || true
 
-          # 🧹 保險：不管容器屬於哪個 compose 專案，只要名字撞到就強制移除，
-          # 避免其他手動啟動的 Compose 專案佔用同名容器
           for c in tlbank-sqlserver tlbank-db-init tlbank-redis tlbank-app; do
             docker rm -f "$c" >/dev/null 2>&1 || true
           done
 
-          # 📥 拉取 Compose 內所有服務需要的最新映像檔
-          # app 會從 GHCR 拉取，SQL Server 與 Redis 則從各自的公開映像倉庫拉取
           docker compose pull
-
-          # 🚀 依照健康檢查與相依順序，在背景啟動全部服務
           docker compose up -d --remove-orphans
 
-          # 📋 固定輸出全部服務狀態（含已結束的 db-init），供後續比對哪一階段失敗
           echo "===== [部署後] docker compose ps -a ====="
           docker compose ps -a
 
-          # 🩺 等待完整健康狀態 UP：共 60 次、每次間隔 10 秒（約 10 分鐘）
-          # app 已改為多架構原生 arm64；此處驗證含資料來源的 /actuator/health，不只 liveness
           echo "Waiting for Actuator /health UP (up to 10 minutes)..."
           APP_READY=false
           for attempt in $(seq 1 60); do
-            # 2>/dev/null：屏蔽連線重置階段的 curl 網路噪訊，避免日誌被 Recv failure 淹沒
             HEALTH_BODY=$(curl -fsS "http://localhost:8080/actuator/health" 2>/dev/null || true)
             if echo "$HEALTH_BODY" | grep -q '"status":"UP"'; then
               APP_READY=true
               echo "Spring Boot application is healthy on attempt ${attempt}/60."
               break
             fi
-
-            # 每 10 次輸出一次回應摘要，方便分辨「連不上」與「已回應但 status=DOWN」
             if [ $((attempt % 10)) -eq 0 ]; then
               echo "Health probe attempt ${attempt}/60 body=${HEALTH_BODY:-<empty>}"
-              docker inspect tlbank-app --format 'app status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' 2>/dev/null || true
+              docker inspect tlbank-app \
+                --format='status={{.State.Status}} exitCode={{.State.ExitCode}} restartCount={{.RestartCount}}' \
+                2>/dev/null || true
             fi
-
             echo "Waiting for application health check... (${attempt}/60)"
             sleep 10
           done
 
-          # 若應用程式逾時仍未健康，輸出多維度診斷日誌後讓部署失敗，便於本機自託管環境排查
           if [ "$APP_READY" != "true" ]; then
-            echo "Application health check failed after waiting for /actuator/health."
+            echo "Application health check failed."
             echo "===== [診斷] docker compose ps -a ====="
-            docker compose ps -a
+            docker compose ps -a || true
+
             echo "===== [診斷] docker inspect tlbank-app ====="
             docker inspect tlbank-app \
               --format='status={{.State.Status}} exitCode={{.State.ExitCode}} restartCount={{.RestartCount}} error={{.State.Error}}' \
               || true
+
             echo "===== [診斷] docker inspect tlbank-db-init ====="
             docker inspect tlbank-db-init \
               --format='status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}' \
               || true
-            echo "===== [診斷] docker inspect tlbank-sqlserver ====="
-            docker inspect tlbank-sqlserver \
-              --format='status={{.State.Status}} exitCode={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
-              || true
-            echo "===== [診斷] docker inspect tlbank-redis ====="
-            docker inspect tlbank-redis \
-              --format='status={{.State.Status}} exitCode={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
-              || true
-            echo "===== [診斷] 主機架構與 app 映像架構 ====="
-            uname -m || true
-            docker image inspect "${IMAGE_NAME}:latest" --format '{{.Os}}/{{.Architecture}}' || true
-            echo "===== [診斷] app 環境變數（SPRING_/TLBANK_/LOG_/APP_）====="
-            docker inspect tlbank-app --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^(SPRING_|TLBANK_|LOG_|APP_)' || true
-            echo "===== [診斷] app 容器日誌（最後 300 行）====="
-            docker compose logs --no-color --tail=300 app || true
-            echo "===== [診斷] db-init 容器日誌（最後 300 行）====="
+
+            echo "===== app container logs ====="
+            docker logs --timestamps --tail=1500 tlbank-app || true
+
+            echo "===== [診斷] db-init logs ====="
             docker compose logs --no-color --tail=300 db-init || true
-            echo "===== [診斷] sqlserver 容器日誌（最後 300 行）====="
+            echo "===== [診斷] sqlserver logs ====="
             docker compose logs --no-color --tail=300 sqlserver || true
-            echo "===== [診斷] redis 容器日誌（最後 300 行）====="
+            echo "===== [診斷] redis logs ====="
             docker compose logs --no-color --tail=300 redis || true
-            echo "===== [診斷] curl -i actuator/health ====="
+
+            echo "===== app named volume files ====="
+            APP_LOG_VOL="$(
+              docker volume ls --format '{{.Name}}' | grep -E '^tlbank_app-logs$' \
+              || docker volume ls --format '{{.Name}}' | grep -E 'app-logs' | head -n 1 \
+              || true
+            )"
+            if [ -n "${APP_LOG_VOL}" ]; then
+              echo "Using volume: ${APP_LOG_VOL}"
+              docker run --rm \
+                -v "${APP_LOG_VOL}:/logs:ro" \
+                alpine:3.20 \
+                sh -c '
+                  ls -lan /logs || true
+                  for file in /logs/*.log; do
+                    [ -f "$file" ] || continue
+                    echo "===== $file ====="
+                    tail -n 1000 "$file" || true
+                  done
+                ' || true
+            else
+              echo "No app-logs volume matched."
+            fi
+
+            echo "===== curl -i actuator/health ====="
             curl -i --max-time 10 http://localhost:8080/actuator/health || true
+
+            echo "===== app env keys (values redacted) ====="
+            docker inspect tlbank-app \
+              --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null \
+              | sed 's/=.*$/=<redacted>/' \
+              | grep -E '^(SPRING_PROFILES_ACTIVE|SPRING_DATASOURCE_URL|SPRING_DATASOURCE_USERNAME|SPRING_DATA_REDIS_|TLBANK_|LOG_|APP_UPLOAD)' \
+              || true
+
             exit 1
           fi
 
-          # 🧪 驗證 Redis 可正常回應
           if [ "$(docker exec tlbank-redis redis-cli ping)" != "PONG" ]; then
             echo "Redis health verification failed."
-            docker compose logs --no-color --tail=100 redis
+            docker compose logs --no-color --tail=100 redis || true
             exit 1
           fi
 
-          # ✅ 再次輸出完整服務狀態，作為部署成功紀錄
-          docker compose ps
+          docker compose ps -a
           echo "TLBank staging deployment completed successfully."
-
-          # 🧹 清理沒有被任何容器使用的舊映像層，避免本機磁碟長期累積
           docker image prune -f

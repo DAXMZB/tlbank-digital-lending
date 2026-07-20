@@ -3,7 +3,8 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = N'tlbank_app')
 BEGIN
-    CREATE LOGIN tlbank_app WITH PASSWORD = 'ChangeMe@2024', CHECK_POLICY = OFF;
+    -- AppPassword 由 sqlcmd -v AppPassword=... 傳入，勿在腳本內硬編碼密碼
+    CREATE LOGIN tlbank_app WITH PASSWORD = '$(AppPassword)', CHECK_POLICY = OFF;
 END
 GO
 

@@ -1,37 +1,37 @@
-# 定義本專案本地／預發布環境所需的容器服務組合
+# ==========================================================================
+# TLBank CD 部署唯一模板（GitHub Actions self-hosted 使用）
+# 由 ci.yml 複製到 $HOME/tlbank/docker-compose.yml，勿在此寫入真實密碼
+# ==========================================================================
+
 services:
 
-  # SQL Server 資料庫服務，提供應用程式所需的持久化資料儲存
+  # SQL Server：僅 amd64 官方映像；Apple Silicon 須明確指定平台
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
     container_name: tlbank-sqlserver
-    # 設定 SQL Server 授權同意、系統管理員密碼與產品版本
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD}
       MSSQL_PID: Developer
-    # 將容器 1433 連接埠對應至主機，供本機工具與應用程式連線
     ports:
       - "1433:1433"
-    # 持久化資料目錄，並以唯讀方式掛載初始化腳本
     volumes:
       - sqlserver-data:/var/opt/mssql
-      - ./docker/sqlserver/init:/scripts:ro
     networks:
       - tlbank-network
-    # 定期執行查詢以確認資料庫已可接受連線
     healthcheck:
       test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
       interval: 15s
       timeout: 10s
-      retries: 10
-      start_period: 40s
+      retries: 12
+      start_period: 300s
 
-  # 一次性初始化工作：建立資料庫與應用程式使用者
+  # 使用 repository 內初始化腳本建立 TLBankLending 與 tlbank_app（sa 僅用於初始化）
   db-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
     container_name: tlbank-db-init
-    # 等待 SQL Server 通過健康檢查後，再執行資料庫初始化腳本
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -43,7 +43,6 @@ services:
     networks:
       - tlbank-network
     entrypoint: ["/bin/bash", "-c"]
-    # 依序執行資料庫建立與應用程式帳號建立腳本（AppPassword 對應 SPRING_DATASOURCE_PASSWORD）
     command:
       - >
         /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -i /scripts/01-init-database.sql &&
@@ -51,14 +50,29 @@ services:
         -v AppPassword="$$APP_DB_PASSWORD" -i /scripts/02-create-app-user.sql
     restart: "no"
 
-  # Spring Boot 應用程式服務，對外提供 Web UI 與 REST API
+  # Redis：固定版本 + named volume；供冪等儲存使用
+  redis:
+    image: redis:7.4-alpine
+    container_name: tlbank-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tlbank-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Spring Boot：使用 GHCR 映像（多架構時由 Docker 自動選臂）；不以 root 執行
   app:
-    # 以專案內 Dockerfile 建置應用程式映像
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile
+    image: ${APP_IMAGE}
     container_name: tlbank-app
-    # 資料庫健康且初始化完成後，再啟動應用程式
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -66,9 +80,8 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-    # Spring 設定檔、資料來源與上傳路徑等執行時期參數
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-staging}
+      SPRING_PROFILES_ACTIVE: staging
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
@@ -80,49 +93,29 @@ services:
       TLBANK_IDEMPOTENCY_STORE: redis
     ports:
       - "8080:8080"
-    # 持久化上傳檔案與應用程式日誌
     volumes:
       - app-uploads:/app/uploads
       - app-logs:/app/logs
     networks:
       - tlbank-network
-    # 透過 Actuator 健康檢查端點確認應用程式已就緒
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
-      interval: 30s
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8080/actuator/health/liveness | grep -q '\"status\":\"UP\"' || exit 1"
+        ]
+      interval: 15s
       timeout: 10s
-      retries: 5
-      start_period: 90s
-
-  # Redis 服務，供開發／測試環境的冪等鍵儲存使用
-  redis:
-    image: redis:7.4-alpine
-    container_name: tlbank-redis
-    command: ["redis-server", "--appendonly", "yes"]
-    # 將容器 6379 連接埠對應至主機，供本機或應用程式連線
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - tlbank-network
-    # 以 PING 確認 Redis 程序可回應
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      retries: 40
+      start_period: 180s
     restart: unless-stopped
 
-# 具名卷冊：資料庫資料、上傳檔案與日誌跨容器重建後仍保留
 volumes:
   sqlserver-data:
   app-uploads:
   app-logs:
   redis-data:
 
-# 橋接網路：讓各服務以服務名稱互相解析與通訊
 networks:
   tlbank-network:
     driver: bridge
