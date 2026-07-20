@@ -191,11 +191,18 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/${OWNER}/tlbank-backend" >> "$GITHUB_ENV"
 
       - name: Prepare deploy directory from repository template
+        shell: bash
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/.docker
           COMPOSE_PROJECT_NAME: tlbank
+          # Secrets 經 env 注入；禁止 echo／set -x／寫入 repository
+          APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
+          MSSQL_SA_PASSWORD: ${{ secrets.MSSQL_SA_PASSWORD }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
           set -euo pipefail
+          set +H
 
           DEPLOY_DIR="${HOME}/tlbank"
           SOURCE_COMPOSE="${GITHUB_WORKSPACE}/sp2-springboot/docker-compose.deploy.yml"
@@ -205,36 +212,69 @@ jobs:
           cp "$SOURCE_COMPOSE" "$DEPLOY_DIR/docker-compose.yml"
           cp "$SOURCE_INIT"/*.sql "$DEPLOY_DIR/docker/sqlserver/init/"
 
-          # 驗證 APP_DB_PASSWORD 格式（不 echo 值；關閉 history expansion 避免 ! 問題）
-          set +H
-          APP_DB_PASSWORD_VALUE='${{ secrets.APP_DB_PASSWORD }}'
-          APP_DB_PASSWORD_PATTERN='^[A-Za-z0-9!@#%_-]{16,}$'
-          if [[ ! "$APP_DB_PASSWORD_VALUE" =~ $APP_DB_PASSWORD_PATTERN ]]; then
-            echo "APP_DB_PASSWORD has an unsupported format."
-            echo "Use at least 16 characters from A-Z, a-z, 0-9, ! @ # % _ -."
+          # 僅回報 Secret 是否存在（yes/no），不輸出任何值或長度
+          if [ -n "${APP_DB_PASSWORD}" ]; then echo "secret APP_DB_PASSWORD: yes"; else echo "secret APP_DB_PASSWORD: no"; fi
+          if [ -n "${MSSQL_SA_PASSWORD}" ]; then echo "secret MSSQL_SA_PASSWORD: yes"; else echo "secret MSSQL_SA_PASSWORD: no"; fi
+          if [ -n "${GHCR_USERNAME}" ]; then echo "secret GHCR_USERNAME: yes"; else echo "secret GHCR_USERNAME: no"; fi
+          if [ -n "${GHCR_TOKEN}" ]; then echo "secret GHCR_TOKEN: yes"; else echo "secret GHCR_TOKEN: no"; fi
+
+          if [ -z "${IMAGE_NAME:-}" ]; then
+            echo "APP_IMAGE / IMAGE_NAME is not set."
             exit 1
           fi
-          unset APP_DB_PASSWORD_VALUE
+          echo "APP_IMAGE=${IMAGE_NAME}:latest"
+
+          if [ -z "${MSSQL_SA_PASSWORD}" ]; then
+            echo "MSSQL_SA_PASSWORD is missing or empty."
+            echo "Update the MSSQL_SA_PASSWORD GitHub Actions repository secret."
+            exit 1
+          fi
+
+          # APP_DB_PASSWORD：必要；長度 >= 16；允許 A-Z a-z 0-9 ! @ # % _ -
+          APP_DB_PASSWORD_PATTERN='^[A-Za-z0-9!@#%_-]{16,}$'
+          if [[ ! "${APP_DB_PASSWORD}" =~ $APP_DB_PASSWORD_PATTERN ]]; then
+            echo "APP_DB_PASSWORD is missing or has an unsupported format."
+            echo "Update the APP_DB_PASSWORD GitHub Actions repository secret."
+            echo "Use at least 16 characters from A-Z, a-z, 0-9, ! @ # % _ -."
+            echo "Do not store the password in the repository."
+            exit 1
+          fi
+
+          if [ -z "${GHCR_USERNAME}" ] || [ -z "${GHCR_TOKEN}" ]; then
+            echo "GHCR_USERNAME and GHCR_TOKEN are required for image pull."
+            exit 1
+          fi
 
           # 寫入部署用 .env（chmod 600）；禁止 cat / echo 檔案內容到日誌
-          # 使用 printf 避免 heredoc 縮排污染 key=value
           umask 077
           printf '%s\n' \
             "APP_IMAGE=${IMAGE_NAME}:latest" \
-            "DB_SA_PASSWORD=${{ secrets.MSSQL_SA_PASSWORD }}" \
+            "DB_SA_PASSWORD=${MSSQL_SA_PASSWORD}" \
             "SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=TLBankLending;encrypt=true;trustServerCertificate=true" \
             "SPRING_DATASOURCE_USERNAME=tlbank_app" \
-            "SPRING_DATASOURCE_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" \
+            "SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}" \
             "APP_SESSION_TIMEOUT=30m" \
             "APP_UPLOAD_PATH=/app/uploads" \
             > "$DEPLOY_DIR/.env"
           chmod 600 "$DEPLOY_DIR/.env"
+
+          # 驗證部署模板可解析（不印出 config 內容，避免環境變數外洩）
+          (
+            cd "$DEPLOY_DIR"
+            docker compose config --quiet
+            echo "compose services:"
+            docker compose config --services
+          )
+
           echo "Deploy files prepared under \$HOME/tlbank (compose + init SQL + .env)."
 
       - name: Pull and restart containers locally
+        shell: bash
         env:
           DOCKER_CONFIG: ${{ runner.temp }}/.docker
           COMPOSE_PROJECT_NAME: tlbank
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -249,16 +289,9 @@ jobs:
 
           docker compose version
 
-          AUTH=$(printf '%s:%s' "${{ secrets.GHCR_USERNAME }}" "${{ secrets.GHCR_TOKEN }}" | base64 | tr -d '\n')
-          cat > "$DOCKER_CONFIG/config.json" << EOF
-          {
-            "auths": {
-              "ghcr.io": {
-                "auth": "$AUTH"
-              }
-            }
-          }
-          EOF
+          # 使用 stdin 登入 GHCR；禁止 docker login -p、禁止 echo Token
+          printf '%s\n' "${GHCR_TOKEN}" | docker --config "$DOCKER_CONFIG" login ghcr.io \
+            -u "${GHCR_USERNAME}" --password-stdin
 
           # 不使用 docker compose down -v，避免刪除 named volumes
           docker compose down --remove-orphans 2>/dev/null || true
