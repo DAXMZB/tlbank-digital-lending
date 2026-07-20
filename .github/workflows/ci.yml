@@ -259,11 +259,20 @@ jobs:
           chmod 600 "$DEPLOY_DIR/.env"
 
           # 驗證部署模板可解析（不印出 config 內容，避免環境變數外洩）
+          # 不使用 config --quiet：部分 Runner 的 Compose 外掛不支援，且可能被誤解析為 docker 全域旗標
+          echo "Validating deployment Compose configuration..."
+          docker version >/dev/null
+          if ! docker compose version >/dev/null 2>&1; then
+            echo "Docker Compose plugin is unavailable on this runner."
+            exit 1
+          fi
+          docker compose version
           (
             cd "$DEPLOY_DIR"
-            docker compose config --quiet
+            docker compose --env-file .env -f docker-compose.yml config >/dev/null
+            echo "Deployment Compose configuration is valid."
             echo "compose services:"
-            docker compose config --services
+            docker compose --env-file .env -f docker-compose.yml config --services
           )
 
           echo "Deploy files prepared under \$HOME/tlbank (compose + init SQL + .env)."
