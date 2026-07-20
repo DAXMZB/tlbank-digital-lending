@@ -190,6 +190,75 @@ jobs:
           OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
           echo "IMAGE_NAME=ghcr.io/${OWNER}/tlbank-backend" >> "$GITHUB_ENV"
 
+      # self-hosted macOS：Runner 的 DOCKER_CONFIG / PATH 可能與互動式 Terminal 不同，
+      # 導致 docker compose plugin 找不到；以可執行 wrapper 統一後續 Compose 呼叫
+      - name: Resolve Docker Compose wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Checking Docker runtime..."
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker CLI is unavailable on this runner."
+            exit 1
+          fi
+
+          docker version
+
+          if ! docker info >/dev/null 2>&1; then
+            echo "Docker daemon is unavailable."
+            echo "Ensure Docker Desktop is running for the self-hosted runner user."
+            exit 1
+          fi
+
+          COMPOSE_WRAPPER="${RUNNER_TEMP}/tlbank-compose"
+
+          # 偵測時忽略 DOCKER_CONFIG，避免空的 runner.temp/.docker 遮蔽 cli-plugins
+          if env -u DOCKER_CONFIG docker compose version >/dev/null 2>&1; then
+            # wrapper 在 DOCKER_CONFIG 指向空目錄時，自動補上 Desktop compose plugin
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'set -euo pipefail' \
+              'if [ -n "${DOCKER_CONFIG:-}" ]; then' \
+              '  mkdir -p "${DOCKER_CONFIG}/cli-plugins"' \
+              '  if [ ! -e "${DOCKER_CONFIG}/cli-plugins/docker-compose" ] && [ -x /Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose ]; then' \
+              '    ln -sf /Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose "${DOCKER_CONFIG}/cli-plugins/docker-compose"' \
+              '  elif [ ! -e "${DOCKER_CONFIG}/cli-plugins/docker-compose" ] && [ -e "${HOME}/.docker/cli-plugins/docker-compose" ]; then' \
+              '    ln -sf "${HOME}/.docker/cli-plugins/docker-compose" "${DOCKER_CONFIG}/cli-plugins/docker-compose"' \
+              '  fi' \
+              'fi' \
+              'exec docker compose "$@"' \
+              > "$COMPOSE_WRAPPER"
+          elif command -v docker-compose >/dev/null 2>&1; then
+            LEGACY_COMPOSE="$(command -v docker-compose)"
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'set -euo pipefail' \
+              "exec \"${LEGACY_COMPOSE}\" \"\$@\"" \
+              > "$COMPOSE_WRAPPER"
+          elif [ -x "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" ]; then
+            DESKTOP_COMPOSE="/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose"
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'set -euo pipefail' \
+              "exec \"${DESKTOP_COMPOSE}\" \"\$@\"" \
+              > "$COMPOSE_WRAPPER"
+          else
+            echo "Docker Compose is unavailable to the self-hosted runner."
+            echo "Checked:"
+            echo "  docker compose"
+            echo "  docker-compose"
+            echo "  /Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose"
+            exit 1
+          fi
+
+          chmod +x "$COMPOSE_WRAPPER"
+          echo "COMPOSE_WRAPPER=${COMPOSE_WRAPPER}" >> "$GITHUB_ENV"
+
+          echo "Using Docker Compose through wrapper:"
+          "$COMPOSE_WRAPPER" version
+
       - name: Prepare deploy directory from repository template
         shell: bash
         env:
@@ -207,6 +276,11 @@ jobs:
           DEPLOY_DIR="${HOME}/tlbank"
           SOURCE_COMPOSE="${GITHUB_WORKSPACE}/sp2-springboot/docker-compose.deploy.yml"
           SOURCE_INIT="${GITHUB_WORKSPACE}/sp2-springboot/docker/sqlserver/init"
+
+          if [ -z "${COMPOSE_WRAPPER:-}" ] || [ ! -x "${COMPOSE_WRAPPER}" ]; then
+            echo "COMPOSE_WRAPPER is missing; Resolve Docker Compose wrapper must run first."
+            exit 1
+          fi
 
           mkdir -p "$DEPLOY_DIR/docker/sqlserver/init"
           cp "$SOURCE_COMPOSE" "$DEPLOY_DIR/docker-compose.yml"
@@ -258,21 +332,25 @@ jobs:
             > "$DEPLOY_DIR/.env"
           chmod 600 "$DEPLOY_DIR/.env"
 
-          # 驗證部署模板可解析（不印出 config 內容，避免環境變數外洩）
-          # 不使用 config --quiet：部分 Runner 的 Compose 外掛不支援，且可能被誤解析為 docker 全域旗標
-          echo "Validating deployment Compose configuration..."
-          docker version >/dev/null
-          if ! docker compose version >/dev/null 2>&1; then
-            echo "Docker Compose plugin is unavailable on this runner."
-            exit 1
+          # 預先放入 cli-plugins，避免後續 DOCKER_CONFIG 下 docker compose 找不到 plugin
+          mkdir -p "${DOCKER_CONFIG}/cli-plugins"
+          if [ -d "${HOME}/.docker/cli-plugins" ]; then
+            cp -a "${HOME}/.docker/cli-plugins/." "${DOCKER_CONFIG}/cli-plugins/"
           fi
-          docker compose version
+          if [ -x "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" ] \
+            && [ ! -e "${DOCKER_CONFIG}/cli-plugins/docker-compose" ]; then
+            ln -sf \
+              "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" \
+              "${DOCKER_CONFIG}/cli-plugins/docker-compose"
+          fi
+
+          echo "Validating deployment Compose configuration..."
           (
             cd "$DEPLOY_DIR"
-            docker compose --env-file .env -f docker-compose.yml config >/dev/null
+            "$COMPOSE_WRAPPER" --env-file .env -f docker-compose.yml config >/dev/null
             echo "Deployment Compose configuration is valid."
             echo "compose services:"
-            docker compose --env-file .env -f docker-compose.yml config --services
+            "$COMPOSE_WRAPPER" --env-file .env -f docker-compose.yml config --services
           )
 
           echo "Deploy files prepared under \$HOME/tlbank (compose + init SQL + .env)."
@@ -290,30 +368,42 @@ jobs:
           DEPLOY_DIR="${HOME}/tlbank"
           cd "$DEPLOY_DIR"
 
+          if [ -z "${COMPOSE_WRAPPER:-}" ] || [ ! -x "${COMPOSE_WRAPPER}" ]; then
+            echo "COMPOSE_WRAPPER is missing; Resolve Docker Compose wrapper must run first."
+            exit 1
+          fi
+
           mkdir -p "$DOCKER_CONFIG"
           if [ -d "$HOME/.docker/cli-plugins" ]; then
             mkdir -p "$DOCKER_CONFIG/cli-plugins"
             cp -a "$HOME/.docker/cli-plugins/." "$DOCKER_CONFIG/cli-plugins/"
           fi
+          if [ -x "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" ] \
+            && [ ! -e "${DOCKER_CONFIG}/cli-plugins/docker-compose" ]; then
+            mkdir -p "${DOCKER_CONFIG}/cli-plugins"
+            ln -sf \
+              "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" \
+              "${DOCKER_CONFIG}/cli-plugins/docker-compose"
+          fi
 
-          docker compose version
+          "$COMPOSE_WRAPPER" version
 
           # 使用 stdin 登入 GHCR；禁止 docker login -p、禁止 echo Token
           printf '%s\n' "${GHCR_TOKEN}" | docker --config "$DOCKER_CONFIG" login ghcr.io \
             -u "${GHCR_USERNAME}" --password-stdin
 
           # 不使用 docker compose down -v，避免刪除 named volumes
-          docker compose down --remove-orphans 2>/dev/null || true
+          "$COMPOSE_WRAPPER" down --remove-orphans 2>/dev/null || true
 
           for c in tlbank-sqlserver tlbank-db-init tlbank-redis tlbank-app; do
             docker rm -f "$c" >/dev/null 2>&1 || true
           done
 
-          docker compose pull
+          "$COMPOSE_WRAPPER" pull
 
           # compose up 失敗時必須輸出 db-init 診斷，不可因 set -e 提前退出
           set +e
-          docker compose up -d --remove-orphans
+          "$COMPOSE_WRAPPER" up -d --remove-orphans
           COMPOSE_UP_EXIT=$?
           set -e
 
@@ -321,10 +411,10 @@ jobs:
             echo "docker compose up failed with exit code ${COMPOSE_UP_EXIT}."
 
             echo "===== docker compose ps -a ====="
-            docker compose ps -a || true
+            "$COMPOSE_WRAPPER" ps -a || true
 
             echo "===== compose service names (no env/secrets) ====="
-            docker compose config --services || true
+            "$COMPOSE_WRAPPER" config --services || true
 
             echo "===== db-init state ====="
             docker inspect tlbank-db-init \
@@ -333,19 +423,19 @@ jobs:
 
             echo "===== db-init logs ====="
             docker logs --timestamps --tail=1500 tlbank-db-init || true
-            docker compose logs --no-color --tail=1500 db-init || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=1500 db-init || true
 
             echo "===== sqlserver logs ====="
-            docker compose logs --no-color --tail=500 sqlserver || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=500 sqlserver || true
 
             echo "===== redis logs ====="
-            docker compose logs --no-color --tail=200 redis || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=200 redis || true
 
             exit "$COMPOSE_UP_EXIT"
           fi
 
           echo "===== [部署後] docker compose ps -a ====="
-          docker compose ps -a
+          "$COMPOSE_WRAPPER" ps -a
 
           echo "Waiting for Actuator /health UP (up to 10 minutes)..."
           APP_READY=false
@@ -369,7 +459,7 @@ jobs:
           if [ "$APP_READY" != "true" ]; then
             echo "Application health check failed."
             echo "===== [診斷] docker compose ps -a ====="
-            docker compose ps -a || true
+            "$COMPOSE_WRAPPER" ps -a || true
 
             echo "===== [診斷] docker inspect tlbank-app ====="
             docker inspect tlbank-app \
@@ -385,11 +475,11 @@ jobs:
             docker logs --timestamps --tail=1500 tlbank-app || true
 
             echo "===== [診斷] db-init logs ====="
-            docker compose logs --no-color --tail=300 db-init || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=300 db-init || true
             echo "===== [診斷] sqlserver logs ====="
-            docker compose logs --no-color --tail=300 sqlserver || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=300 sqlserver || true
             echo "===== [診斷] redis logs ====="
-            docker compose logs --no-color --tail=300 redis || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=300 redis || true
 
             echo "===== app named volume files ====="
             APP_LOG_VOL="$(
@@ -429,10 +519,10 @@ jobs:
 
           if [ "$(docker exec tlbank-redis redis-cli ping)" != "PONG" ]; then
             echo "Redis health verification failed."
-            docker compose logs --no-color --tail=100 redis || true
+            "$COMPOSE_WRAPPER" logs --no-color --tail=100 redis || true
             exit 1
           fi
 
-          docker compose ps -a
+          "$COMPOSE_WRAPPER" ps -a
           echo "TLBank staging deployment completed successfully."
           docker image prune -f
