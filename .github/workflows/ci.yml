@@ -205,6 +205,17 @@ jobs:
           cp "$SOURCE_COMPOSE" "$DEPLOY_DIR/docker-compose.yml"
           cp "$SOURCE_INIT"/*.sql "$DEPLOY_DIR/docker/sqlserver/init/"
 
+          # 驗證 APP_DB_PASSWORD 格式（不 echo 值；關閉 history expansion 避免 ! 問題）
+          set +H
+          APP_DB_PASSWORD_VALUE='${{ secrets.APP_DB_PASSWORD }}'
+          APP_DB_PASSWORD_PATTERN='^[A-Za-z0-9!@#%_-]{16,}$'
+          if [[ ! "$APP_DB_PASSWORD_VALUE" =~ $APP_DB_PASSWORD_PATTERN ]]; then
+            echo "APP_DB_PASSWORD has an unsupported format."
+            echo "Use at least 16 characters from A-Z, a-z, 0-9, ! @ # % _ -."
+            exit 1
+          fi
+          unset APP_DB_PASSWORD_VALUE
+
           # 寫入部署用 .env（chmod 600）；禁止 cat / echo 檔案內容到日誌
           # 使用 printf 避免 heredoc 縮排污染 key=value
           umask 077
@@ -257,7 +268,39 @@ jobs:
           done
 
           docker compose pull
+
+          # compose up 失敗時必須輸出 db-init 診斷，不可因 set -e 提前退出
+          set +e
           docker compose up -d --remove-orphans
+          COMPOSE_UP_EXIT=$?
+          set -e
+
+          if [ "$COMPOSE_UP_EXIT" -ne 0 ]; then
+            echo "docker compose up failed with exit code ${COMPOSE_UP_EXIT}."
+
+            echo "===== docker compose ps -a ====="
+            docker compose ps -a || true
+
+            echo "===== compose service names (no env/secrets) ====="
+            docker compose config --services || true
+
+            echo "===== db-init state ====="
+            docker inspect tlbank-db-init \
+              --format='status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}' \
+              || true
+
+            echo "===== db-init logs ====="
+            docker logs --timestamps --tail=1500 tlbank-db-init || true
+            docker compose logs --no-color --tail=1500 db-init || true
+
+            echo "===== sqlserver logs ====="
+            docker compose logs --no-color --tail=500 sqlserver || true
+
+            echo "===== redis logs ====="
+            docker compose logs --no-color --tail=200 redis || true
+
+            exit "$COMPOSE_UP_EXIT"
+          fi
 
           echo "===== [部署後] docker compose ps -a ====="
           docker compose ps -a

@@ -45,10 +45,45 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     # 依序執行資料庫建立與應用程式帳號建立腳本（AppPassword 對應 SPRING_DATASOURCE_PASSWORD）
     command:
-      - >
-        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -i /scripts/01-init-database.sql &&
-        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C
-        -v AppPassword="$$APP_DB_PASSWORD" -i /scripts/02-create-app-user.sql
+      - |
+        set -euo pipefail
+
+        echo "[db-init] Checking initialization scripts..."
+        test -f /scripts/01-init-database.sql
+        test -f /scripts/02-create-app-user.sql
+
+        echo "[db-init] Creating or verifying TLBankLending database..."
+        /opt/mssql-tools18/bin/sqlcmd \
+          -S sqlserver \
+          -U sa \
+          -P "$$MSSQL_SA_PASSWORD" \
+          -C \
+          -b \
+          -r1 \
+          -i /scripts/01-init-database.sql
+
+        echo "[db-init] Verifying TLBankLending is ONLINE..."
+        /opt/mssql-tools18/bin/sqlcmd \
+          -S sqlserver \
+          -U sa \
+          -P "$$MSSQL_SA_PASSWORD" \
+          -C \
+          -b \
+          -r1 \
+          -Q "IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'TLBankLending' AND state_desc = N'ONLINE') THROW 51000, 'TLBankLending is not ONLINE.', 1;"
+
+        echo "[db-init] Creating or updating tlbank_app login and database user..."
+        /opt/mssql-tools18/bin/sqlcmd \
+          -S sqlserver \
+          -U sa \
+          -P "$$MSSQL_SA_PASSWORD" \
+          -C \
+          -b \
+          -r1 \
+          -v AppPassword="$$APP_DB_PASSWORD" \
+          -i /scripts/02-create-app-user.sql
+
+        echo "[db-init] Database initialization completed successfully."
     restart: "no"
 
   # Spring Boot 應用程式服務，對外提供 Web UI 與 REST API
