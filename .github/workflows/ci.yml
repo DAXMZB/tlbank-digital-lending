@@ -262,7 +262,6 @@ jobs:
       - name: Prepare deploy directory from repository template
         shell: bash
         env:
-          DOCKER_CONFIG: ${{ runner.temp }}/.docker
           COMPOSE_PROJECT_NAME: tlbank
           # Secrets 經 env 注入；禁止 echo／set -x／寫入 repository
           APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
@@ -332,18 +331,6 @@ jobs:
             > "$DEPLOY_DIR/.env"
           chmod 600 "$DEPLOY_DIR/.env"
 
-          # 預先放入 cli-plugins，避免後續 DOCKER_CONFIG 下 docker compose 找不到 plugin
-          mkdir -p "${DOCKER_CONFIG}/cli-plugins"
-          if [ -d "${HOME}/.docker/cli-plugins" ]; then
-            cp -a "${HOME}/.docker/cli-plugins/." "${DOCKER_CONFIG}/cli-plugins/"
-          fi
-          if [ -x "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" ] \
-            && [ ! -e "${DOCKER_CONFIG}/cli-plugins/docker-compose" ]; then
-            ln -sf \
-              "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" \
-              "${DOCKER_CONFIG}/cli-plugins/docker-compose"
-          fi
-
           echo "Validating deployment Compose configuration..."
           (
             cd "$DEPLOY_DIR"
@@ -358,7 +345,6 @@ jobs:
       - name: Pull and restart containers locally
         shell: bash
         env:
-          DOCKER_CONFIG: ${{ runner.temp }}/.docker
           COMPOSE_PROJECT_NAME: tlbank
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
@@ -373,24 +359,38 @@ jobs:
             exit 1
           fi
 
+          # 隔離臨時 Docker 設定：僅 auths，禁用 Keychain / Desktop credential helper
+          DOCKER_CONFIG="${RUNNER_TEMP}/tlbank-docker-config"
+          export DOCKER_CONFIG
+          rm -rf "$DOCKER_CONFIG"
           mkdir -p "$DOCKER_CONFIG"
-          if [ -d "$HOME/.docker/cli-plugins" ]; then
-            mkdir -p "$DOCKER_CONFIG/cli-plugins"
-            cp -a "$HOME/.docker/cli-plugins/." "$DOCKER_CONFIG/cli-plugins/"
+          printf '%s\n' '{' '  "auths": {}' '}' > "$DOCKER_CONFIG/config.json"
+          chmod 700 "$DOCKER_CONFIG"
+          chmod 600 "$DOCKER_CONFIG/config.json"
+          echo "DOCKER_CONFIG=${DOCKER_CONFIG}" >> "$GITHUB_ENV"
+
+          if [ -z "${GHCR_USERNAME:-}" ]; then
+            echo "GHCR_USERNAME is missing or empty."
+            exit 1
           fi
-          if [ -x "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" ] \
-            && [ ! -e "${DOCKER_CONFIG}/cli-plugins/docker-compose" ]; then
-            mkdir -p "${DOCKER_CONFIG}/cli-plugins"
-            ln -sf \
-              "/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose" \
-              "${DOCKER_CONFIG}/cli-plugins/docker-compose"
+          if [ -z "${GHCR_TOKEN:-}" ]; then
+            echo "GHCR_TOKEN is missing or empty."
+            exit 1
+          fi
+
+          if grep -qE '"credsStore"|"credHelpers"' "$DOCKER_CONFIG/config.json"; then
+            echo "Unexpected Docker credential helper configuration detected."
+            exit 1
           fi
 
           "$COMPOSE_WRAPPER" version
 
-          # 使用 stdin 登入 GHCR；禁止 docker login -p、禁止 echo Token
-          printf '%s\n' "${GHCR_TOKEN}" | docker --config "$DOCKER_CONFIG" login ghcr.io \
-            -u "${GHCR_USERNAME}" --password-stdin
+          echo "Logging in to GitHub Container Registry with isolated Docker configuration..."
+          printf '%s' "$GHCR_TOKEN" |
+            docker login ghcr.io \
+              --username "$GHCR_USERNAME" \
+              --password-stdin
+          echo "GHCR login completed."
 
           # 不使用 docker compose down -v，避免刪除 named volumes
           "$COMPOSE_WRAPPER" down --remove-orphans 2>/dev/null || true
@@ -399,11 +399,11 @@ jobs:
             docker rm -f "$c" >/dev/null 2>&1 || true
           done
 
-          "$COMPOSE_WRAPPER" pull
+          "$COMPOSE_WRAPPER" --env-file .env -f docker-compose.yml pull
 
           # compose up 失敗時必須輸出 db-init 診斷，不可因 set -e 提前退出
           set +e
-          "$COMPOSE_WRAPPER" up -d --remove-orphans
+          "$COMPOSE_WRAPPER" --env-file .env -f docker-compose.yml up -d --remove-orphans
           COMPOSE_UP_EXIT=$?
           set -e
 
@@ -526,3 +526,18 @@ jobs:
           "$COMPOSE_WRAPPER" ps -a
           echo "TLBank staging deployment completed successfully."
           docker image prune -f
+
+      - name: Clean temporary Docker credentials
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${DOCKER_CONFIG:-}" ]; then
+            export DOCKER_CONFIG
+            docker logout ghcr.io >/dev/null 2>&1 || true
+            rm -rf "$DOCKER_CONFIG"
+            echo "Temporary Docker credentials removed."
+          else
+            echo "No temporary DOCKER_CONFIG to clean."
+          fi
