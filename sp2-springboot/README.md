@@ -165,6 +165,20 @@ INIT → OTP_VERIFIED → DOCUMENT_UPLOADED → SUBMITTED → UNDER_REVIEW → A
 
 Workflow detail: [Workflow design](docs/design/08-workflow-design.md)
 
+## Application Request Lifecycle
+
+![Request Flow Diagram](docs/images/architecture/Request%20Flow%20Diagram-selection.png)
+
+A typical authenticated request flows as follows:
+
+1. **User** sends an HTTP request to the application.
+2. **Spring Security** authenticates the session and enforces RBAC.
+3. The **Controller** accepts the request and delegates to an application **Service**.
+4. The **Service** orchestrates **Business Logic** in the domain layer.
+5. The **Repository** (port / adapter) loads or persists data; **Redis** / cache may be consulted for idempotency or cached reads.
+6. On a **cache hit**, data is returned without a database round-trip; on a **cache miss**, **SQL Server** (or H2 in `dev`) is queried and the result may be stored in cache.
+7. The **response** is returned through the service and controller to the client.
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -247,7 +261,7 @@ Workflow definitions (monorepo root):
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — build, test, scan, image publish, manual deploy
 - [`.github/workflows/terraform.yml`](../.github/workflows/terraform.yml) — Terraform `fmt` / `validate` / `plan`
 
-![GitHub Actions workflow](docs/images/workflow/5.%20Git%20Hub%20Action.png)
+![CI/CD Pipeline Diagram](docs/images/workflow/CI-CD%20Pipeline%20Diagram-selection.png)
 
 **Why.** Keep build, test, scan, and image publish automated while staging stays operator-controlled on a local Mac.
 
@@ -263,6 +277,12 @@ flowchart LR
     C --> D
     D --> E[Deploy Staging<br/>self-hosted macOS<br/>workflow_dispatch only]
 ```
+
+### Actual GitHub Actions Workflow
+
+The screenshot below is a real workflow run from this repository, showing the pipeline completed successfully end to end.
+
+![GitHub Actions workflow](docs/images/workflow/5.%20Git%20Hub%20Action.png)
 
 ### CI (automated)
 
@@ -287,9 +307,13 @@ Staging runs on a local Mac (Docker Desktop + SQL Server). A self-hosted runner 
 
 ## Infrastructure (Terraform)
 
-![Terraform local workflow](docs/images/workflow/6.%20Terraform.png)
-
 Terraform under [`infra/local/`](../infra/local/) is a **local learning environment only**.
+
+### Terraform Validation
+
+The screenshot below is the actual Terraform `fmt` / `validate` / `plan` execution used by this repository (via [`.github/workflows/terraform.yml`](../.github/workflows/terraform.yml)).
+
+![Terraform local workflow](docs/images/workflow/6.%20Terraform.png)
 
 **Why.** Practice Infrastructure as Code workflows without cloud cost.
 
